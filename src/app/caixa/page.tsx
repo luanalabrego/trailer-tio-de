@@ -96,14 +96,16 @@ export default function CaixaPage() {
     e.preventDefault()
     if (!novoCliente.nome || !novoCliente.telefone) return
 
-    const clienteCriado = await salvarCliente(novoCliente)
-    setNovoCliente({ nome: '', telefone: '', aniversario: '' })
-    setMostrarModalCliente(false)
-    await carregar()
-    
-    if (clienteCriado && 'id' in clienteCriado) {
-      setClienteId(clienteCriado.id)
-    }
+const clienteCriado = await salvarCliente(novoCliente)
+setNovoCliente({ nome: '', telefone: '', aniversario: '' })
+setMostrarModalCliente(false)
+await carregar()
+
+if (clienteCriado && 'id' in clienteCriado) {
+    setClienteId(clienteCriado.id)
+  }
+} // <-- FECHA corretamente a função handleSalvarNovoCliente
+
     
   return (
     <>
