@@ -17,6 +17,9 @@ import { listarClientes } from '@/lib/firebase-clientes'
 import { registrarVenda } from '@/lib/firebase-caixa'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 
+// Tipo para os dados vindos do Firestore, sem o campo 'id'
+type AgendamentoFirestore = Omit<Agendamento, 'id'>
+
 export default function AgendamentosPage() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
@@ -24,6 +27,7 @@ export default function AgendamentosPage() {
 
   useEffect(() => {
     carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function carregar() {
@@ -32,27 +36,34 @@ export default function AgendamentosPage() {
       getDocs(collection(db, 'agendamentos')),
     ])
     setClientes(listaClientes)
-    setAgendamentos(
-      snap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as Agendamento))
-    )
+    const dados = snap.docs.map(d => {
+      const data = d.data() as AgendamentoFirestore
+      return { id: d.id, ...data }
+    })
+    setAgendamentos(dados)
   }
 
   function toggle(id: string) {
-    const s = new Set(expanded)
-    s.has(id) ? s.delete(id) : s.add(id)
-    setExpanded(s)
+    setExpanded(prev => {
+      const s = new Set(prev)
+      if (s.has(id)) {
+        s.delete(id)
+      } else {
+        s.add(id)
+      }
+      return s
+    })
   }
 
-  function formatarData(dt: any) {
+  function formatarData(dt: Timestamp | { toDate(): Date } | string) {
     if (!dt) return 'Inválida'
     let date: Date
-    // Se for Timestamp do Firestore
     if (dt instanceof Timestamp) {
       date = dt.toDate()
-    } else if (typeof dt.toDate === 'function') {
-      date = dt.toDate()
+    } else if (typeof (dt as { toDate?: unknown }).toDate === 'function') {
+      date = (dt as { toDate(): Date }).toDate()
     } else {
-      date = new Date(dt)
+      date = new Date(dt as string)
     }
     if (isNaN(date.getTime())) return 'Inválida'
     return date.toLocaleString('pt-BR', {
@@ -74,8 +85,9 @@ export default function AgendamentosPage() {
       ag.dataHora
     )} foi *confirmado*!`
     enviarWhatsApp(txt, ag.whatsapp)
-    updateDoc(doc(db, 'agendamentos', ag.id), { status: 'confirmado' })
-      .then(() => carregar())
+    updateDoc(doc(db, 'agendamentos', ag.id), { status: 'confirmado' }).then(
+      () => carregar()
+    )
   }
 
   async function handleRegistrarPagamento(ag: Agendamento) {
@@ -91,7 +103,6 @@ export default function AgendamentosPage() {
   }
 
   async function finalizarPedido(ag: Agendamento) {
-    // registra venda
     const cli = clientes.find(
       c => c.telefone.replace(/\D/g, '') === ag.whatsapp.replace(/\D/g, '')
     )
@@ -103,9 +114,7 @@ export default function AgendamentosPage() {
       pago: Boolean(ag.pago),
     }
     await registrarVenda(venda)
-    // remove agendamento
     await deleteDoc(doc(db, 'agendamentos', ag.id))
-    // se pendente, notifica sobre pagamento
     if (!ag.pago) {
       const txt = `Olá ${ag.nome}, seu pedido de ${formatarData(
         ag.dataHora
@@ -152,7 +161,7 @@ export default function AgendamentosPage() {
                           {ag.nome} — {tipo} — {formatarData(ag.dataHora)}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {ag.itens.length} item(s) • {ag.formaPagamento}
+                          {(ag.itens as PedidoItem[]).length} item(s) • {ag.formaPagamento}
                         </p>
                       </div>
                     </div>
@@ -163,10 +172,7 @@ export default function AgendamentosPage() {
                     <div className="px-4 pb-4 space-y-4">
                       <ul className="space-y-2">
                         {(ag.itens as PedidoItem[]).map(i => (
-                          <li
-                            key={i.id}
-                            className="flex justify-between"
-                          >
+                          <li key={i.id} className="flex justify-between">
                             <span>
                               {i.nome} × {i.qtd}
                             </span>

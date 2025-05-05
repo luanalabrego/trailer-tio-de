@@ -1,3 +1,4 @@
+// src/app/financeiro/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -12,6 +13,10 @@ import {
 } from 'firebase/firestore'
 import { CreditCard, DollarSign, Zap, Tag } from 'lucide-react'
 import { Venda, Custo } from '@/types'
+
+// Tipos para os dados vindos do Firestore, sem o campo 'id'
+type VendaFirestore = Omit<Venda, 'id'>
+type CustoFirestore = Omit<Custo, 'id'>
 
 export default function FinanceiroPage() {
   const [vendas, setVendas] = useState<Venda[]>([])
@@ -34,6 +39,7 @@ export default function FinanceiroPage() {
     } else {
       carregar()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataInicio, dataFim, filtroMetodo])
 
   async function carregar() {
@@ -50,10 +56,10 @@ export default function FinanceiroPage() {
       where('data', '<=', Timestamp.fromDate(fim))
     )
     const snapV = await getDocs(qV)
-    let listaV: Venda[] = snapV.docs.map(d => ({
-      id: d.id,
-      ...(d.data() as any),
-    } as Venda))
+    let listaV: Venda[] = snapV.docs.map(d => {
+      const data = d.data() as VendaFirestore
+      return { id: d.id, ...data }
+    })
 
     // aplica filtro de método, se não for "todos"
     if (filtroMetodo !== 'todos') {
@@ -68,30 +74,31 @@ export default function FinanceiroPage() {
       where('data', '<=', Timestamp.fromDate(fim))
     )
     const snapC = await getDocs(qC)
-    setCustos(snapC.docs.map(d => ({
-      id: d.id,
-      ...(d.data() as any),
-    } as Custo)))
+    const listaC: Custo[] = snapC.docs.map(d => {
+      const data = d.data() as CustoFirestore
+      return { id: d.id, ...data }
+    })
+    setCustos(listaC)
   }
 
   // calcula totais geral
   const totais = vendas.reduce(
     (acc, v) => {
-      if (v.pago) acc.receita += v.total || 0
-      else acc.pendente += v.total || 0
+      if (v.pago) acc.receita += v.total ?? 0
+      else acc.pendente += v.total ?? 0
       return acc
     },
     { receita: 0, pendente: 0 }
   )
 
-  const totalCustos = custos.reduce((sum, c) => sum + (c.valor || 0), 0)
+  const totalCustos = custos.reduce((sum, c) => sum + (c.valor ?? 0), 0)
   const lucro = totais.receita - totalCustos
   const margem = totais.receita > 0 ? (lucro / totais.receita) * 100 : 0
 
   // resumo por método de pagamento
   const resumoPorMetodo = vendas.reduce<Record<string, number>>((acc, v) => {
     const m = v.formaPagamento || 'outro'
-    acc[m] = (acc[m] || 0) + (v.total || 0)
+    acc[m] = (acc[m] || 0) + (v.total ?? 0)
     return acc
   }, {})
 

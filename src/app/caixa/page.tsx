@@ -1,3 +1,4 @@
+// src/app/caixa/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -17,7 +18,7 @@ export default function CaixaPage() {
   const [novoCliente, setNovoCliente] = useState<Omit<Cliente, 'id'>>({
     nome: '',
     telefone: '',
-    aniversario: ''
+    aniversario: '',
   })
   const [mostrarModalCliente, setMostrarModalCliente] = useState(false)
 
@@ -30,6 +31,7 @@ export default function CaixaPage() {
 
   useEffect(() => {
     carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function carregar() {
@@ -105,13 +107,15 @@ export default function CaixaPage() {
       return
     }
     const data = new Date().toLocaleString('pt-BR')
-    let html = `
+    const html = `
       <h1>Comprovante de Venda</h1>
       <p><strong>Data:</strong> ${data}</p>
       <ul>
-        ${itens.map(i =>
-          `<li>${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}</li>`
-        ).join('')}
+        ${itens
+          .map(i =>
+            `<li>${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}</li>`
+          )
+          .join('')}
       </ul>
       <p><strong>Total:</strong> R$ ${total.toFixed(2)}</p>
       <p><strong>Forma de Pagamento:</strong> ${pago ? formaPagamento : '—'}</p>
@@ -149,7 +153,7 @@ export default function CaixaPage() {
     setNovoCliente({ nome: '', telefone: '', aniversario: '' })
     setMostrarModalCliente(false)
     await carregar()
-    if (clienteCriado && 'id' in clienteCriado) {
+    if ('id' in clienteCriado) {
       setClienteId(clienteCriado.id)
     }
   }

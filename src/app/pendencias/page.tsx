@@ -1,3 +1,4 @@
+// src/app/pendencias/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -9,9 +10,13 @@ import {
   getDocs,
   updateDoc,
   doc,
+  Timestamp,
 } from 'firebase/firestore'
 import { Cliente, Venda, PedidoItem } from '@/types'
 import { ChevronDown, ChevronUp } from 'lucide-react'
+
+// Tipo para os dados vindos do Firestore, sem o campo 'id'
+type VendaFirestore = Omit<Venda, 'id'>
 
 export default function PagamentosPendentesPage() {
   const [vendas, setVendas] = useState<Venda[]>([])
@@ -20,6 +25,7 @@ export default function PagamentosPendentesPage() {
 
   useEffect(() => {
     carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function carregar() {
@@ -28,9 +34,14 @@ export default function PagamentosPendentesPage() {
       getDocs(collection(db, 'vendas')),
     ])
     setClientes(listaClientes)
+
     const pendentes = snapVendas.docs
-      .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Venda))
+      .map(docSnap => {
+        const data = docSnap.data() as VendaFirestore
+        return { id: docSnap.id, ...data }
+      })
       .filter(v => !v.pago)
+
     setVendas(pendentes)
   }
 
@@ -40,24 +51,35 @@ export default function PagamentosPendentesPage() {
   }
 
   async function pagarTudo(vendasCliente: Venda[]) {
-    if (!confirm('Deseja mesmo marcar todas as pendências deste cliente como pagas?')) {
+    if (
+      !confirm(
+        'Deseja mesmo marcar todas as pendências deste cliente como pagas?'
+      )
+    ) {
       return
     }
     await Promise.all(
-      vendasCliente.map(v => updateDoc(doc(db, 'vendas', v.id), { pago: true }))
+      vendasCliente.map(v =>
+        updateDoc(doc(db, 'vendas', v.id), { pago: true })
+      )
     )
     await carregar()
   }
 
   function enviarExtrato(cliente: Cliente, vendasCliente: Venda[]) {
     const linhasPorVenda = vendasCliente.map(v => {
-      const dataStr = formatarData(v)
+      const dataStr = formatarData(v.data)
       const itensList = (v.itens as PedidoItem[])
-        .map(i =>
-          `    - ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`
+        .map(
+          i =>
+            `    - ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(
+              2
+            )}`
         )
         .join('\n')
-      return `Venda em ${dataStr}:\n${itensList}\n    Subtotal: R$ ${v.total.toFixed(2)}`
+      return `Venda em ${dataStr}:\n${itensList}\n    Subtotal: R$ ${v.total.toFixed(
+        2
+      )}`
     })
     const totalGeral = vendasCliente
       .reduce((sum, v) => sum + v.total, 0)
@@ -66,7 +88,7 @@ export default function PagamentosPendentesPage() {
       `Olá ${cliente.nome}, aqui estão suas pendências do mês no Trailer do tio Dé:`,
       ...linhasPorVenda,
       `Total geral: R$ ${totalGeral}`,
-      `Aguardamos o pagamento, obrigado! É ótimo te ter como nosso cliente.`
+      `Aguardamos o pagamento, obrigado! É ótimo te ter como nosso cliente.`,
     ].join('\n\n')
     const tel = cliente.telefone.replace(/\D/g, '')
     window.open(
@@ -77,21 +99,34 @@ export default function PagamentosPendentesPage() {
 
   // agrupa vendas pendentes por clienteId
   const vendasPorCliente = vendas.reduce<Record<string, Venda[]>>((acc, v) => {
-    (acc[v.clienteId] ??= []).push(v)
+    ;(acc[v.clienteId] ??= []).push(v)
     return acc
   }, {})
 
   function toggle(clienteId: string) {
-    const s = new Set(expanded)
-    s.has(clienteId) ? s.delete(clienteId) : s.add(clienteId)
-    setExpanded(s)
+    setExpanded(prev => {
+      const s = new Set(prev)
+      if (s.has(clienteId)) {
+        s.delete(clienteId)
+      } else {
+        s.add(clienteId)
+      }
+      return s
+    })
   }
 
-  function formatarData(v: Venda) {
-    if (v.data && typeof (v.data as any).toDate === 'function') {
-      return (v.data as any).toDate().toLocaleDateString('pt-BR')
+  function formatarData(
+    dt: Timestamp | { toDate(): Date } | string
+  ): string {
+    let dateObj: Date
+    if (dt instanceof Timestamp) {
+      dateObj = dt.toDate()
+    } else if (typeof (dt as { toDate?: unknown }).toDate === 'function') {
+      dateObj = (dt as { toDate(): Date }).toDate()
+    } else {
+      dateObj = new Date(dt as string)
     }
-    return new Date(v.data as any).toLocaleDateString('pt-BR')
+    return dateObj.toLocaleDateString('pt-BR')
   }
 
   return (
@@ -106,84 +141,101 @@ export default function PagamentosPendentesPage() {
           <p className="text-gray-600">Não há pagamentos pendentes.</p>
         ) : (
           <div className="space-y-4">
-            {Object.entries(vendasPorCliente).map(([clienteId, vendasCliente]) => {
-              const cliente = clientes.find(c => c.id === clienteId)
-              if (!cliente) return null
-              const totalCliente = vendasCliente.reduce((sum, v) => sum + v.total, 0)
-              const isOpen = expanded.has(clienteId)
+            {Object.entries(vendasPorCliente).map(
+              ([clienteId, vendasCliente]) => {
+                const cliente = clientes.find(c => c.id === clienteId)
+                if (!cliente) return null
+                const totalCliente = vendasCliente.reduce(
+                  (sum, v) => sum + v.total,
+                  0
+                )
+                const isOpen = expanded.has(clienteId)
 
-              return (
-                <div
-                  key={clienteId}
-                  className="bg-white rounded-xl shadow border"
-                >
-                  {/* Cabeçalho */}
-                  <button
-                    onClick={() => toggle(clienteId)}
-                    className="w-full flex justify-between items-center p-4"
+                return (
+                  <div
+                    key={clienteId}
+                    className="bg-white rounded-xl shadow border"
                   >
-                    <div className="text-left">
-                      <p className="font-semibold text-gray-800">{cliente.nome}</p>
-                      <p className="text-sm text-gray-600">
-                        {vendasCliente.length} pedido(s) — Total: R$ {totalCliente.toFixed(2)}
-                      </p>
-                    </div>
-                    {isOpen ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
-                  </button>
-
-                  {/* Detalhes expandidos */}
-                  {isOpen && (
-                    <div className="px-4 pb-4 space-y-3">
-                      <ul className="space-y-2">
-                        {vendasCliente.map(v => (
-                          <li
-                            key={v.id}
-                            className="flex justify-between items-start bg-gray-50 p-3 rounded"
-                          >
-                            <div>
-                              <p className="text-sm font-medium">Data: {formatarData(v)}</p>
-                              <ul className="ml-4 text-sm">
-                                {(v.itens as PedidoItem[]).map(i => (
-                                  <li key={i.id}>
-                                    {i.nome} × {i.qtd} = R$ {(i.preco * i.qtd).toFixed(2)}
-                                  </li>
-                                ))}
-                              </ul>
-                              <p className="mt-1 text-sm">
-                                Subtotal: R$ {v.total.toFixed(2)}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                Forma: {v.formaPagamento}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => confirmarPagamento(v.id)}
-                              className="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700 self-start"
-                            >
-                              Marcar Pago
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => pagarTudo(vendasCliente)}
-                          className="bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700"
-                        >
-                          Pagar Tudo
-                        </button>
-                        <button
-                          onClick={() => enviarExtrato(cliente, vendasCliente)}
-                          className="bg-green-600 text-white text-sm px-4 py-2 rounded hover:bg-green-700"
-                        >
-                          Enviar Extrato Completo
-                        </button>
+                    {/* Cabeçalho */}
+                    <button
+                      onClick={() => toggle(clienteId)}
+                      className="w-full flex justify-between items-center p-4"
+                    >
+                      <div className="text-left">
+                        <p className="font-semibold text-gray-800">
+                          {cliente.nome}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {vendasCliente.length} pedido(s) — Total: R${' '}
+                          {totalCliente.toFixed(2)}
+                        </p>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+                      {isOpen ? (
+                        <ChevronUp size={20} />
+                      ) : (
+                        <ChevronDown size={20} />
+                      )}
+                    </button>
+
+                    {/* Detalhes expandidos */}
+                    {isOpen && (
+                      <div className="px-4 pb-4 space-y-3">
+                        <ul className="space-y-2">
+                          {vendasCliente.map(v => (
+                            <li
+                              key={v.id}
+                              className="flex justify-between items-start bg-gray-50 p-3 rounded"
+                            >
+                              <div>
+                                <p className="text-sm font-medium">
+                                  Data: {formatarData(v.data)}
+                                </p>
+                                <ul className="ml-4 text-sm">
+                                  {(v.itens as PedidoItem[]).map(i => (
+                                    <li key={i.id}>
+                                      {i.nome} × {i.qtd} = R${' '}
+                                      {(i.preco * i.qtd).toFixed(2)}
+                                    </li>
+                                  ))}
+                                </ul>
+                                <p className="mt-1 text-sm">
+                                  Subtotal: R$ {v.total.toFixed(2)}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  Forma: {v.formaPagamento}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => confirmarPagamento(v.id)}
+                                className="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700 self-start"
+                              >
+                                Marcar Pago
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => pagarTudo(vendasCliente)}
+                            className="bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700"
+                          >
+                            Pagar Tudo
+                          </button>
+                          <button
+                            onClick={() =>
+                              enviarExtrato(cliente, vendasCliente)
+                            }
+                            className="bg-green-600 text-white text-sm px-4 py-2 rounded hover:bg-green-700"
+                          >
+                            Enviar Extrato Completo
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+            )}
           </div>
         )}
       </div>

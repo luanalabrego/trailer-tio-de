@@ -1,3 +1,4 @@
+// src/app/cardapio/page.tsx
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
@@ -36,13 +37,14 @@ export default function CardapioPage() {
     async function init() {
       const [produtos_, clientes_] = await Promise.all([
         listarProdutos(),
-        listarClientes()
+        listarClientes(),
       ])
       setProdutos(produtos_)
       setClientes(clientes_)
       setQuantidades(Object.fromEntries(produtos_.map(p => [p.id, 1])))
     }
     init()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const adicionarAoCarrinho = (p: Produto) => {
@@ -59,16 +61,12 @@ export default function CardapioPage() {
     setQuantidades(q => ({ ...q, [p.id]: 1 }))
   }
 
-  const removerDoCarrinho = (id: string) => {
-    setCarrinho(prev => prev.filter(i => i.id !== id))
-  }
-
   const total = carrinho.reduce((sum, i) => sum + i.preco * i.qtd, 0)
 
   function onTelefoneChange(val: string) {
     setTelefone(val)
-    const clean = val.replace(/\D/g,'')
-    const cli = clientes.find(c => c.telefone.replace(/\D/g,'') === clean)
+    const clean = val.replace(/\D/g, '')
+    const cli = clientes.find(c => c.telefone.replace(/\D/g, '') === clean)
     if (cli) {
       setClienteExistente(cli)
       setNome(cli.nome)
@@ -112,7 +110,7 @@ export default function CardapioPage() {
         : 'Retirada no trailer',
       `Observação: ${order.observacao || '–'}`
     ].join('\n\n')
-    const tel = order.whatsapp.replace(/\D/g,'')
+    const tel = order.whatsapp.replace(/\D/g, '')
     window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(texto)}`, '_blank')
   }
 
@@ -172,7 +170,7 @@ export default function CardapioPage() {
       <header className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Cardápio</h1>
         <button
-          onClick={() => setView(v => v === 'menu' ? 'carrinho' : 'menu')}
+          onClick={() => setView(v => (v === 'menu' ? 'carrinho' : 'menu'))}
           className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
         >
           {view === 'menu' ? `Carrinho (${carrinho.length})` : 'Voltar'}
@@ -184,32 +182,46 @@ export default function CardapioPage() {
           <section key={cat} className="mb-8">
             <h2 className="text-xl font-semibold text-indigo-600 mb-2">{cat}</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {produtos.filter(p => p.categoria === cat).map(p => (
-                <div key={p.id} className="bg-white p-4 rounded-xl shadow flex flex-col">
-                  {p.imagemUrl && (
-                    <Image src={p.imagemUrl} alt={p.nome} width={400} height={200}
-                      className="w-full h-32 object-cover rounded mb-2"/>
-                  )}
-                  <h3 className="text-lg font-bold">{p.nome}</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    {p.unidade} — R$ {p.preco.toFixed(2)}
-                  </p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <label className="text-sm">Qtd:</label>
-                    <input type="number" min={1}
-                      value={quantidades[p.id] || 1}
-                      onChange={e => setQuantidades(q => ({
-                        ...q,
-                        [p.id]: Math.max(1, Number(e.target.value))
-                      }))}
-                      className="w-16 p-1 border rounded text-center"/>
+              {produtos
+                .filter(p => p.categoria === cat)
+                .map(p => (
+                  <div key={p.id} className="bg-white p-4 rounded-xl shadow flex flex-col">
+                    {p.imagemUrl && (
+                      <Image
+                        src={p.imagemUrl}
+                        alt={p.nome}
+                        width={400}
+                        height={200}
+                        className="w-full h-32 object-cover rounded mb-2"
+                      />
+                    )}
+                    <h3 className="text-lg font-bold">{p.nome}</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      {p.unidade} — R$ {p.preco.toFixed(2)}
+                    </p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <label className="text-sm">Qtd:</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={quantidades[p.id] || 1}
+                        onChange={e =>
+                          setQuantidades(q => ({
+                            ...q,
+                            [p.id]: Math.max(1, Number(e.target.value)),
+                          }))
+                        }
+                        className="w-16 p-1 border rounded text-center"
+                      />
+                    </div>
+                    <button
+                      onClick={() => adicionarAoCarrinho(p)}
+                      className="mt-auto bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                    >
+                      Adicionar
+                    </button>
                   </div>
-                  <button onClick={() => adicionarAoCarrinho(p)}
-                    className="mt-auto bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                    Adicionar
-                  </button>
-                </div>
-              ))}
+                ))}
             </div>
           </section>
         ))
@@ -223,7 +235,9 @@ export default function CardapioPage() {
               <ul className="space-y-2 mb-4">
                 {carrinho.map(item => (
                   <li key={item.id} className="flex justify-between">
-                    <span>{item.nome} × {item.qtd}</span>
+                    <span>
+                      {item.nome} × {item.qtd}
+                    </span>
                     <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
                   </li>
                 ))}
@@ -254,9 +268,11 @@ export default function CardapioPage() {
 
               <div className="mb-4">
                 <label className="block mb-1 text-sm text-gray-700">Forma de Pagamento</label>
-                <select value={formaPagamento}
+                <select
+                  value={formaPagamento}
                   onChange={e => setFormaPagamento(e.target.value)}
-                  className="w-full p-2 border rounded">
+                  className="w-full p-2 border rounded"
+                >
                   <option value="">Selecione</option>
                   <option value="pix">Pix</option>
                   <option value="dinheiro">Dinheiro</option>
@@ -267,10 +283,12 @@ export default function CardapioPage() {
 
               <div className="mb-4">
                 <label className="block mb-1 text-sm text-gray-700">Observação</label>
-                <textarea value={observacao}
+                <textarea
+                  value={observacao}
                   onChange={e => setObservacao(e.target.value)}
                   className="w-full p-2 border rounded"
-                  rows={3}/>
+                  rows={3}
+                />
               </div>
 
               <div className="flex gap-4 mb-4">
@@ -278,7 +296,7 @@ export default function CardapioPage() {
                   <label className="block mb-1 text-sm text-gray-700">Retirada / Entrega</label>
                   <select
                     value={tipoEntrega}
-                    onChange={e => setTipoEntrega(e.target.value as any)}
+                    onChange={e => setTipoEntrega(e.target.value as 'retirada' | 'entrega')}
                     className="w-full p-2 border rounded"
                   >
                     <option value="retirada">Retirada</option>
@@ -304,8 +322,10 @@ export default function CardapioPage() {
               <div className="text-right font-bold text-lg mb-4">
                 Total: R$ {total.toFixed(2)}
               </div>
-              <button onClick={handleAgendar}
-                className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
+              <button
+                onClick={handleAgendar}
+                className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+              >
                 Finalizar Pedido
               </button>
             </>
@@ -320,33 +340,46 @@ export default function CardapioPage() {
             <div className="space-y-4 text-sm">
               <div>
                 <label className="block mb-1">WhatsApp</label>
-                <input type="tel" value={telefone}
+                <input
+                  type="tel"
+                  value={telefone}
                   onChange={e => onTelefoneChange(e.target.value)}
-                  className="w-full p-2 border rounded"/>
+                  className="w-full p-2 border rounded"
+                />
               </div>
               {!clienteExistente && (
                 <>
                   <div>
                     <label className="block mb-1">Nome</label>
-                    <input type="text" value={nome}
+                    <input
+                      type="text"
+                      value={nome}
                       onChange={e => setNome(e.target.value)}
-                      className="w-full p-2 border rounded"/>
+                      className="w-full p-2 border rounded"
+                    />
                   </div>
                   <div>
                     <label className="block mb-1">Aniversário</label>
-                    <input type="date" value={aniversario}
+                    <input
+                      type="date"
+                      value={aniversario}
                       onChange={e => setAniversario(e.target.value)}
-                      className="w-full p-2 border rounded"/>
+                      className="w-full p-2 border rounded"
+                    />
                   </div>
                 </>
               )}
               <div className="flex justify-end gap-2 mt-4">
-                <button onClick={() => setShowModal(false)}
-                  className="px-4 py-2 rounded border">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 rounded border"
+                >
                   Cancelar
                 </button>
-                <button onClick={handleConfirmarCliente}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                <button
+                  onClick={handleConfirmarCliente}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                >
                   Continuar
                 </button>
               </div>
