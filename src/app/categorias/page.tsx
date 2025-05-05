@@ -1,5 +1,4 @@
 'use client'
-
 import { useEffect, useState } from 'react'
 import { Header } from '@/components/Header'
 import {
@@ -24,17 +23,23 @@ export default function CategoriasPage() {
     setCategorias(lista)
   }
 
-  const handleSalvar = async (e: React.FormEvent) => {
+  const handleSalvar = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    console.log('➡️ categorias.handleSalvar', { nome, editarId })
     if (!nome.trim()) return
 
     try {
-        await salvarCategoria({ id: editarId ?? undefined, nome })
-        setNome('')
+      if (editarId) {
+        // Se tiver função para atualizar, chame-a aqui:
+        // await atualizarCategoria(editarId, { nome: nome.trim() })
+      } else {
+        await salvarCategoria({ nome: nome.trim() })
+      }
+      setNome('')
       setEditarId(null)
       await carregar()
-    } catch (error) {
-      console.error('Erro ao salvar categoria:', error)
+    } catch (err) {
+      console.error('❌ categorias.erro salvando', err)
     }
   }
 
@@ -44,8 +49,7 @@ export default function CategoriasPage() {
   }
 
   const handleExcluir = async (id: string) => {
-    const confirmar = confirm('Deseja realmente excluir esta categoria?')
-    if (confirmar) {
+    if (confirm('Deseja realmente excluir esta categoria?')) {
       await excluirCategoria(id)
       await carregar()
     }
@@ -57,12 +61,12 @@ export default function CategoriasPage() {
       <div className="pt-20 px-4 max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Categorias</h1>
 
-        <form onSubmit={handleSalvar} className="flex gap-2 mb-6">
+        <form onSubmit={handleSalvar} className="flex gap-2 mb-4">
           <input
             type="text"
             placeholder="Nome da categoria"
             value={nome}
-            onChange={(e) => setNome(e.target.value)}
+            onChange={e => setNome(e.target.value)}
             className="flex-1 p-2 border rounded"
             required
           />
@@ -76,7 +80,7 @@ export default function CategoriasPage() {
         </form>
 
         <ul className="space-y-2">
-          {categorias.map((cat) => (
+          {categorias.map(cat => (
             <li
               key={cat.id}
               className="flex items-center justify-between bg-white p-3 rounded shadow"
