@@ -7,8 +7,11 @@ import {
   listarProdutos,
   salvarProduto,
   excluirProduto,
+  
 } from '@/lib/firebase-produtos'
 import { Produto } from '@/types'
+import Image from 'next/image'
+
 
 export default function ProdutosPage() {
   const [modoLista, setModoLista] = useState(false)
@@ -130,7 +133,13 @@ export default function ProdutosPage() {
                   <td className="p-3">R$ {p.preco.toFixed(2)}</td>
                   <td className="p-3">
                     {p.imagemUrl && (
-                      <img src={p.imagemUrl} alt={p.nome} className="w-10 h-10 object-cover rounded" />
+                        <Image
+  src={p.imagemUrl ?? '/default.png'}
+  alt={p.nome}
+  width={40}
+  height={40}
+  className="object-cover rounded"
+/>
                     )}
                   </td>
                   <td className="p-3 text-right flex justify-end gap-2">
@@ -161,7 +170,13 @@ export default function ProdutosPage() {
                   </button>
                 </div>
                 {produto.imagemUrl && (
-                  <img src={produto.imagemUrl} alt={produto.nome} className="w-full h-32 object-cover mb-2 rounded" />
+                    <Image
+  src={produto.imagemUrl ?? '/default.png'}
+  alt={produto.nome}
+  width={500}
+  height={200}
+  className="w-full h-32 object-cover mb-2 rounded"
+/>
                 )}
                 <h2 className="font-bold text-lg text-gray-800">{produto.nome}</h2>
                 <p className="text-sm text-gray-600">{produto.categoria}</p>

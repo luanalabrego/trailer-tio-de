@@ -29,8 +29,8 @@ export default function CategoriasPage() {
     if (!nome.trim()) return
 
     try {
-      await salvarCategoria({ id: editarId, nome })
-      setNome('')
+        await salvarCategoria({ id: editarId ?? undefined, nome })
+        setNome('')
       setEditarId(null)
       await carregar()
     } catch (error) {
