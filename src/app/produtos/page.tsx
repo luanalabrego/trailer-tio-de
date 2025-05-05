@@ -61,17 +61,18 @@ export default function ProdutosPage() {
     e.preventDefault()
 
     try {
-      await salvarProduto(
-        {
-          id: produtoSelecionado?.id,
-          nome,
-          categoria,
-          preco,
-          unidade,
-          imagemUrl: produtoSelecionado?.imagemUrl || '',
-        },
-        imagem
-      )
+        await salvarProduto(
+            {
+              id: produtoSelecionado?.id,
+              nome,
+              categoria,
+              preco: parseFloat(preco),
+              unidade,
+              imagemUrl: produtoSelecionado?.imagemUrl || '',
+            },
+            imagem
+          )
+          
 
       setMostrarModal(false)
       await carregarProdutos()
