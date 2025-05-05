@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["http://localhost:3000", "https://gestao-trailer-tio-de.web.app", "https://gestao-trailer-tio-de.firebaseapp.com"],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Authorization"]
+  }
+]
