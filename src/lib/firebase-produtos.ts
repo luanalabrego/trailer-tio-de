@@ -22,8 +22,15 @@ export async function listarProdutos(): Promise<Produto[]> {
   })) as Produto[]
 }
 
-export async function salvarProduto(dados: Partial<Produto>, imagem?: File) {
-  let urlImagem = dados.imagemUrl || ''
+export async function salvarProduto(
+  dados: Partial<Produto>,
+  imagem?: File
+): Promise<void> {
+  if (!dados.nome || !dados.categoria || !dados.unidade) {
+    throw new Error('Campos obrigatórios ausentes')
+  }
+
+  let urlImagem = dados.imagemUrl ?? ''
 
   if (imagem) {
     const nomeArquivo = `${Date.now()}-${imagem.name}`
@@ -33,10 +40,10 @@ export async function salvarProduto(dados: Partial<Produto>, imagem?: File) {
   }
 
   const produto: Omit<Produto, 'id'> = {
-    nome: dados.nome || '',
-    categoria: dados.categoria || '',
-    preco: Number(dados.preco || 0),
-    unidade: dados.unidade || '',
+    nome: dados.nome,
+    categoria: dados.categoria,
+    preco: parseFloat(String(dados.preco ?? '0')),
+    unidade: dados.unidade,
     imagemUrl: urlImagem,
     estoque: dados.estoque ?? 0,
   }
@@ -49,7 +56,7 @@ export async function salvarProduto(dados: Partial<Produto>, imagem?: File) {
   }
 }
 
-export async function excluirProduto(id: string) {
+export async function excluirProduto(id: string): Promise<void> {
   const refDoc = doc(db, 'produtos', id)
   await deleteDoc(refDoc)
 }

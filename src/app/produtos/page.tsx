@@ -70,8 +70,9 @@ export default function ProdutosPage() {
               unidade,
               imagemUrl: produtoSelecionado?.imagemUrl || '',
             },
-            imagem
+            imagem ?? undefined // ✅ converte null para undefined
           )
+          
           
 
       setMostrarModal(false)
