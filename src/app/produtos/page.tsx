@@ -7,11 +7,9 @@ import {
   listarProdutos,
   salvarProduto,
   excluirProduto,
-  
 } from '@/lib/firebase-produtos'
 import { Produto } from '@/types'
 import Image from 'next/image'
-
 
 export default function ProdutosPage() {
   const [modoLista, setModoLista] = useState(false)
@@ -31,11 +29,13 @@ export default function ProdutosPage() {
   }, [])
 
   const carregarProdutos = async () => {
+    console.log('Carregando produtos...')
     const lista = await listarProdutos()
     setProdutos(lista)
   }
 
   const abrirModalNovo = () => {
+    console.log('Abrindo modal novo produto')
     setModoEdicao(false)
     setProdutoSelecionado(null)
     setNome('')
@@ -47,6 +47,7 @@ export default function ProdutosPage() {
   }
 
   const abrirModalEdicao = (produto: Produto) => {
+    console.log('Editando produto:', produto)
     setModoEdicao(true)
     setProdutoSelecionado(produto)
     setNome(produto.nome)
@@ -59,18 +60,21 @@ export default function ProdutosPage() {
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Salvando produto...') // 👈 Adicione isso
-  
+    console.log('Salvando produto...')
+
     try {
-      await salvarProduto({
-        id: produtoSelecionado?.id,
-        nome,
-        categoria,
-        preco: parseFloat(preco),
-        unidade,
-        imagemUrl: produtoSelecionado?.imagemUrl || '',
-      }, imagem ?? undefined)
-  
+      await salvarProduto(
+        {
+          id: produtoSelecionado?.id,
+          nome,
+          categoria,
+          preco: parseFloat(preco),
+          unidade,
+          imagemUrl: produtoSelecionado?.imagemUrl || '',
+        },
+        imagem ?? undefined
+      )
+      console.log('Produto salvo com sucesso')
       setMostrarModal(false)
       await carregarProdutos()
     } catch (erro) {
@@ -78,11 +82,11 @@ export default function ProdutosPage() {
       alert('Erro ao salvar produto. Verifique o console.')
     }
   }
-  
 
   const handleExcluir = async (produtoId: string) => {
     const confirmar = confirm('Deseja realmente excluir este produto?')
     if (confirmar) {
+      console.log('Excluindo produto:', produtoId)
       await excluirProduto(produtoId)
       await carregarProdutos()
     }
@@ -111,6 +115,7 @@ export default function ProdutosPage() {
           </div>
         </div>
 
+        {/* lista */}
         {modoLista ? (
           <table className="w-full text-left border rounded-xl overflow-hidden shadow-md">
             <thead className="bg-gray-100 text-sm text-gray-700">
@@ -132,13 +137,13 @@ export default function ProdutosPage() {
                   <td className="p-3">R$ {p.preco.toFixed(2)}</td>
                   <td className="p-3">
                     {p.imagemUrl && (
-                        <Image
-  src={p.imagemUrl ?? '/default.png'}
-  alt={p.nome}
-  width={40}
-  height={40}
-  className="object-cover rounded"
-/>
+                      <Image
+                        src={p.imagemUrl ?? '/default.png'}
+                        alt={p.nome}
+                        width={40}
+                        height={40}
+                        className="object-cover rounded"
+                      />
                     )}
                   </td>
                   <td className="p-3 text-right flex justify-end gap-2">
@@ -169,13 +174,13 @@ export default function ProdutosPage() {
                   </button>
                 </div>
                 {produto.imagemUrl && (
-                    <Image
-  src={produto.imagemUrl ?? '/default.png'}
-  alt={produto.nome}
-  width={500}
-  height={200}
-  className="w-full h-32 object-cover mb-2 rounded"
-/>
+                  <Image
+                    src={produto.imagemUrl ?? '/default.png'}
+                    alt={produto.nome}
+                    width={500}
+                    height={200}
+                    className="w-full h-32 object-cover mb-2 rounded"
+                  />
                 )}
                 <h2 className="font-bold text-lg text-gray-800">{produto.nome}</h2>
                 <p className="text-sm text-gray-600">{produto.categoria}</p>
