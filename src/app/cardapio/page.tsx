@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { listarProdutos } from '@/lib/firebase-produtos'
 import { salvarAgendamento } from '@/lib/firebase-agendamentos'
 import { Produto, PedidoItem } from '@/types'
+import { NovoAgendamento } from '@/types'
+
 
 export default function CardapioPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
@@ -54,14 +56,17 @@ export default function CardapioPage() {
       return
     }
 
-    await salvarAgendamento({
-      nome,
-      whatsapp,
-      dataHora,
-      formaPagamento,
-      itens: carrinho,
-      total,
-    })
+    const novoAgendamento: NovoAgendamento = {
+        nome,
+        whatsapp,
+        dataHora,
+        formaPagamento,
+        itens: carrinho,
+        total,
+      }
+      
+      await salvarAgendamento(novoAgendamento)
+      
 
     alert('Agendamento enviado com sucesso!')
 

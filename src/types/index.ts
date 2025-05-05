@@ -37,16 +37,24 @@ export interface Venda {
 }
 
 export interface Agendamento {
-  id: string
-  nome: string
-  whatsapp: string
-  dataHora: string
-  formaPagamento: string
-  itens: PedidoItem[]
-  total: number
-  status: 'pendente' | 'confirmado' | 'cancelado'
-  confirmado?: boolean
-}
+    id: string
+    nome: string
+    whatsapp: string
+    dataHora: string
+    formaPagamento: string
+    itens: PedidoItem[]
+    total: number
+    status: 'pendente' | 'confirmado' | 'cancelado'
+    confirmado?: boolean
+  }
+  
+  export type NovoAgendamento = Omit<Agendamento, 'id' | 'status'>
+  
+  export interface Categoria {
+    id: string
+    nome: string
+  }
+  
 
 export interface Categoria {
   id: string
