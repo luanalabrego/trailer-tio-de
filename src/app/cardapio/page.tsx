@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react'
 import { listarProdutos } from '@/lib/firebase-produtos'
 import { salvarAgendamento } from '@/lib/firebase-agendamentos'
+import { Produto, PedidoItem } from '@/types'
 
 export default function CardapioPage() {
-  const [produtos, setProdutos] = useState<any[]>([])
-  const [carrinho, setCarrinho] = useState<any[]>([])
+  const [produtos, setProdutos] = useState<Produto[]>([])
+  const [carrinho, setCarrinho] = useState<PedidoItem[]>([])
   const [nome, setNome] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [dataHora, setDataHora] = useState('')
@@ -21,7 +22,7 @@ export default function CardapioPage() {
     carregar()
   }, [])
 
-  const adicionarAoCarrinho = (produto: any) => {
+  const adicionarAoCarrinho = (produto: Produto) => {
     const existe = carrinho.find((i) => i.id === produto.id)
     if (existe) {
       setCarrinho(
@@ -30,7 +31,13 @@ export default function CardapioPage() {
         )
       )
     } else {
-      setCarrinho([...carrinho, { ...produto, qtd: 1 }])
+      const novoItem: PedidoItem = {
+        id: produto.id,
+        nome: produto.nome,
+        preco: produto.preco,
+        qtd: 1
+      }
+      setCarrinho([...carrinho, novoItem])
     }
   }
 

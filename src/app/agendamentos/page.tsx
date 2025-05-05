@@ -8,10 +8,11 @@ import {
   updateDoc,
   doc,
 } from 'firebase/firestore'
-import { Header } from '@/components/Header' // 👈 Importa o Header
+import { Header } from '@/components/Header'
+import { Agendamento } from '@/types'
 
 export default function AgendamentosPage() {
-  const [agendamentos, setAgendamentos] = useState<any[]>([])
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
 
   useEffect(() => {
     carregar()
@@ -19,7 +20,20 @@ export default function AgendamentosPage() {
 
   const carregar = async () => {
     const snap = await getDocs(collection(db, 'agendamentos'))
-    const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const lista = snap.docs.map(doc => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        nome: data.nome,
+        whatsapp: data.whatsapp,
+        dataHora: data.dataHora,
+        formaPagamento: data.formaPagamento,
+        itens: data.itens,
+        total: Number(data.total),
+        status: data.status,
+        confirmado: data.confirmado,
+      }
+    })
     setAgendamentos(lista)
   }
 
@@ -89,7 +103,7 @@ export default function AgendamentosPage() {
               </div>
 
               <ul className="text-sm text-gray-700 mb-2">
-                {ag.itens?.map((item: any, i: number) => (
+                {ag.itens?.map((item, i) => (
                   <li key={i}>
                     - {item.nome} × {item.qtd} = R$ {(item.preco * item.qtd).toFixed(2)}
                   </li>
@@ -97,7 +111,7 @@ export default function AgendamentosPage() {
               </ul>
 
               <div className="text-right font-semibold text-indigo-600">
-                Total: R$ {ag.total?.toFixed(2)}
+                Total: R$ {ag.total.toFixed(2)}
               </div>
             </li>
           ))}

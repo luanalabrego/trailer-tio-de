@@ -6,16 +6,23 @@ import {
   addDoc,
   updateDoc,
   increment,
+  QueryDocumentSnapshot,
+  DocumentData
 } from 'firebase/firestore'
+import { Produto } from '@/types'
 
 const produtosRef = collection(db, 'produtos')
 
-export async function listarEstoque() {
+export async function listarEstoque(): Promise<Produto[]> {
   const snapshot = await getDocs(produtosRef)
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as any[]
+  return snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => {
+    const data = doc.data()
+    return {
+      id: doc.id,
+      nome: data.nome as string,
+      estoque: Number(data.estoque ?? 0),
+    }
+  })
 }
 
 export async function criarProduto(nome: string, quantidade: number) {

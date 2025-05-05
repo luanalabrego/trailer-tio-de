@@ -3,16 +3,17 @@
 import { useEffect, useState } from 'react'
 import { Header } from '@/components/Header'
 import { listarEstoque, criarProduto, alterarEstoque } from '@/lib/firebase-estoque'
+import { Produto } from '@/types'
 
 export default function EstoquePage() {
-  const [produtos, setProdutos] = useState<any[]>([])
+  const [produtos, setProdutos] = useState<Produto[]>([])
   const [mostrarAdicionar, setMostrarAdicionar] = useState(false)
   const [mostrarRemover, setMostrarRemover] = useState(false)
 
-  const [produtoSelecionado, setProdutoSelecionado] = useState('')
-  const [produtoNovoNome, setProdutoNovoNome] = useState('')
-  const [quantidade, setQuantidade] = useState(0)
-  const [motivo, setMotivo] = useState('')
+  const [produtoSelecionado, setProdutoSelecionado] = useState<string>('')
+  const [produtoNovoNome, setProdutoNovoNome] = useState<string>('')
+  const [quantidade, setQuantidade] = useState<number>(0)
+  const [motivo, setMotivo] = useState<string>('')
 
   useEffect(() => {
     carregar()
@@ -86,7 +87,7 @@ export default function EstoquePage() {
             {produtos.map((p) => (
               <tr key={p.id} className="border-t">
                 <td className="p-3 font-medium text-gray-800">{p.nome}</td>
-                <td className={`p-3 text-center font-bold ${p.estoque < 5 ? 'text-red-600' : 'text-gray-700'}`}>
+                <td className={`p-3 text-center font-bold ${p.estoque && p.estoque < 5 ? 'text-red-600' : 'text-gray-700'}`}>
                   {p.estoque ?? 0}
                 </td>
               </tr>

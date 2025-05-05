@@ -1,0 +1,61 @@
+import { Timestamp } from 'firebase/firestore'
+
+export interface Produto {
+  id: string
+  nome: string
+  preco: number
+  unidade: string
+  categoria: string
+  estoque?: number
+  imagemUrl?: string
+}
+
+export interface Cliente {
+  id: string
+  nome: string
+  telefone: string
+  aniversario?: string
+  observacoes?: string
+  totalGasto?: number
+}
+
+export interface PedidoItem {
+  id: string
+  nome: string
+  preco: number
+  qtd: number
+}
+
+export interface Venda {
+  id: string
+  clienteId: string
+  itens: PedidoItem[]
+  formaPagamento: string
+  total: number
+  pago: boolean
+  data: Timestamp
+}
+
+export interface Agendamento {
+  id: string
+  nome: string
+  whatsapp: string
+  dataHora: string
+  formaPagamento: string
+  itens: PedidoItem[]
+  total: number
+  status: 'pendente' | 'confirmado' | 'cancelado'
+  confirmado?: boolean
+}
+
+export interface Categoria {
+  id: string
+  nome: string
+}
+
+export interface Custo {
+  id: string
+  descricao: string
+  valor: number
+  data: Timestamp
+}

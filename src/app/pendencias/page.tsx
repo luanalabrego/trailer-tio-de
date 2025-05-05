@@ -9,9 +9,10 @@ import {
   doc,
 } from 'firebase/firestore'
 import { Header } from '@/components/Header'
+import { Venda } from '@/types'
 
 export default function PendenciasPage() {
-  const [vendas, setVendas] = useState<any[]>([])
+  const [vendas, setVendas] = useState<Venda[]>([])
 
   useEffect(() => {
     carregar()
@@ -20,8 +21,8 @@ export default function PendenciasPage() {
   const carregar = async () => {
     const snap = await getDocs(collection(db, 'vendas'))
     const pendentes = snap.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter((v: any) => v.pago === false)
+      .map(doc => ({ id: doc.id, ...doc.data() } as Venda))
+      .filter((v) => v.pago === false)
 
     setVendas(pendentes)
   }
@@ -32,7 +33,7 @@ export default function PendenciasPage() {
     await carregar()
   }
 
-  const formatarData = (venda: any) => {
+  const formatarData = (venda: Venda) => {
     try {
       return venda.data?.toDate?.().toLocaleString('pt-BR') || '—'
     } catch {

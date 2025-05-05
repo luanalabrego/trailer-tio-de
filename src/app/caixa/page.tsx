@@ -6,17 +6,22 @@ import { registrarVenda, listarVendasDoDia } from '@/lib/firebase-caixa'
 import { listarClientes, salvarCliente } from '@/lib/firebase-clientes'
 import { listarProdutos } from '@/lib/firebase-produtos'
 import { Plus } from 'lucide-react'
+import { Cliente, Produto, PedidoItem, Venda } from '@/types'
 
 export default function CaixaPage() {
-  const [clientes, setClientes] = useState<any[]>([])
-  const [produtos, setProdutos] = useState<any[]>([])
-  const [vendas, setVendas] = useState<any[]>([])
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [produtos, setProdutos] = useState<Produto[]>([])
+  const [vendas, setVendas] = useState<Venda[]>([])
 
   const [clienteId, setClienteId] = useState('')
-  const [novoCliente, setNovoCliente] = useState({ nome: '', telefone: '', aniversario: '' })
+  const [novoCliente, setNovoCliente] = useState<Omit<Cliente, 'id'>>({
+    nome: '',
+    telefone: '',
+    aniversario: ''
+  })
   const [mostrarModalCliente, setMostrarModalCliente] = useState(false)
 
-  const [itens, setItens] = useState<any[]>([])
+  const [itens, setItens] = useState<PedidoItem[]>([])
   const [formaPagamento, setFormaPagamento] = useState('')
   const [pago, setPago] = useState(true)
 
@@ -41,7 +46,9 @@ export default function CaixaPage() {
       setItens(itens.map(i => i.id === id ? { ...i, qtd: i.qtd + 1 } : i))
     } else {
       const produto = produtos.find(p => p.id === id)
-      setItens([...itens, { id, nome: produto.nome, preco: produto.preco, qtd: 1 }])
+      if (produto) {
+        setItens([...itens, { id: produto.id, nome: produto.nome, preco: produto.preco, qtd: 1 }])
+      }
     }
   }
 

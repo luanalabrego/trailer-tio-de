@@ -8,9 +8,10 @@ import {
   excluirCategoria,
 } from '@/lib/firebase-categorias'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Categoria } from '@/types'
 
 export default function CategoriasPage() {
-  const [categorias, setCategorias] = useState<any[]>([])
+  const [categorias, setCategorias] = useState<Categoria[]>([])
   const [nome, setNome] = useState('')
   const [editarId, setEditarId] = useState<string | null>(null)
 
@@ -37,7 +38,7 @@ export default function CategoriasPage() {
     }
   }
 
-  const handleEditar = (categoria: any) => {
+  const handleEditar = (categoria: Categoria) => {
     setEditarId(categoria.id)
     setNome(categoria.nome)
   }

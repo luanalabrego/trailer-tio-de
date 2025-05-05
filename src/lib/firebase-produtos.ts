@@ -6,20 +6,23 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  DocumentData,
+  QueryDocumentSnapshot
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { Produto } from '@/types'
 
 const colecao = collection(db, 'produtos')
 
-export async function listarProdutos() {
+export async function listarProdutos(): Promise<Produto[]> {
   const snapshot = await getDocs(colecao)
-  return snapshot.docs.map(doc => ({
+  return snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
     id: doc.id,
     ...doc.data(),
-  })) as any[]
+  })) as Produto[]
 }
 
-export async function salvarProduto(dados: any, imagem?: File) {
+export async function salvarProduto(dados: Partial<Produto>, imagem?: File) {
   let urlImagem = dados.imagemUrl || ''
 
   if (imagem) {
@@ -29,13 +32,13 @@ export async function salvarProduto(dados: any, imagem?: File) {
     urlImagem = await getDownloadURL(caminho)
   }
 
-  const produto = {
-    nome: dados.nome,
-    categoria: dados.categoria,
-    preco: parseFloat(dados.preco),
-    unidade: dados.unidade,
+  const produto: Omit<Produto, 'id'> = {
+    nome: dados.nome || '',
+    categoria: dados.categoria || '',
+    preco: Number(dados.preco || 0),
+    unidade: dados.unidade || '',
     imagemUrl: urlImagem,
-    atualizadoEm: new Date(),
+    estoque: dados.estoque ?? 0,
   }
 
   if (dados.id) {

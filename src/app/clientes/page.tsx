@@ -8,12 +8,13 @@ import {
   excluirCliente,
 } from '@/lib/firebase-clientes'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Cliente } from '@/types'
 
 export default function ClientesPage() {
-  const [clientes, setClientes] = useState<any[]>([])
+  const [clientes, setClientes] = useState<Cliente[]>([])
   const [mostrarModal, setMostrarModal] = useState(false)
   const [modoEdicao, setModoEdicao] = useState(false)
-  const [clienteSelecionado, setClienteSelecionado] = useState<any>(null)
+  const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null)
 
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
@@ -39,7 +40,7 @@ export default function ClientesPage() {
     setMostrarModal(true)
   }
 
-  const abrirModalEdicao = (cliente: any) => {
+  const abrirModalEdicao = (cliente: Cliente) => {
     setModoEdicao(true)
     setClienteSelecionado(cliente)
     setNome(cliente.nome)

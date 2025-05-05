@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react'
 import { db } from '@/firebase/firebase'
 import { collection, addDoc, getDocs, Timestamp } from 'firebase/firestore'
 import { Header } from '@/components/Header'
+import { Custo } from '@/types'
 
 export default function CustosPage() {
   const [descricao, setDescricao] = useState('')
   const [valor, setValor] = useState('')
-  const [custos, setCustos] = useState<any[]>([])
+  const [custos, setCustos] = useState<Custo[]>([])
 
   useEffect(() => {
     carregar()
@@ -16,7 +17,15 @@ export default function CustosPage() {
 
   const carregar = async () => {
     const snap = await getDocs(collection(db, 'custos'))
-    const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const lista = snap.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        descricao: data.descricao as string,
+        valor: Number(data.valor),
+        data: data.data as Timestamp,
+      }
+    })
     setCustos(lista)
   }
 
@@ -35,9 +44,9 @@ export default function CustosPage() {
     await carregar()
   }
 
-  const formatarData = (d: any) => {
+  const formatarData = (data: Timestamp) => {
     try {
-      return d?.toDate().toLocaleString('pt-BR') || ''
+      return data.toDate().toLocaleString('pt-BR')
     } catch {
       return ''
     }
@@ -86,7 +95,7 @@ export default function CustosPage() {
                 <p className="text-gray-500">Data: {formatarData(c.data)}</p>
               </div>
               <p className="font-semibold text-red-600">
-                R$ {parseFloat(c.valor).toFixed(2)}
+                R$ {parseFloat(String(c.valor)).toFixed(2)}
               </p>
             </li>
           ))}

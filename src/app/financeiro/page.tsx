@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 import { db } from '@/firebase/firebase'
 import { collection, getDocs } from 'firebase/firestore'
 import { Header } from '@/components/Header'
+import { Venda, Custo } from '@/types'
 
 export default function FinanceiroPage() {
-  const [vendas, setVendas] = useState<any[]>([])
-  const [custos, setCustos] = useState<any[]>([])
+  const [vendas, setVendas] = useState<Venda[]>([])
+  const [custos, setCustos] = useState<Custo[]>([])
 
   useEffect(() => {
     carregar()
@@ -17,8 +18,28 @@ export default function FinanceiroPage() {
     const snapVendas = await getDocs(collection(db, 'vendas'))
     const snapCustos = await getDocs(collection(db, 'custos'))
 
-    const listaVendas = snapVendas.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    const listaCustos = snapCustos.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const listaVendas = snapVendas.docs.map(doc => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        clienteId: data.clienteId,
+        itens: data.itens,
+        formaPagamento: data.formaPagamento,
+        total: Number(data.total),
+        pago: data.pago,
+        data: data.data
+      }
+    })
+
+    const listaCustos = snapCustos.docs.map(doc => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        descricao: data.descricao,
+        valor: Number(data.valor),
+        data: data.data
+      }
+    })
 
     setVendas(listaVendas)
     setCustos(listaCustos)
@@ -41,7 +62,7 @@ export default function FinanceiroPage() {
     { receita: 0, pendente: 0, porForma: {} as Record<string, number> }
   )
 
-  const totalCustos = custos.reduce((acc, cur) => acc + (parseFloat(cur.valor) || 0), 0)
+  const totalCustos = custos.reduce((acc, cur) => acc + (cur.valor || 0), 0)
   const lucro = totais.receita - totalCustos
   const margem = totais.receita > 0 ? (lucro / totais.receita) * 100 : 0
 
