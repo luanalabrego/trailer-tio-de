@@ -59,22 +59,18 @@ export default function ProdutosPage() {
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault()
-
+    console.log('Salvando produto...') // 👈 Adicione isso
+  
     try {
-        await salvarProduto(
-            {
-              id: produtoSelecionado?.id,
-              nome,
-              categoria,
-              preco: parseFloat(preco),
-              unidade,
-              imagemUrl: produtoSelecionado?.imagemUrl || '',
-            },
-            imagem ?? undefined // ✅ converte null para undefined
-          )
-          
-          
-
+      await salvarProduto({
+        id: produtoSelecionado?.id,
+        nome,
+        categoria,
+        preco: parseFloat(preco),
+        unidade,
+        imagemUrl: produtoSelecionado?.imagemUrl || '',
+      }, imagem ?? undefined)
+  
       setMostrarModal(false)
       await carregarProdutos()
     } catch (erro) {
@@ -82,6 +78,7 @@ export default function ProdutosPage() {
       alert('Erro ao salvar produto. Verifique o console.')
     }
   }
+  
 
   const handleExcluir = async (produtoId: string) => {
     const confirmar = confirm('Deseja realmente excluir este produto?')
