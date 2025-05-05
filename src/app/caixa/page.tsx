@@ -100,9 +100,11 @@ export default function CaixaPage() {
     setNovoCliente({ nome: '', telefone: '', aniversario: '' })
     setMostrarModalCliente(false)
     await carregar()
-    setClienteId(clienteCriado.id)
-  }
-
+    
+    if (clienteCriado && 'id' in clienteCriado) {
+      setClienteId(clienteCriado.id)
+    }
+    
   return (
     <>
       <Header />
