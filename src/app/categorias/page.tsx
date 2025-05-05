@@ -1,13 +1,15 @@
+// src/categorias/page.tsx
+
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Header } from '@/components/Header'
 import {
   listarCategorias,
   salvarCategoria,
   excluirCategoria,
 } from '@/lib/firebase-categorias'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, X } from 'lucide-react'
 import { Categoria } from '@/types'
 
 export default function CategoriasPage() {
@@ -20,26 +22,15 @@ export default function CategoriasPage() {
   }, [])
 
   async function carregar() {
-    try {
-      const lista = await listarCategorias()
-      setCategorias(lista)
-    } catch (err) {
-      console.error('❌ categorias.erro carregando', err)
-    }
+    const lista = await listarCategorias()
+    setCategorias(lista)
   }
 
-  async function handleSalvar(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSalvar(e: React.FormEvent) {
     e.preventDefault()
-    console.log('➡️ categorias.handleSalvar', { nome, editarId })
     if (!nome.trim()) return
-
     try {
-      if (editarId) {
-        // Se implementar atualização:
-        // await atualizarCategoria(editarId, { nome: nome.trim() })
-      } else {
-        await salvarCategoria({ nome: nome.trim() })
-      }
+      await salvarCategoria({ id: editarId ?? undefined, nome: nome.trim() })
       setNome('')
       setEditarId(null)
       await carregar()
@@ -48,19 +39,20 @@ export default function CategoriasPage() {
     }
   }
 
-  function handleEditar(categoria: Categoria) {
-    setEditarId(categoria.id)
-    setNome(categoria.nome)
+  function handleEditar(cat: Categoria) {
+    setEditarId(cat.id)
+    setNome(cat.nome)
+  }
+
+  function handleCancelar() {
+    setEditarId(null)
+    setNome('')
   }
 
   async function handleExcluir(id: string) {
     if (confirm('Deseja realmente excluir esta categoria?')) {
-      try {
-        await excluirCategoria(id)
-        await carregar()
-      } catch (err) {
-        console.error('❌ categorias.erro excluindo', err)
-      }
+      await excluirCategoria(id)
+      await carregar()
     }
   }
 
@@ -70,7 +62,7 @@ export default function CategoriasPage() {
       <div className="pt-20 px-4 max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Categorias</h1>
 
-        <form onSubmit={handleSalvar} className="flex gap-2 mb-4">
+        <form onSubmit={handleSalvar} className="flex items-center gap-2 mb-6">
           <input
             type="text"
             placeholder="Nome da categoria"
@@ -81,11 +73,29 @@ export default function CategoriasPage() {
           />
           <button
             type="submit"
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2"
+            className={`px-4 py-2 rounded text-white flex items-center gap-1 ${
+              editarId ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
+            }`}
           >
-            <Plus size={18} />
-            {editarId ? 'Atualizar' : 'Salvar'}
+            {editarId ? (
+              <>
+                <Pencil size={16} /> Atualizar
+              </>
+            ) : (
+              <>
+                <Plus size={16} /> Salvar
+              </>
+            )}
           </button>
+          {editarId && (
+            <button
+              type="button"
+              onClick={handleCancelar}
+              className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 flex items-center gap-1"
+            >
+              <X size={16} /> Cancelar
+            </button>
+          )}
         </form>
 
         <ul className="space-y-2">

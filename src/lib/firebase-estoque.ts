@@ -2,50 +2,84 @@ import { db } from '@/firebase/firebase'
 import {
   collection,
   getDocs,
+  query,
+  where,
   doc,
   addDoc,
   updateDoc,
   increment,
   QueryDocumentSnapshot,
-  DocumentData
+  DocumentData,
+  Timestamp,
 } from 'firebase/firestore'
 
-const produtosRef = collection(db, 'produtos')
-
-// Tipo reduzido para uso no estoque
-export interface ProdutoEstoque {
+export interface EstoqueItem {
   id: string
   nome: string
-  estoque: number
+  quantidade: number
+  inseridoEm: Timestamp
+  validade: Timestamp
+  atualizadoEm: Timestamp
 }
 
-// Lista apenas os campos essenciais para visualização de estoque
-export async function listarEstoque(): Promise<ProdutoEstoque[]> {
-  const snapshot = await getDocs(produtosRef)
-  return snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => {
-    const data = doc.data()
+const estoqueRef = collection(db, 'estoque')
+
+/**
+ * Lista todos os itens de estoque
+ */
+export async function listarEstoque(): Promise<EstoqueItem[]> {
+  const snap = await getDocs(estoqueRef)
+  return snap.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+    const d = docSnap.data()
     return {
-      id: doc.id,
-      nome: data.nome ?? '',
-      estoque: Number(data.estoque ?? 0),
+      id: docSnap.id,
+      nome: d.nome as string,
+      quantidade: d.quantidade as number,
+      inseridoEm: d.inseridoEm as Timestamp,
+      validade: d.validade as Timestamp,
+      atualizadoEm: d.atualizadoEm as Timestamp,
     }
   })
 }
 
-export async function criarProduto(nome: string, quantidade: number): Promise<void> {
-  const novo = {
-    nome,
-    estoque: quantidade,
-    criadoEm: new Date(),
-    atualizadoEm: new Date(),
-  }
-  await addDoc(produtosRef, novo)
-}
+/**
+ * Cria ou, se existir, incrementa um item no estoque:
+ * se já houver um documento com mesmo nome + validade,
+ * apenas soma a quantidade; do contrário cria novo.
+ */
+export async function criarOuAtualizarItemEstoque(
+  nome: string,
+  quantidade: number,
+  inseridoEm: Date,
+  validade: Date
+): Promise<void> {
+  const tsInserido = Timestamp.fromDate(inseridoEm)
+  const tsValidade = Timestamp.fromDate(validade)
+  const now = Timestamp.now()
 
-export async function alterarEstoque(id: string, quantidade: number): Promise<void> {
-  const ref = doc(db, 'produtos', id)
-  await updateDoc(ref, {
-    estoque: increment(quantidade),
-    atualizadoEm: new Date(),
-  })
+  // procura por doc com mesmo nome e mesma validade
+  const q = query(
+    estoqueRef,
+    where('nome', '==', nome),
+    where('validade', '==', tsValidade)
+  )
+  const snap = await getDocs(q)
+
+  if (!snap.empty) {
+    // se existe, incrementa quantidade e atualiza timestamp
+    const docRef = doc(db, 'estoque', snap.docs[0].id)
+    await updateDoc(docRef, {
+      quantidade: increment(quantidade),
+      atualizadoEm: now,
+    })
+  } else {
+    // senão, cria novo documento
+    await addDoc(estoqueRef, {
+      nome,
+      quantidade,
+      inseridoEm: tsInserido,
+      validade: tsValidade,
+      atualizadoEm: now,
+    })
+  }
 }

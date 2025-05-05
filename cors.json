@@ -1,8 +1,17 @@
 [
   {
-    "origin": ["http://localhost:3000", "https://gestao-trailer-tio-de.web.app"],
-    "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+    "origin": [
+      "http://localhost:3000",
+      "https://trailer-tio-de-git-main-labrego-solucoes.vercel.app"
+    ],
+    "method": ["GET","HEAD","PUT","POST","DELETE","OPTIONS"],
     "maxAgeSeconds": 3600,
-    "responseHeader": ["Content-Type"]
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "X-Goog-Resumable",
+      "X-Firebase-Storage-Version",
+      "Authorization"
+    ]
   }
 ]

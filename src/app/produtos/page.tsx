@@ -1,15 +1,18 @@
+// src/produtos/page.tsx
+
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Header } from '@/components/Header'
 import { Plus, Upload, Pencil, Trash2, Table, LayoutGrid } from 'lucide-react'
+import Image from 'next/image'
 import {
   listarProdutos,
   salvarProduto,
   excluirProduto,
 } from '@/lib/firebase-produtos'
-import { Produto } from '@/types'
-import Image from 'next/image'
+import { listarCategorias } from '@/lib/firebase-categorias'
+import { Produto, Categoria } from '@/types'
 
 export default function ProdutosPage() {
   const [modoLista, setModoLista] = useState(false)
@@ -22,20 +25,26 @@ export default function ProdutosPage() {
   const [preco, setPreco] = useState('')
   const [unidade, setUnidade] = useState('')
   const [imagem, setImagem] = useState<File | null>(null)
+
   const [produtos, setProdutos] = useState<Produto[]>([])
+  const [categorias, setCategorias] = useState<Categoria[]>([])
 
   useEffect(() => {
     carregarProdutos()
+    carregarCategorias()
   }, [])
 
-  const carregarProdutos = async () => {
-    console.log('Carregando produtos...')
+  async function carregarProdutos() {
     const lista = await listarProdutos()
     setProdutos(lista)
   }
 
+  async function carregarCategorias() {
+    const lista = await listarCategorias()
+    setCategorias(lista)
+  }
+
   const abrirModalNovo = () => {
-    console.log('Abrindo modal novo produto')
     setModoEdicao(false)
     setProdutoSelecionado(null)
     setNome('')
@@ -46,27 +55,26 @@ export default function ProdutosPage() {
     setMostrarModal(true)
   }
 
-  const abrirModalEdicao = (produto: Produto) => {
-    console.log('Editando produto:', produto)
+  const abrirModalEdicao = (p: Produto) => {
     setModoEdicao(true)
-    setProdutoSelecionado(produto)
-    setNome(produto.nome)
-    setCategoria(produto.categoria)
-    setPreco(String(produto.preco))
-    setUnidade(produto.unidade)
+    setProdutoSelecionado(p)
+    setNome(p.nome)
+    setCategoria(p.categoria)
+    setPreco(String(p.preco))
+    setUnidade(p.unidade)
     setImagem(null)
     setMostrarModal(true)
   }
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Salvando produto...')
+    if (!nome.trim() || !categoria || !preco || !unidade) return
 
     try {
       await salvarProduto(
         {
           id: produtoSelecionado?.id,
-          nome,
+          nome: nome.trim(),
           categoria,
           preco: parseFloat(preco),
           unidade,
@@ -74,20 +82,17 @@ export default function ProdutosPage() {
         },
         imagem ?? undefined
       )
-      console.log('Produto salvo com sucesso')
       setMostrarModal(false)
       await carregarProdutos()
     } catch (erro) {
-      console.error('Erro ao salvar produto:', erro)
+      console.error('❌ produtos.erro salvarProduto', erro)
       alert('Erro ao salvar produto. Verifique o console.')
     }
   }
 
-  const handleExcluir = async (produtoId: string) => {
-    const confirmar = confirm('Deseja realmente excluir este produto?')
-    if (confirmar) {
-      console.log('Excluindo produto:', produtoId)
-      await excluirProduto(produtoId)
+  const handleExcluir = async (id: string) => {
+    if (confirm('Deseja realmente excluir este produto?')) {
+      await excluirProduto(id)
       await carregarProdutos()
     }
   }
@@ -115,7 +120,7 @@ export default function ProdutosPage() {
           </div>
         </div>
 
-        {/* lista */}
+        {/* Lista ou grid */}
         {modoLista ? (
           <table className="w-full text-left border rounded-xl overflow-hidden shadow-md">
             <thead className="bg-gray-100 text-sm text-gray-700">
@@ -138,7 +143,7 @@ export default function ProdutosPage() {
                   <td className="p-3">
                     {p.imagemUrl && (
                       <Image
-                        src={p.imagemUrl ?? '/default.png'}
+                        src={p.imagemUrl}
                         alt={p.nome}
                         width={40}
                         height={40}
@@ -147,10 +152,16 @@ export default function ProdutosPage() {
                     )}
                   </td>
                   <td className="p-3 text-right flex justify-end gap-2">
-                    <button onClick={() => abrirModalEdicao(p)} className="text-indigo-600 hover:text-indigo-800">
+                    <button
+                      onClick={() => abrirModalEdicao(p)}
+                      className="text-indigo-600 hover:text-indigo-800"
+                    >
                       <Pencil size={18} />
                     </button>
-                    <button onClick={() => handleExcluir(p.id)} className="text-red-500 hover:text-red-700">
+                    <button
+                      onClick={() => handleExcluir(p.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
                       <Trash2 size={18} />
                     </button>
                   </td>
@@ -166,16 +177,22 @@ export default function ProdutosPage() {
                 className="bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition relative"
               >
                 <div className="absolute top-2 right-2 flex gap-2">
-                  <button onClick={() => abrirModalEdicao(produto)} className="text-indigo-600 hover:text-indigo-800">
+                  <button
+                    onClick={() => abrirModalEdicao(produto)}
+                    className="text-indigo-600 hover:text-indigo-800"
+                  >
                     <Pencil size={18} />
                   </button>
-                  <button onClick={() => handleExcluir(produto.id)} className="text-red-500 hover:text-red-700">
+                  <button
+                    onClick={() => handleExcluir(produto.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
                     <Trash2 size={18} />
                   </button>
                 </div>
                 {produto.imagemUrl && (
                   <Image
-                    src={produto.imagemUrl ?? '/default.png'}
+                    src={produto.imagemUrl}
                     alt={produto.nome}
                     width={500}
                     height={200}
@@ -192,18 +209,14 @@ export default function ProdutosPage() {
           </div>
         )}
 
-        {/* Modal */}
+        {/* Modal de cadastro/edição */}
         {mostrarModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
             <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl relative">
               <h2 className="text-xl font-bold text-gray-800 mb-4">
                 {modoEdicao ? 'Editar Produto' : 'Novo Produto'}
               </h2>
-              <form onSubmit={(e) => {
-  e.preventDefault()
-  console.log('✅ Submit acionado')
-  handleSalvar(e)
-}} className="space-y-4">
+              <form onSubmit={handleSalvar} className="space-y-4">
                 <input
                   type="text"
                   placeholder="Nome"
@@ -219,11 +232,12 @@ export default function ProdutosPage() {
                   required
                 >
                   <option value="">Selecione a categoria</option>
-                  <option value="Lanches">Lanches</option>
-                  <option value="Bebidas">Bebidas</option>
-                  <option value="Salgados">Salgados</option>
+                  {categorias.map((cat) => (
+                    <option key={cat.id} value={cat.nome}>
+                      {cat.nome}
+                    </option>
+                  ))}
                 </select>
-
                 <input
                   type="number"
                   placeholder="Preço"
@@ -244,7 +258,6 @@ export default function ProdutosPage() {
                   <option value="kg">Kg</option>
                   <option value="ml">ml</option>
                 </select>
-
                 <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200">
                   <Upload size={18} />
                   <span>Selecionar Imagem</span>
@@ -254,7 +267,9 @@ export default function ProdutosPage() {
                     className="hidden"
                   />
                 </label>
-                {imagem && <p className="text-sm text-gray-600">Imagem: {imagem.name}</p>}
+                {imagem && (
+                  <p className="text-sm text-gray-600">Imagem: {imagem.name}</p>
+                )}
                 <div className="text-right">
                   <button
                     type="submit"
