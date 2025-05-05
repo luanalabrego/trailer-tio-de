@@ -19,14 +19,24 @@ export default function LoginPage() {
     setErro('')
     setCarregando(true)
 
-    if (!usuariosPermitidos.includes(email)) {
+    const emailNormalizado = email.trim().toLowerCase()
+
+    if (!usuariosPermitidos.includes(emailNormalizado)) {
       setErro('Usuário não autorizado.')
       setCarregando(false)
       return
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, senha)
+      await signInWithEmailAndPassword(auth, emailNormalizado, senha)
+
+      // Salvar perfil
+      if (emailNormalizado === 'adm@trailertiode.com') {
+        localStorage.setItem('perfil', 'ADM')
+      } else {
+        localStorage.setItem('perfil', 'FUNC')
+      }
+
       router.push('/dashboard')
     } catch {
       setErro('E-mail ou senha inválidos.')
