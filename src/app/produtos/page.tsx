@@ -199,7 +199,11 @@ export default function ProdutosPage() {
               <h2 className="text-xl font-bold text-gray-800 mb-4">
                 {modoEdicao ? 'Editar Produto' : 'Novo Produto'}
               </h2>
-              <form onSubmit={handleSalvar} className="space-y-4">
+              <form onSubmit={(e) => {
+  e.preventDefault()
+  console.log('✅ Submit acionado')
+  handleSalvar(e)
+}} className="space-y-4">
                 <input
                   type="text"
                   placeholder="Nome"
