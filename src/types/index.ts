@@ -8,6 +8,8 @@ export interface Produto {
   categoria: string
   estoque?: number
   imagemUrl?: string
+  criadoEm?: Timestamp | Date
+  atualizadoEm?: Timestamp | Date
 }
 
 export interface Cliente {
@@ -37,24 +39,19 @@ export interface Venda {
 }
 
 export interface Agendamento {
-    id: string
-    nome: string
-    whatsapp: string
-    dataHora: string
-    formaPagamento: string
-    itens: PedidoItem[]
-    total: number
-    status: 'pendente' | 'confirmado' | 'cancelado'
-    confirmado?: boolean
-  }
-  
-  export type NovoAgendamento = Omit<Agendamento, 'id' | 'status'>
-  
-  export interface Categoria {
-    id: string
-    nome: string
-  }
-  
+  id: string
+  nome: string
+  whatsapp: string
+  dataHora: string
+  formaPagamento: string
+  itens: PedidoItem[]
+  total: number
+  status: 'pendente' | 'confirmado' | 'cancelado'
+  confirmado?: boolean
+  dataCriacao?: Timestamp
+}
+
+export type NovoAgendamento = Omit<Agendamento, 'id' | 'status'>
 
 export interface Categoria {
   id: string

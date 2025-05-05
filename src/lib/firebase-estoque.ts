@@ -13,19 +13,27 @@ import { Produto } from '@/types'
 
 const produtosRef = collection(db, 'produtos')
 
-export async function listarEstoque(): Promise<Produto[]> {
+// Tipo reduzido para uso no estoque
+export interface ProdutoEstoque {
+  id: string
+  nome: string
+  estoque: number
+}
+
+// Lista apenas os campos essenciais para visualização de estoque
+export async function listarEstoque(): Promise<ProdutoEstoque[]> {
   const snapshot = await getDocs(produtosRef)
   return snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => {
     const data = doc.data()
     return {
       id: doc.id,
-      nome: data.nome as string,
+      nome: data.nome ?? '',
       estoque: Number(data.estoque ?? 0),
     }
   })
 }
 
-export async function criarProduto(nome: string, quantidade: number) {
+export async function criarProduto(nome: string, quantidade: number): Promise<void> {
   const novo = {
     nome,
     estoque: quantidade,
@@ -35,10 +43,10 @@ export async function criarProduto(nome: string, quantidade: number) {
   await addDoc(produtosRef, novo)
 }
 
-export async function alterarEstoque(id: string, quantidade: number) {
+export async function alterarEstoque(id: string, quantidade: number): Promise<void> {
   const ref = doc(db, 'produtos', id)
   await updateDoc(ref, {
     estoque: increment(quantidade),
-    atualizadoEm: new Date()
+    atualizadoEm: new Date(),
   })
 }
