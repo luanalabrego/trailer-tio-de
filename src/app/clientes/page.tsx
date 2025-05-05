@@ -18,7 +18,7 @@ export default function ClientesPage() {
 
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
-  const [aniversario, setAniversario] = useState('')
+  const [aniversario, setAniversario] = useState('') // ISO YYYY-MM-DD
   const [observacoes, setObservacoes] = useState('')
 
   useEffect(() => {
@@ -45,29 +45,32 @@ export default function ClientesPage() {
     setClienteSelecionado(cliente)
     setNome(cliente.nome)
     setTelefone(cliente.telefone)
-    setAniversario(cliente.aniversario || '')
+    // converte "DD/MM/YYYY" para "YYYY-MM-DD" para o input date
+    let iso = ''
+    if (cliente.aniversario) {
+      const [dd, mm, yyyy] = cliente.aniversario.split('/')
+      iso = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
+    }
+    setAniversario(iso)
     setObservacoes(cliente.observacoes || '')
     setMostrarModal(true)
   }
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault()
-
     await salvarCliente({
       id: clienteSelecionado?.id,
       nome,
       telefone,
-      aniversario,
+      aniversario,   // YYYY-MM-DD
       observacoes,
     })
-
     setMostrarModal(false)
     await carregar()
   }
 
   const handleExcluir = async (id: string) => {
-    const confirmar = confirm('Deseja realmente excluir este cliente?')
-    if (confirmar) {
+    if (confirm('Deseja realmente excluir este cliente?')) {
       await excluirCliente(id)
       await carregar()
     }
@@ -90,7 +93,10 @@ export default function ClientesPage() {
 
         <ul className="space-y-2">
           {clientes.map(cliente => (
-            <li key={cliente.id} className="bg-white p-4 rounded-xl shadow flex justify-between items-start sm:items-center flex-col sm:flex-row">
+            <li
+              key={cliente.id}
+              className="bg-white p-4 rounded-xl shadow flex justify-between items-start sm:items-center flex-col sm:flex-row"
+            >
               <div>
                 <p className="font-semibold text-gray-800">{cliente.nome}</p>
                 <p className="text-sm text-gray-600">📱 {cliente.telefone}</p>
@@ -133,7 +139,7 @@ export default function ClientesPage() {
                 <input
                   type="text"
                   value={nome}
-                  onChange={(e) => setNome(e.target.value)}
+                  onChange={e => setNome(e.target.value)}
                   className="w-full p-2 border rounded"
                   required
                 />
@@ -145,7 +151,7 @@ export default function ClientesPage() {
                   type="tel"
                   placeholder="(DDD) 99999-0000"
                   value={telefone}
-                  onChange={(e) => setTelefone(e.target.value)}
+                  onChange={e => setTelefone(e.target.value)}
                   className="w-full p-2 border rounded"
                   required
                 />
@@ -156,10 +162,10 @@ export default function ClientesPage() {
                 <input
                   type="date"
                   value={aniversario}
-                  onChange={(e) => setAniversario(e.target.value)}
+                  onChange={e => setAniversario(e.target.value)}
                   className="w-full p-2 border rounded"
                 />
-                <p className="text-xs text-gray-500 mt-1">Formato: dia/mês/ano</p>
+                <p className="text-xs text-gray-500 mt-1">Selecione a data (formato brasileiro)</p>
               </div>
 
               <div>
@@ -167,7 +173,7 @@ export default function ClientesPage() {
                 <input
                   type="text"
                   value={observacoes}
-                  onChange={(e) => setObservacoes(e.target.value)}
+                  onChange={e => setObservacoes(e.target.value)}
                   className="w-full p-2 border rounded"
                 />
               </div>
