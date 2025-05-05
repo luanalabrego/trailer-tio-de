@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Header } from '@/components/Header'
 import {
   listarCategorias,
@@ -19,44 +19,48 @@ export default function CategoriasPage() {
     carregar()
   }, [])
 
-  const carregar = async () => {
-    const lista = await listarCategorias()
-    setCategorias(lista)
+  async function carregar() {
+    try {
+      const lista = await listarCategorias()
+      setCategorias(lista)
+    } catch (err) {
+      console.error('❌ categorias.erro carregando', err)
+    }
   }
 
-  const handleSalvar = async (e: React.FormEvent<HTMLFormElement>) => {
+  async function handleSalvar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     console.log('➡️ categorias.handleSalvar', { nome, editarId })
     if (!nome.trim()) return
 
     try {
       if (editarId) {
-        // Se você implementar atualização, chame aqui:
+        // Se implementar atualização:
         // await atualizarCategoria(editarId, { nome: nome.trim() })
       } else {
         await salvarCategoria({ nome: nome.trim() })
       }
-
-      // Limpa o campo e sai do modo de edição
       setNome('')
       setEditarId(null)
-
-      // Recarrega a lista para incluir o novo item
       await carregar()
     } catch (err) {
       console.error('❌ categorias.erro salvando', err)
     }
   }
 
-  const handleEditar = (categoria: Categoria) => {
+  function handleEditar(categoria: Categoria) {
     setEditarId(categoria.id)
     setNome(categoria.nome)
   }
 
-  const handleExcluir = async (id: string) => {
+  async function handleExcluir(id: string) {
     if (confirm('Deseja realmente excluir esta categoria?')) {
-      await excluirCategoria(id)
-      await carregar()
+      try {
+        await excluirCategoria(id)
+        await carregar()
+      } catch (err) {
+        console.error('❌ categorias.erro excluindo', err)
+      }
     }
   }
 
@@ -71,7 +75,7 @@ export default function CategoriasPage() {
             type="text"
             placeholder="Nome da categoria"
             value={nome}
-            onChange={e => setNome(e.target.value)}
+            onChange={(e) => setNome(e.target.value)}
             className="flex-1 p-2 border rounded"
             required
           />
@@ -85,7 +89,7 @@ export default function CategoriasPage() {
         </form>
 
         <ul className="space-y-2">
-          {categorias.map(cat => (
+          {categorias.map((cat) => (
             <li
               key={cat.id}
               className="flex items-center justify-between bg-white p-3 rounded shadow"

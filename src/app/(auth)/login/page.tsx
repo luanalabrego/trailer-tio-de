@@ -12,15 +12,17 @@ export default function LoginPage() {
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
 
-  const usuariosPermitidos = ['adm@trailertiode.com', 'func@trailertiode.com']
+  const usuariosPermitidos = [
+    'adm@trailertiode.com',  // ADMIN
+    'func@trailertiode.com'  // FUNCIONÁRIO
+  ]
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setErro('')
     setCarregando(true)
 
     const emailNormalizado = email.trim().toLowerCase()
-
     if (!usuariosPermitidos.includes(emailNormalizado)) {
       setErro('Usuário não autorizado.')
       setCarregando(false)
@@ -29,14 +31,10 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, emailNormalizado, senha)
-
-      // Salvar perfil
-      if (emailNormalizado === 'adm@trailertiode.com') {
-        localStorage.setItem('perfil', 'ADM')
-      } else {
-        localStorage.setItem('perfil', 'FUNC')
-      }
-
+      localStorage.setItem(
+        'perfil',
+        emailNormalizado === 'adm@trailertiode.com' ? 'ADM' : 'FUNC'
+      )
       router.push('/dashboard')
     } catch {
       setErro('E-mail ou senha inválidos.')
@@ -46,41 +44,44 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-secondary px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <form
         onSubmit={handleLogin}
         className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm"
       >
-        <h1 className="text-xl font-bold mb-4 text-center text-dark">Login</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
 
         <input
           type="email"
           placeholder="E-mail"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          className="w-full p-2 mb-3 border rounded"
+          className="w-full p-3 mb-4 border rounded focus:outline-none focus:ring"
           required
         />
+
         <input
           type="password"
           placeholder="Senha"
           value={senha}
           onChange={e => setSenha(e.target.value)}
-          className="w-full p-2 mb-3 border rounded"
+          className="w-full p-3 mb-4 border rounded focus:outline-none focus:ring"
           required
         />
 
-        {erro && <p className="text-red-500 text-sm mb-2">{erro}</p>}
+        {erro && (
+          <p className="text-red-500 text-sm mb-4">{erro}</p>
+        )}
 
         <button
           type="submit"
           disabled={carregando}
-          className="w-full bg-primary text-white p-2 rounded hover:opacity-90 transition"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded transition mb-4"
         >
           {carregando ? 'Entrando...' : 'Entrar'}
         </button>
 
-        <p className="text-xs text-center text-gray-500 mt-4">
+        <p className="text-center text-sm text-gray-500">
           Esqueceu a senha? Entre em contato com o suporte.
         </p>
       </form>

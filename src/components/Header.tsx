@@ -1,120 +1,174 @@
-'use client';
+'use client'
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { Menu, X, ChevronDown } from 'lucide-react';
-import Image from 'next/image';
-
-interface SubItem {
-  label: string;
-  href: string;
-}
-
-interface NavItem {
-  label: string;
-  href: string;
-  subMenu?: SubItem[];
-}
-
-const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Agendamentos', href: '/agendamentos', subMenu: [
-      { label: 'Novo Agendamento', href: '/agendamentos/novo' },
-      { label: 'Lista de Agendamentos', href: '/agendamentos' },
-    ]
-  },
-  { label: 'Clientes', href: '/clientes' },
-  { label: 'Caixa', href: '/caixa' },
-  { label: 'Estoque', href: '/estoque' },
-  { label: 'Produtos', href: '/produtos' },
-  { label: 'Categorias', href: '/categorias' },
-  { label: 'Cardápio', href: '/cardapio' },
-  { label: 'Financeiro', href: '/financeiro', subMenu: [
-      { label: 'Visão Geral', href: '/financeiro' },
-      { label: 'Custos', href: '/financeiro/custos' },
-      { label: 'Pendências', href: '/financeiro/pendencias' },
-    ]
-  },
-];
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { Menu, X, ChevronDown } from 'lucide-react'
+import Image from 'next/image'
 
 export function Header() {
-  const pathname = usePathname();
-  const [menuAberto, setMenuAberto] = useState(false);
-  const [submenuAberto, setSubmenuAberto] = useState<string | null>(null);
-  const [perfil, setPerfil] = useState<string | null>(null);
-  const router = useRouter();
+  const pathname = usePathname()
+  const router = useRouter()
+  const [menuAberto, setMenuAberto] = useState(false)
+  const [submenuAberto, setSubmenuAberto] = useState<string | null>(null)
+  const [perfil, setPerfil] = useState<string | null>(null)
 
   useEffect(() => {
-    const storedPerfil = localStorage.getItem('perfil');
-    if (!storedPerfil) router.push('/login');
-    else setPerfil(storedPerfil);
-  }, [router]);
+    const tipo = localStorage.getItem('perfil')?.toUpperCase() || null
+    setPerfil(tipo)
+  }, [])
+
+  if (!perfil) return null
+
+  const groupedLinks = {
+    Dashboard: [{ name: 'Dashboard', href: '/dashboard' }],
+    Produtos: [
+      { name: 'Cadastrar Produtos', href: '/produtos' },
+      { name: 'Categorias', href: '/categorias' },
+      { name: 'Estoque', href: '/estoque' },
+    ],
+    Financeiro: [
+      { name: 'Resumo Financeiro', href: '/financeiro' },
+      { name: 'Pagamentos Pendentes', href: '/pendencias' },
+      { name: 'Cadastrar Custos', href: '/custos' },
+    ],
+    Caixa: [{ name: 'Caixa', href: '/caixa' }],
+    Clientes: perfil === 'ADM' ? [{ name: 'Clientes', href: '/clientes' }] : [],
+    Agendamentos: [{ name: 'Agendamentos', href: '/agendamentos' }],
+    Cardápio: [{ name: 'Cardápio', href: '/cardapio' }],
+  }
 
   const handleLogout = () => {
-    localStorage.removeItem('perfil');
-    router.push('/login');
-  };
+    localStorage.removeItem('perfil')
+    router.push('/login')
+  }
 
   return (
-    <header className="w-full bg-white shadow fixed top-0 z-50">
-      <div className="flex items-center justify-between px-4 py-3 md:px-8">
-        <div className="flex items-center">
-          <Image src="/logo.png" alt="Logo" width={40} height={40} />
-          <span className="ml-2 text-xl font-bold">Gestão Trailer</span>
+    <header className="bg-white shadow fixed top-0 w-full z-50">
+      <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+        {/* Logo */}
+        <div className="flex items-center space-x-2">
+          <Image src="/logo.png" alt="Logo" width={36} height={36} className="rounded-full" />
+          <span className="font-semibold text-lg">Trailer Tio Dê</span>
         </div>
 
-        {/* Mobile menu button */}
+        {/* Desktop */}
+        <nav className="hidden md:flex space-x-6">
+          {Object.entries(groupedLinks).map(([grupo, links]) => (
+            links.length === 1 ? (
+              <Link
+                key={links[0].href}
+                href={links[0].href}
+                className={`text-sm font-medium ${
+                  pathname === links[0].href
+                    ? 'text-indigo-600 underline'
+                    : 'text-gray-700 hover:text-indigo-600'
+                }`}
+              >
+                {grupo}
+              </Link>
+            ) : (
+              <div key={grupo} className="relative">
+                <button
+                  onClick={() =>
+                    setSubmenuAberto(prev => (prev === grupo ? null : grupo))
+                  }
+                  className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-indigo-600"
+                >
+                  {grupo}
+                  <ChevronDown
+                    size={14}
+                    className={`transition-transform ${
+                      submenuAberto === grupo ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {submenuAberto === grupo && (
+                  <ul className="absolute mt-2 w-48 bg-white border rounded shadow-lg z-50">
+                    {links.map(link => (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          onClick={() => setSubmenuAberto(null)}
+                          className={`block px-4 py-2 text-sm hover:bg-gray-100 ${
+                            pathname === link.href
+                              ? 'text-indigo-600 font-semibold'
+                              : 'text-gray-700'
+                          }`}
+                        >
+                          {link.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          ))}
+          <button
+            onClick={handleLogout}
+            className="text-sm text-red-500 hover:underline"
+          >
+            Sair
+          </button>
+        </nav>
+
+        {/* Mobile toggle */}
         <div className="md:hidden">
           <button onClick={() => setMenuAberto(prev => !prev)}>
             {menuAberto ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
+      </div>
 
-        {/* Navigation */}
-        <nav className={`${menuAberto ? 'block' : 'hidden'} md:flex md:items-center`}>
-          {navItems.map(item => (
-            <div
-              key={item.label}
-              className="relative group"
-              onMouseEnter={() => setSubmenuAberto(item.label)}
-              onMouseLeave={() => setSubmenuAberto(null)}
-            >
-              <Link
-                href={item.href}
-                className={`block px-3 py-2 text-sm font-medium ${
-                  pathname.startsWith(item.href) ? 'text-blue-600' : 'text-gray-700'
-                } hover:text-gray-900`}
-              >
-                {item.label}
-                {item.subMenu && <ChevronDown className="inline ml-1" size={14} />}
-              </Link>
-
-              {item.subMenu && submenuAberto === item.label && (
-                <ul className="absolute left-0 mt-1 w-40 bg-white rounded shadow-lg z-10">
-                  {item.subMenu.map(sub => (
-                    <li key={sub.href}>
-                      <Link
-                        href={sub.href}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        {sub.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+      {/* Mobile dropdown */}
+      {menuAberto && (
+        <div className="md:hidden bg-white shadow-lg px-4 pb-4">
+          {Object.entries(groupedLinks).map(([grupo, links]) => (
+            <div key={grupo} className="mb-2">
+              {links.length === 1 ? (
+                <Link
+                  href={links[0].href}
+                  onClick={() => setMenuAberto(false)}
+                  className={`block py-2 text-sm ${
+                    pathname === links[0].href ? 'text-indigo-600' : 'text-gray-700'
+                  }`}
+                >
+                  {grupo}
+                </Link>
+              ) : (
+                <details>
+                  <summary className="cursor-pointer py-2 text-sm font-semibold">
+                    {grupo}
+                  </summary>
+                  <ul className="pl-4">
+                    {links.map(link => (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          onClick={() => setMenuAberto(false)}
+                          className={`block py-1 text-sm ${
+                            pathname === link.href ? 'text-indigo-600' : 'text-gray-700'
+                          }`}
+                        >
+                          {link.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )}
             </div>
           ))}
-
           <button
             onClick={handleLogout}
-            className="mt-2 md:mt-0 md:ml-4 text-sm text-red-500"
+            className="block w-full text-left py-2 text-sm text-red-500"
           >
             Sair
           </button>
-        </nav>
-      </div>
+        </div>
+      )}
     </header>
-  );
+  )
 }
