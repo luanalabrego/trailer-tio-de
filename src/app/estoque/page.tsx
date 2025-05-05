@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react'
 import { Header } from '@/components/Header'
 import { listarEstoque, criarProduto, alterarEstoque } from '@/lib/firebase-estoque'
-import { Produto } from '@/types'
+import { ProdutoEstoque } from '@/lib/firebase-estoque'
 
 export default function EstoquePage() {
-  const [produtos, setProdutos] = useState<Produto[]>([])
-  const [mostrarAdicionar, setMostrarAdicionar] = useState(false)
+    const [produtos, setProdutos] = useState<ProdutoEstoque[]>([])
+    const [mostrarAdicionar, setMostrarAdicionar] = useState(false)
   const [mostrarRemover, setMostrarRemover] = useState(false)
 
   const [produtoSelecionado, setProdutoSelecionado] = useState<string>('')
