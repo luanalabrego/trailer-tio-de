@@ -1,4 +1,5 @@
 'use client'
+
 import { useEffect, useState } from 'react'
 import { Header } from '@/components/Header'
 import {
@@ -30,13 +31,17 @@ export default function CategoriasPage() {
 
     try {
       if (editarId) {
-        // Se tiver função para atualizar, chame-a aqui:
+        // Se você implementar atualização, chame aqui:
         // await atualizarCategoria(editarId, { nome: nome.trim() })
       } else {
         await salvarCategoria({ nome: nome.trim() })
       }
+
+      // Limpa o campo e sai do modo de edição
       setNome('')
       setEditarId(null)
+
+      // Recarrega a lista para incluir o novo item
       await carregar()
     } catch (err) {
       console.error('❌ categorias.erro salvando', err)
