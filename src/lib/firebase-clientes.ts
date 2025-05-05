@@ -28,7 +28,7 @@ export async function listarClientes(): Promise<Cliente[]> {
   })
 }
 
-export async function salvarCliente(dados: Partial<Cliente>) {
+export async function salvarCliente(dados: Partial<Cliente>): Promise<Cliente | void> {
   const cliente = {
     nome: dados.nome,
     telefone: dados.telefone,
@@ -42,7 +42,7 @@ export async function salvarCliente(dados: Partial<Cliente>) {
     await updateDoc(refDoc, cliente)
   } else {
     const novo = await addDoc(colecao, cliente)
-    return { ...cliente, id: novo.id }
+    return { ...cliente, id: novo.id } as Cliente
   }
 }
 
