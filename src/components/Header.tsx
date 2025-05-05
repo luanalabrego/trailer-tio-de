@@ -2,27 +2,32 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Menu, X, ChevronDown } from 'lucide-react'
 import Image from 'next/image'
-import { getUserType } from '@/lib/auth'
 
 export function Header() {
   const pathname = usePathname()
   const [menuAberto, setMenuAberto] = useState(false)
   const [submenuAberto, setSubmenuAberto] = useState<string | null>(null)
+  const [perfil, setPerfil] = useState<string | null>(null)
   const router = useRouter()
 
-  const tipo = getUserType()
+  useEffect(() => {
+    const tipo = localStorage.getItem('perfil')?.toUpperCase() || null
+    setPerfil(tipo)
+  }, [])
+
+  if (!perfil) return null // evita renderizar antes de saber o perfil
 
   const groupedLinks = {
     Dashboard: [{ name: 'Dashboard', href: '/dashboard' }],
     Produtos: [
       { name: 'Cadastrar Produtos', href: '/produtos' },
       { name: 'Categorias', href: '/categorias' },
-      ...(tipo === 'adm' ? [{ name: 'Estoque', href: '/estoque' }] : []),
+      { name: 'Estoque', href: '/estoque' },
     ],
-    ...(tipo === 'adm'
+    ...(perfil === 'ADM'
       ? {
           Financeiro: [
             { name: 'Resumo Financeiro', href: '/financeiro' },
@@ -32,13 +37,13 @@ export function Header() {
         }
       : {}),
     Caixa: [{ name: 'Caixa', href: '/caixa' }],
-    Clientes: tipo === 'adm' ? [{ name: 'Clientes', href: '/clientes' }] : [],
+    Clientes: perfil === 'ADM' ? [{ name: 'Clientes', href: '/clientes' }] : [],
     Agendamentos: [{ name: 'Agendamentos', href: '/agendamentos' }],
     Cardápio: [{ name: 'Cardápio', href: '/cardapio' }],
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('userType')
+    localStorage.removeItem('perfil')
     router.push('/login')
   }
 
