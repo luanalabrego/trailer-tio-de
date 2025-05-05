@@ -8,19 +8,20 @@ import {
   salvarProduto,
   excluirProduto,
 } from '@/lib/firebase-produtos'
+import { Produto } from '@/types'
 
 export default function ProdutosPage() {
   const [modoLista, setModoLista] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
   const [modoEdicao, setModoEdicao] = useState(false)
-  const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null)
+  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null)
 
   const [nome, setNome] = useState('')
   const [categoria, setCategoria] = useState('')
   const [preco, setPreco] = useState('')
   const [unidade, setUnidade] = useState('')
   const [imagem, setImagem] = useState<File | null>(null)
-  const [produtos, setProdutos] = useState<any[]>([])
+  const [produtos, setProdutos] = useState<Produto[]>([])
 
   useEffect(() => {
     carregarProdutos()
@@ -42,7 +43,7 @@ export default function ProdutosPage() {
     setMostrarModal(true)
   }
 
-  const abrirModalEdicao = (produto: any) => {
+  const abrirModalEdicao = (produto: Produto) => {
     setModoEdicao(true)
     setProdutoSelecionado(produto)
     setNome(produto.nome)
@@ -55,7 +56,7 @@ export default function ProdutosPage() {
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault()
-  
+
     try {
       await salvarProduto(
         {
@@ -68,7 +69,7 @@ export default function ProdutosPage() {
         },
         imagem
       )
-  
+
       setMostrarModal(false)
       await carregarProdutos()
     } catch (erro) {
@@ -76,7 +77,7 @@ export default function ProdutosPage() {
       alert('Erro ao salvar produto. Verifique o console.')
     }
   }
-  
+
   const handleExcluir = async (produtoId: string) => {
     const confirmar = confirm('Deseja realmente excluir este produto?')
     if (confirmar) {
@@ -129,7 +130,7 @@ export default function ProdutosPage() {
                   <td className="p-3">R$ {p.preco.toFixed(2)}</td>
                   <td className="p-3">
                     {p.imagemUrl && (
-                      <img src={p.imagemUrl} className="w-10 h-10 object-cover rounded" />
+                      <img src={p.imagemUrl} alt={p.nome} className="w-10 h-10 object-cover rounded" />
                     )}
                   </td>
                   <td className="p-3 text-right flex justify-end gap-2">
@@ -189,18 +190,17 @@ export default function ProdutosPage() {
                   required
                 />
                 <select
-  value={categoria}
-  onChange={(e) => setCategoria(e.target.value)}
-  className="w-full p-2 border rounded"
-  required
->
-  <option value="">Selecione a categoria</option>
-  <option value="Lanches">Lanches</option>
-  <option value="Bebidas">Bebidas</option>
-  <option value="Salgados">Salgados</option>
-</select>
+                  value={categoria}
+                  onChange={(e) => setCategoria(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  required
+                >
+                  <option value="">Selecione a categoria</option>
+                  <option value="Lanches">Lanches</option>
+                  <option value="Bebidas">Bebidas</option>
+                  <option value="Salgados">Salgados</option>
+                </select>
 
-               
                 <input
                   type="number"
                   placeholder="Preço"
@@ -210,17 +210,17 @@ export default function ProdutosPage() {
                   required
                 />
                 <select
-  value={unidade}
-  onChange={(e) => setUnidade(e.target.value)}
-  className="w-full p-2 border rounded"
-  required
->
-  <option value="">Selecione a unidade</option>
-  <option value="un">Unidade</option>
-  <option value="porção">Porção</option>
-  <option value="kg">Kg</option>
-  <option value="ml">ml</option>
-</select>
+                  value={unidade}
+                  onChange={(e) => setUnidade(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  required
+                >
+                  <option value="">Selecione a unidade</option>
+                  <option value="un">Unidade</option>
+                  <option value="porção">Porção</option>
+                  <option value="kg">Kg</option>
+                  <option value="ml">ml</option>
+                </select>
 
                 <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200">
                   <Upload size={18} />
