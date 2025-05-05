@@ -9,7 +9,6 @@ import {
   QueryDocumentSnapshot,
   DocumentData
 } from 'firebase/firestore'
-import { Produto } from '@/types'
 
 const produtosRef = collection(db, 'produtos')
 
