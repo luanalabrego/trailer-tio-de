@@ -8,6 +8,12 @@ import { listarClientes } from '@/lib/firebase-clientes'
 import { salvarAgendamento } from '@/lib/firebase-agendamentos'
 import { Produto, PedidoItem, NovoAgendamento, Cliente } from '@/types'
 
+// Payload inclui também tipoEntrega e localEntrega
+type AgendamentoPayload = NovoAgendamento & {
+  tipoEntrega: 'retirada' | 'entrega'
+  localEntrega?: string
+}
+
 export default function CardapioPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [carrinho, setCarrinho] = useState<PedidoItem[]>([])
@@ -94,7 +100,7 @@ export default function CardapioPage() {
     dtRef.current?.blur()
   }
 
-  function enviarWhatsAppResumo(order: NovoAgendamento) {
+  function enviarWhatsAppResumo(order: AgendamentoPayload) {
     const linhas = order.itens
       .map(i => `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`)
       .join('\n')
@@ -127,7 +133,7 @@ export default function CardapioPage() {
       return
     }
 
-    const payload: NovoAgendamento = {
+    const payload: AgendamentoPayload = {
       nome: clienteExistente?.nome || nome,
       whatsapp: telefone,
       dataHora: dataHoraAgendada,
@@ -147,6 +153,7 @@ export default function CardapioPage() {
       enviarWhatsAppResumo(payload)
     }
 
+    // reset geral
     setCarrinho([])
     setView('menu')
     setShowModal(false)
