@@ -44,7 +44,6 @@ export default function CardapioPage() {
       setQuantidades(Object.fromEntries(produtos_.map(p => [p.id, 1])))
     }
     init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const adicionarAoCarrinho = (p: Produto) => {
@@ -103,12 +102,12 @@ export default function CardapioPage() {
       `Olá ${order.nome}, aqui está seu pedido:`,
       linhas,
       `Total: R$ ${order.total.toFixed(2)}`,
-      `Agendado para: ${new Date(order.dataHoraAgendada).toLocaleString('pt-BR')}`,
+      `Agendado para: ${new Date(order.dataHora).toLocaleString('pt-BR')}`,
       `Forma: ${order.formaPagamento}`,
       order.tipoEntrega === 'entrega'
         ? `Entrega em: ${order.localEntrega}`
         : 'Retirada no trailer',
-      `Observação: ${order.observacao || '–'}`
+      `Observação: ${order.observacao || '–'}`,
     ].join('\n\n')
     const tel = order.whatsapp.replace(/\D/g, '')
     window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(texto)}`, '_blank')
@@ -131,7 +130,7 @@ export default function CardapioPage() {
     const payload: NovoAgendamento = {
       nome: clienteExistente?.nome || nome,
       whatsapp: telefone,
-      dataHoraAgendada,
+      dataHora: dataHoraAgendada,
       criadoEm: new Date().toISOString(),
       formaPagamento,
       itens: carrinho,
@@ -148,7 +147,6 @@ export default function CardapioPage() {
       enviarWhatsAppResumo(payload)
     }
 
-    // reset geral
     setCarrinho([])
     setView('menu')
     setShowModal(false)
@@ -235,9 +233,7 @@ export default function CardapioPage() {
               <ul className="space-y-2 mb-4">
                 {carrinho.map(item => (
                   <li key={item.id} className="flex justify-between">
-                    <span>
-                      {item.nome} × {item.qtd}
-                    </span>
+                    <span>{item.nome} × {item.qtd}</span>
                     <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
                   </li>
                 ))}
