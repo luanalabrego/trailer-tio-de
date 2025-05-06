@@ -150,14 +150,13 @@ export default function CaixaPage() {
     if (!novoCliente.nome || !novoCliente.telefone) return
 
     const clienteCriado = await salvarCliente(novoCliente)
-setNovoCliente({ nome: '', telefone: '', aniversario: '' })
-setMostrarModalCliente(false)
-await carregar()
-// só acessa clienteCriado.id se não for undefined
-if (clienteCriado) {
-  setClienteId(clienteCriado.id)
-}
-
+    setNovoCliente({ nome: '', telefone: '', aniversario: '' })
+    setMostrarModalCliente(false)
+    await carregar()
+    if (clienteCriado) {
+      setClienteId(clienteCriado.id)
+    }
+  }
 
   return (
     <>
@@ -214,105 +213,69 @@ if (clienteCriado) {
                 </option>
               ))}
             </select>
+          </div>
 
-            {/* Carrinho */}
-            <div className="mt-4">
-              <h3 className="font-semibold text-gray-700 mb-2">Carrinho</h3>
-              <table className="w-full text-sm border">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="p-2 text-left">Produto</th>
-                    <th className="p-2 text-center">Qtd</th>
-                    <th className="p-2 text-right">Preço</th>
-                    <th className="p-2 text-right">Subtotal</th>
-                    <th className="p-2 text-right">Ações</th>
+          {/* Carrinho */}
+          <div className="mt-4">
+            <h3 className="font-semibold text-gray-700 mb-2">Carrinho</h3>
+            <table className="w-full text-sm border">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-2 text-left">Produto</th>
+                  <th className="p-2 text-center">Qtd</th>
+                  <th className="p-2 text-right">Preço</th>
+                  <th className="p-2 text-right">Subtotal</th>
+                  <th className="p-2 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {itens.map(item => (
+                  <tr key={item.id} className="border-t">
+                    <td className="p-2">{item.nome}</td>
+                    <td className="p-2 text-center">{item.qtd}</td>
+                    <td className="p-2 text-right">R$ {item.preco.toFixed(2)}</td>
+                    <td className="p-2 text-right">
+                      R$ {(item.preco * item.qtd).toFixed(2)}
+                    </td>
+                    <td className="p-2 text-right flex gap-1 justify-end">
+                      <button
+                        onClick={() =>
+                          setItens(prev =>
+                            prev.map(i =>
+                              i.id === item.id ? { ...i, qtd: i.qtd - 1 } : i
+                            )
+                          )
+                        }
+                        className="bg-gray-200 px-2 rounded hover:bg-gray-300"
+                      >
+                        –
+                      </button>
+                      <button
+                        onClick={() =>
+                          setItens(prev =>
+                            prev.map(i =>
+                              i.id === item.id ? { ...i, qtd: i.qtd + 1 } : i
+                            )
+                          )
+                        }
+                        className="bg-gray-200 px-2 rounded hover:bg-gray-300"
+                      >
+                        +
+                      </button>
+                      <button
+                        onClick={() => removerProduto(item.id)}
+                        className="text-red-500 text-xs ml-2 hover:underline"
+                      >
+                        Remover
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {itens.map(item => (
-                    <tr key={item.id} className="border-t">
-                      <td className="p-2">{item.nome}</td>
-                      <td className="p-2 text-center">{item.qtd}</td>
-                      <td className="p-2 text-right">R$ {item.preco.toFixed(2)}</td>
-                      <td className="p-2 text-right">
-                        R$ {(item.preco * item.qtd).toFixed(2)}
-                      </td>
-                      <td className="p-2 text-right flex gap-1 justify-end">
-                        <button
-                          onClick={() =>
-                            setItens(prev =>
-                              prev.map(i =>
-                                i.id === item.id && i.qtd > 1
-                                  ? { ...i, qtd: i.qtd - 1 }
-                                  : i
-                              )
-                            )
-                          }
-                          className="bg-gray-200 px-2 rounded hover:bg-gray-300"
-                        >
-                          –
-                        </button>
-                        <button
-                          onClick={() =>
-                            setItens(prev =>
-                              prev.map(i =>
-                                i.id === item.id
-                                  ? { ...i, qtd: i.qtd + 1 }
-                                  : i
-                              )
-                            )
-                          }
-                          className="bg-gray-200 px-2 rounded hover:bg-gray-300"
-                        >
-                          +
-                        </button>
-                        <button
-                          onClick={() => removerProduto(item.id)}
-                          className="text-red-500 text-xs ml-2 hover:underline"
-                        >
-                          Remover
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          {/* Pagamento */}
-          <div>
-            <label className="block mb-1 text-sm text-gray-700">
-              Forma de Pagamento { pago && <span className="text-red-500">*</span> }
-            </label>
-            <select
-              value={formaPagamento}
-              onChange={e => setFormaPagamento(e.target.value)}
-              className="w-full p-2 border rounded"
-              required={pago}
-            >
-              <option value="">Selecione</option>
-              <option value="pix">Pix</option>
-              <option value="dinheiro">Dinheiro</option>
-              <option value="cartao">Cartão</option>
-              <option value="outro">Outro</option>
-            </select>
-          </div>
-
-          {/* Pago */}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={pago}
-              onChange={e => setPago(e.target.checked)}
-            />
-            <label className="text-sm text-gray-700">Venda paga?</label>
-          </div>
-
-          {/* Total e botões */}
-          <div className="text-right font-bold text-lg">
-            Total: R$ {total.toFixed(2)}
-          </div>
+          {/* Pagamento e ações */}
           <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={handleFinalizar}
@@ -341,11 +304,8 @@ if (clienteCriado) {
         <ul className="space-y-2">
           {vendas.map(v => (
             <li key={v.id} className="bg-white p-3 rounded shadow text-sm">
-              Cliente:{' '}
-              {clientes.find(c => c.id === v.clienteId)?.nome || '—'}
-              <br />
-              Total: R$ {v.total.toFixed(2)}
-              <br />
+              Cliente: {clientes.find(c => c.id === v.clienteId)?.nome || '—'}<br />
+              Total: R$ {v.total.toFixed(2)}<br />
               Pago: {v.pago ? 'Sim' : 'Não'}
             </li>
           ))}
@@ -355,9 +315,7 @@ if (clienteCriado) {
       {mostrarModalCliente && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
-              Novo Cliente
-            </h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Novo Cliente</h2>
             <form onSubmit={handleSalvarNovoCliente} className="space-y-4">
               <input
                 type="text"
@@ -391,17 +349,17 @@ if (clienteCriado) {
               <p className="text-xs text-gray-500">Formato: dia/mês/ano</p>
               <div className="text-right">
                 <button
-                  type="submit"
-                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                >
-                  Salvar
-                </button>
-                <button
                   type="button"
                   onClick={() => setMostrarModalCliente(false)}
-                  className="ml-3 text-sm text-gray-600 hover:underline"
+                  className="text-gray-600 hover:underline mr-4"
                 >
                   Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                >
+                  Salvar
                 </button>
               </div>
             </form>
