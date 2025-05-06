@@ -1,3 +1,4 @@
+// src/types/index.ts
 import { Timestamp } from 'firebase/firestore'
 
 export interface Produto {
@@ -47,6 +48,8 @@ export interface Agendamento {
   itens: PedidoItem[]
   total: number
   status: 'pendente' | 'confirmado' | 'cancelado'
+  pago?: boolean               // adiciona propriedade `pago`
+  localEntrega?: string        // adiciona propriedade `localEntrega`
   confirmado?: boolean
   dataCriacao?: Timestamp
 }
