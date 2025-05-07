@@ -135,16 +135,11 @@ export default function CaixaPage() {
       itens.map(i => `- ${i.nome} × ${i.qtd}`).join('\n') +
       `\n\nTotal: R$ ${total.toFixed(2)}\nStatus: pendente de pagamento`
 
-    const w = window.open('', '_blank')
-    if (!w) return
-    w.document.write('<p>Abrindo WhatsApp...</p>')
-    w.document.close()
-    w.onload = () => {
-      w.location.href = `https://wa.me/55${cli.telefone.replace(
-        /\D/g,
-        ''
-      )}?text=${encodeURIComponent(texto)}`
-    }
+    // abre diretamente o link do WhatsApp
+    const url = `https://wa.me/55${cli.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(
+      texto
+    )}`
+    window.open(url, '_blank')
   }
 
   function handleShowFinalModal() {
@@ -164,7 +159,7 @@ export default function CaixaPage() {
   }
 
   async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
-    // 1) registra a venda
+    // registra a venda
     await registrarVenda({
       clienteId: saleType === 'pending' ? clienteId : '',
       itens,
@@ -172,11 +167,13 @@ export default function CaixaPage() {
       total,
       pago: saleType === 'paid',
     })
-    // 2) executa ação
+
+    // executa ação escolhida
     if (action === 'print') handleImprimir()
     if (action === 'whatsapp') abrirWhatsapp()
-    // 3) feedback e reset
-    alert('Pedido finalizado!')
+
+    // feedback e reset
+    alert('Venda finalizada!')
     setItens([])
     setSaleType(null)
     setFormaPagamento('')
@@ -376,7 +373,7 @@ export default function CaixaPage() {
       {showFinalModal && (
         <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm">
-            <h2 className="text-lg font-semibold mb-4">Pedido registrado!</h2>
+            <h2 className="text-lg font-semibold mb-4">Venda finalizada!</h2>
 
             <div className="flex gap-4">
               <button
@@ -404,7 +401,7 @@ export default function CaixaPage() {
             </div>
 
             <button
-              onClick={() => setShowFinalModal(false)}
+              onClick={() => confirmarRegistro('skip')}
               className="mt-4 text-gray-600 hover:underline"
             >
               Fechar
