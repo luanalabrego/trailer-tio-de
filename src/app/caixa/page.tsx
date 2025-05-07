@@ -247,20 +247,26 @@ export default function CaixaPage() {
                 onClick={() => setSaleType('paid')}
                 className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700"
               >
-                Venda paga
+                Pagar
               </button>
               <button
                 onClick={() => setSaleType('pending')}
                 className="flex-1 bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600"
               >
-                Venda pendente
+                Marcar
               </button>
             </div>
           )}
 
-          {/* finalização */}
+          {/* finalização com botão Voltar */}
           {saleType === 'paid' && (
             <div className="space-y-4">
+              <button
+                onClick={() => setSaleType(null)}
+                className="text-gray-600 hover:underline"
+              >
+                &larr; Voltar
+              </button>
               <select
                 value={formaPagamento}
                 onChange={e => setFormaPagamento(e.target.value)}
@@ -282,6 +288,12 @@ export default function CaixaPage() {
           )}
           {saleType === 'pending' && (
             <div className="space-y-4">
+              <button
+                onClick={() => setSaleType(null)}
+                className="text-gray-600 hover:underline"
+              >
+                &larr; Voltar
+              </button>
               <div className="flex items-center gap-2">
                 <select
                   value={clienteId}
