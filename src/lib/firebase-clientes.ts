@@ -14,7 +14,16 @@ import {
 } from 'firebase/firestore'
 import { Cliente } from '@/types'
 
-// Tipagem forte da coleção, sem uso de any
+// tipo bruto dos dados como estão no Firestore
+type ClienteRaw = {
+  nome: string
+  telefone: string
+  aniversario?: string | Timestamp
+  observacoes?: string
+  totalGasto?: number
+}
+
+// referenciamos a coleção como ClienteRaw para que aniversario possa ser Timestamp ou string
 const colecao = collection(
   db,
   'clientes'
