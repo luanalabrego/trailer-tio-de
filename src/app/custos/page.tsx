@@ -123,41 +123,44 @@ export default function CustosPage() {
     <>
       <Header />
       <div className="pt-20 px-6 xl:px-0 max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-semibold text-gray-900">Custos</h1>
           <button
             onClick={() => abrirModal()}
-            className="px-5 py-3 bg-indigo-600 text-white rounded-xl shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-xl shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
           >
             Registrar Custo
           </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          {/* busca */}
           <div className="relative">
             <SearchIcon
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-600"
               size={20}
             />
             <input
               type="text"
-              placeholder="Buscar custos"
+              placeholder="Buscar custos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
             />
           </div>
+          {/* data início */}
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="w-full p-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
           />
+          {/* data fim */}
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="w-full p-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
           />
         </div>
 
@@ -165,7 +168,7 @@ export default function CustosPage() {
           {custosFiltrados.map((c) => (
             <li
               key={c.id}
-              className="bg-white rounded-2xl shadow p-5 flex justify-between items-center"
+              className="bg-white p-5 rounded-2xl shadow flex justify-between items-center"
             >
               <div>
                 <p className="text-lg font-medium text-gray-800">{c.descricao}</p>
@@ -177,13 +180,13 @@ export default function CustosPage() {
                 </p>
                 <button
                   onClick={() => abrirModal(c)}
-                  className="text-indigo-600 hover:text-indigo-800"
+                  className="text-indigo-600 hover:text-indigo-800 transition"
                 >
                   <Pencil size={20} />
                 </button>
                 <button
                   onClick={() => handleExcluir(c.id)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-red-500 hover:text-red-700 transition"
                 >
                   <Trash2 size={20} />
                 </button>
@@ -194,14 +197,14 @@ export default function CustosPage() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-75 z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
             <div className="flex justify-between items-center mb-6 border-b pb-2">
               <h2 className="text-xl font-semibold text-gray-900">
                 {editingId ? 'Editar Custo' : 'Novo Custo'}
               </h2>
               <button onClick={() => setShowModal(false)}>
-                <Close size={24} className="text-gray-600 hover:text-gray-800" />
+                <Close size={24} className="text-gray-600 hover:text-gray-800 transition" />
               </button>
             </div>
             <form onSubmit={handleSalvar} className="space-y-5">
@@ -210,7 +213,7 @@ export default function CustosPage() {
                 <select
                   value={tipo}
                   onChange={(e) => setTipo(e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                 >
                   <option>Mercado</option>
                   <option>Gás</option>
@@ -227,7 +230,7 @@ export default function CustosPage() {
                     type="text"
                     value={descricaoLivre}
                     onChange={(e) => setDescricaoLivre(e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                     required
                   />
                 </div>
@@ -240,7 +243,7 @@ export default function CustosPage() {
                   step="0.01"
                   value={valor}
                   onChange={(e) => setValor(e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                   required
                 />
               </div>
@@ -249,13 +252,13 @@ export default function CustosPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded-xl hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition flex items-center gap-1"
                 >
-                  Cancelar
+                  <Close size={16} /> Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center gap-1"
                 >
                   Salvar
                 </button>
