@@ -21,7 +21,7 @@ export default function CardapioPage() {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [quantidades, setQuantidades] = useState<Record<string, number>>({})
 
-  // modal
+  // modal de cadastro telefônico
   const [showModal, setShowModal] = useState(false)
   const [modalStep, setModalStep] = useState<'phone' | 'register'>('phone')
   const [telefone, setTelefone] = useState('')
@@ -29,7 +29,7 @@ export default function CardapioPage() {
   const [nome, setNome] = useState('')
   const [aniversario, setAniversario] = useState('')
 
-  // agendamento
+  // dados de agendamento
   const [dataHoraAgendada, setDataHoraAgendada] = useState('')
   const [formaPagamento, setFormaPagamento] = useState('')
   const [observacao, setObservacao] = useState('')
@@ -38,20 +38,23 @@ export default function CardapioPage() {
 
   useEffect(() => {
     async function init() {
-      const [produtos_, clientes_] = await Promise.all([
+      const [prods, clis] = await Promise.all([
         listarProdutos(),
         listarClientes(),
       ])
-      setProdutos(produtos_)
-      setClientes(clientes_)
-      setQuantidades(Object.fromEntries(produtos_.map(p => [p.id, 1])))
+      setProdutos(prods)
+      setClientes(clis)
+      setQuantidades(Object.fromEntries(prods.map(p => [p.id, 1])))
 
       // pré-login
       const tel = localStorage.getItem('clienteTelefone') || ''
       if (tel) {
-        setTelefone(tel)
-        const cli = clientes_.find(c => c.telefone.replace(/\D/g,'') === tel.replace(/\D/g,''))
-        if (cli) setClienteExistente(cli)
+        const clean = tel.replace(/\D/g, '')
+        const cli = clis.find(c => c.telefone.replace(/\D/g,'') === clean)
+        if (cli) {
+          setClienteExistente(cli)
+          setTelefone(clean)
+        }
       }
     }
     init()
@@ -79,15 +82,11 @@ export default function CardapioPage() {
     }
     const cli = clientes.find(c => c.telefone.replace(/\D/g,'') === clean)
     if (cli) {
-      // já cadastrado: grava e vai ao carrinho
       setClienteExistente(cli)
       localStorage.setItem('clienteTelefone', clean)
-      localStorage.setItem('clienteNome', cli.nome)
-      if (cli.aniversario) localStorage.setItem('clienteAniversario', cli.aniversario)
       setShowModal(false)
       setView('carrinho')
     } else {
-      // novo cliente: passo 2
       setModalStep('register')
     }
   }
@@ -97,55 +96,81 @@ export default function CardapioPage() {
       alert('Por favor preencha nome e aniversário.')
       return
     }
-    // grava localStorage e segue
-    localStorage.setItem('clienteTelefone', telefone.replace(/\D/g,''))
+    const clean = telefone.replace(/\D/g, '')
+    localStorage.setItem('clienteTelefone', clean)
     localStorage.setItem('clienteNome', nome)
     localStorage.setItem('clienteAniversario', aniversario)
-    setClienteExistente({ id: '', nome, telefone, aniversario })
+    setClienteExistente({ id: '', nome, telefone: clean, aniversario })
     setShowModal(false)
     setView('carrinho')
+  }
+
+  function mudarTelefone() {
+    localStorage.removeItem('clienteTelefone')
+    localStorage.removeItem('clienteNome')
+    localStorage.removeItem('clienteAniversario')
+    setClienteExistente(null)
+    setTelefone('')
+    setNome('')
+    setAniversario('')
+    setView('menu')
   }
 
   const adicionarAoCarrinho = (p: Produto) => {
     const qtd = quantidades[p.id] || 1
     setCarrinho(prev => {
       const exists = prev.find(i => i.id === p.id)
-      if (exists) return prev.map(i => i.id === p.id ? { ...i, qtd: i.qtd + qtd } : i)
+      if (exists) {
+        return prev.map(i =>
+          i.id === p.id ? { ...i, qtd: i.qtd + qtd } : i
+        )
+      }
       return [...prev, { id: p.id, nome: p.nome, preco: p.preco, qtd }]
     })
     setQuantidades(q => ({ ...q, [p.id]: 1 }))
     alert('Item adicionado ao carrinho')
   }
 
-  const total = carrinho.reduce((s, i) => s + i.preco * i.qtd, 0)
+  const removerDoCarrinho = (id: string) => {
+    setCarrinho(prev => prev.filter(i => i.id !== id))
+  }
+
+  const total = carrinho.reduce((sum, i) => sum + i.preco * i.qtd, 0)
 
   async function handleAgendar() {
     if (!dataHoraAgendada || !formaPagamento || carrinho.length === 0) {
-      alert('Defina data/hora, pagamento e adicione itens.')
+      alert('Defina data/hora, forma de pagamento e adicione itens.')
       return
     }
     if (tipoEntrega === 'entrega' && !localEntrega) {
-      alert('Escolha local de entrega.')
+      alert('Escolha o local de entrega.')
       return
     }
     const payload: AgendamentoPayload = {
-      nome:      clienteExistente!.nome,
-      whatsapp:  telefone,
-      dataHora:  dataHoraAgendada,
+      nome: clienteExistente!.nome,
+      whatsapp: telefone,
+      dataHora: dataHoraAgendada,
       formaPagamento,
-      itens:     carrinho,
+      itens: carrinho,
       total,
       observacao,
       tipoEntrega,
-      localEntrega: tipoEntrega==='entrega'? localEntrega : undefined,
+      localEntrega: tipoEntrega === 'entrega' ? localEntrega : undefined,
     }
     await salvarAgendamento(payload)
-    if (confirm('Pedido confirmado!\n\nEnviar resumo via WhatsApp?')) {
-      const linhas = payload.itens.map(i=>`- ${i.nome}×${i.qtd}=R$${(i.preco*i.qtd).toFixed(2)}`).join('\n')
-      const txt = `Olá ${payload.nome}, seu pedido:\n${linhas}\nTotal: R$${payload.total.toFixed(2)}\nAgendado: ${new Date(payload.dataHora).toLocaleString('pt-BR')}`
-      window.open(`https://wa.me/55${telefone.replace(/\D/g,'')}?text=${encodeURIComponent(txt)}`, '_blank')
+    if (confirm('Pedido confirmado!\n\nDeseja enviar o resumo via WhatsApp?')) {
+      const linhas = payload.itens
+        .map(i => `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`)
+        .join('\n')
+      const texto = [
+        `Olá ${payload.nome}, aqui está seu pedido:`,
+        linhas,
+        `Total: R$ ${payload.total.toFixed(2)}`,
+        `Agendado para: ${new Date(payload.dataHora).toLocaleString('pt-BR')}`,
+      ].join('\n\n')
+      window.open(`https://wa.me/55${telefone}?text=${encodeURIComponent(texto)}`, '_blank')
     }
-    // limpa
+    // reset
     setCarrinho([])
     setDataHoraAgendada('')
     setFormaPagamento('')
@@ -169,93 +194,160 @@ export default function CardapioPage() {
         </button>
       </header>
 
-      {view==='menu'
-        ? categorias.map(cat=>(
+      {view === 'menu'
+        ? categorias.map(cat => (
             <section key={cat} className="mb-8">
               <h2 className="text-xl font-semibold text-indigo-600 mb-2">{cat}</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {produtos.filter(p=>p.categoria===cat).map(p=>(
-                  <div key={p.id} className="bg-white p-4 rounded-xl shadow flex flex-col">
-                    {p.imagemUrl && <Image src={p.imagemUrl} alt={p.nome} width={400} height={200} className="w-full h-32 object-cover rounded mb-2"/>}
-                    <h3 className="text-lg font-bold">{p.nome}</h3>
-                    <p className="text-sm text-gray-600 mb-4">{p.unidade} — R$ {p.preco.toFixed(2)}</p>
-                    <div className="flex items-center gap-2 mb-2">
-                      <label className="text-sm">Qtd:</label>
-                      <input
-                        type="number" min={1}
-                        value={quantidades[p.id]||1}
-                        onChange={e=>setQuantidades(q=>({...q,[p.id]:Math.max(1,+e.target.value)}))}
-                        className="w-16 p-1 border rounded text-center"
-                      />
+                {produtos
+                  .filter(p => p.categoria === cat)
+                  .map(p => (
+                    <div
+                      key={p.id}
+                      className="bg-white p-4 rounded-xl shadow flex flex-col"
+                    >
+                      {p.imagemUrl && (
+                        <Image
+                          src={p.imagemUrl}
+                          alt={p.nome}
+                          width={400}
+                          height={200}
+                          className="w-full h-32 object-cover rounded mb-2"
+                        />
+                      )}
+                      <h3 className="text-lg font-bold">{p.nome}</h3>
+                      <p className="text-sm text-gray-600 mb-4">
+                        {p.unidade} — R$ {p.preco.toFixed(2)}
+                      </p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <label className="text-sm">Qtd:</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={quantidades[p.id] || 1}
+                          onChange={e =>
+                            setQuantidades(q => ({
+                              ...q,
+                              [p.id]: Math.max(1, Number(e.target.value)),
+                            }))
+                          }
+                          className="w-16 p-1 border rounded text-center"
+                        />
+                      </div>
+                      <button
+                        onClick={() => adicionarAoCarrinho(p)}
+                        className="mt-auto bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                      >
+                        Adicionar
+                      </button>
                     </div>
-                    <button onClick={()=>adicionarAoCarrinho(p)} className="mt-auto bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                      Adicionar
-                    </button>
-                  </div>
-                ))}
+                  ))}
               </div>
             </section>
           ))
         : (
             <div className="bg-white p-4 rounded-xl shadow border">
               <div className="flex justify-between items-center mb-4">
-                <span className="font-semibold">Cliente: {clienteExistente!.nome}</span>
-                <button onClick={()=>{
-                  localStorage.clear()
-                  setClienteExistente(null)
-                  setView('menu')
-                }} className="text-sm text-indigo-600 hover:underline">
-                  Mudar número
-                </button>
+                <span className="font-semibold">
+                  Cliente: {clienteExistente?.nome}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setView('menu')}
+                    className="text-sm text-indigo-600 hover:underline"
+                  >
+                    Continuar comprando
+                  </button>
+                  <button
+                    onClick={mudarTelefone}
+                    className="text-sm text-indigo-600 hover:underline"
+                  >
+                    Mudar número
+                  </button>
+                </div>
               </div>
-              {carrinho.length===0
-                ? <p className="text-gray-600">Carrinho vazio.</p>
-                : <>
-                    {/* campos de agendamento aqui */}
-                    <div className="mb-4">
-                      <label className="block mb-1 text-sm text-gray-700">Agendar para</label>
-                      <input
-                        type="datetime-local"
-                        min={new Date(Date.now()+3600000).toISOString().slice(0,16)}
-                        value={dataHoraAgendada}
-                        onChange={e=>setDataHoraAgendada(e.target.value)}
-                        className="w-full p-2 border rounded"
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block mb-1 text-sm text-gray-700">Forma de Pagamento</label>
-                      <select
-                        value={formaPagamento}
-                        onChange={e=>setFormaPagamento(e.target.value)}
-                        className="w-full p-2 border rounded"
+
+              {carrinho.length === 0 ? (
+                <p className="text-gray-600">Carrinho vazio.</p>
+              ) : (
+                <>
+                  <ul className="space-y-2 mb-4">
+                    {carrinho.map(item => (
+                      <li
+                        key={item.id}
+                        className="flex justify-between items-center"
                       >
-                        <option value="">Selecione</option>
-                        <option value="pix">Pix</option>
-                        <option value="dinheiro">Dinheiro</option>
-                        <option value="cartao">Cartão</option>
-                        <option value="alelo">Alelo</option>
-                        <option value="outro">Outro</option>
-                      </select>
-                    </div>
-                    <div className="mb-4">
-                      <label className="block mb-1 text-sm text-gray-700">Observação</label>
-                      <textarea
-                        value={observacao}
-                        onChange={e=>setObservacao(e.target.value)}
-                        className="w-full p-2 border rounded"
-                        rows={3}
-                      />
-                    </div>
-                    <div className="text-right font-bold text-lg mb-4">
-                      Total: R$ {total.toFixed(2)}
-                    </div>
-                    <button onClick={handleAgendar} className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
-                      Finalizar Pedido
-                    </button>
-                  </>}
+                        <div>
+                          {item.nome} × {item.qtd}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
+                          <button
+                            onClick={() => removerDoCarrinho(item.id)}
+                            className="text-red-500 text-sm hover:underline"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mb-4">
+                    <label className="block mb-1 text-sm text-gray-700">
+                      Agendar para
+                    </label>
+                    <input
+                      type="datetime-local"
+                      min={new Date(Date.now() + 3600000)
+                        .toISOString()
+                        .slice(0, 16)}
+                      value={dataHoraAgendada}
+                      onChange={e => setDataHoraAgendada(e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block mb-1 text-sm text-gray-700">
+                      Forma de Pagamento
+                    </label>
+                    <select
+                      value={formaPagamento}
+                      onChange={e => setFormaPagamento(e.target.value)}
+                      className="w-full p-2 border rounded"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="pix">Pix</option>
+                      <option value="dinheiro">Dinheiro</option>
+                      <option value="cartao">Cartão</option>
+                      <option value="alelo">Alelo</option>
+                      <option value="outro">Outro</option>
+                    </select>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block mb-1 text-sm text-gray-700">
+                      Observação
+                    </label>
+                    <textarea
+                      value={observacao}
+                      onChange={e => setObservacao(e.target.value)}
+                      className="w-full p-2 border rounded"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="text-right font-bold text-lg mb-4">
+                    Total: R$ {total.toFixed(2)}
+                  </div>
+                  <button
+                    onClick={handleAgendar}
+                    className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+                  >
+                    Finalizar Pedido
+                  </button>
+                </>
+              )}
             </div>
-          )
-      }
+          )}
 
       {/* modal */}
       {showModal && (
@@ -267,38 +359,58 @@ export default function CardapioPage() {
                 <input
                   type="tel"
                   value={telefone}
-                  onChange={e=>setTelefone(e.target.value)}
+                  onChange={e => setTelefone(e.target.value)}
                   placeholder="11999998888"
                   className="w-full p-2 border rounded mb-4"
                   autoFocus
                 />
                 <div className="flex justify-end gap-2">
-                  <button onClick={cancelarModal} className="px-4 py-2 rounded border">Cancelar</button>
-                  <button onClick={handlePhoneContinue} className="px-4 py-2 bg-indigo-600 text-white rounded">Continuar</button>
+                  <button
+                    onClick={cancelarModal}
+                    className="px-4 py-2 rounded border"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handlePhoneContinue}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded"
+                  >
+                    Continuar
+                  </button>
                 </div>
               </>
             ) : (
               <>
                 <h2 className="text-xl font-bold mb-2">Cadastro</h2>
                 <p className="mb-4 text-gray-600">
-                  Verificamos que você não tem cadastro. Preencha abaixo, por favor:
+                  Verificamos que você não tem cadastro. Preencha abaixo:
                 </p>
                 <input
                   type="text"
                   value={nome}
-                  onChange={e=>setNome(e.target.value)}
+                  onChange={e => setNome(e.target.value)}
                   placeholder="Nome"
                   className="w-full p-2 border rounded mb-3"
                 />
                 <input
                   type="date"
                   value={aniversario}
-                  onChange={e=>setAniversario(e.target.value)}
+                  onChange={e => setAniversario(e.target.value)}
                   className="w-full p-2 border rounded mb-4"
                 />
                 <div className="flex justify-end gap-2">
-                  <button onClick={cancelarModal} className="px-4 py-2 rounded border">Cancelar</button>
-                  <button onClick={handleRegisterSubmit} className="px-4 py-2 bg-indigo-600 text-white rounded">Enviar</button>
+                  <button
+                    onClick={cancelarModal}
+                    className="px-4 py-2 rounded border"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleRegisterSubmit}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded"
+                  >
+                    Enviar
+                  </button>
                 </div>
               </>
             )}
