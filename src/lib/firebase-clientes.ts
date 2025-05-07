@@ -1,3 +1,5 @@
+// src/lib/firebase-clientes.ts
+
 import { db } from '@/firebase/firebase'
 import {
   collection,
@@ -97,4 +99,20 @@ export async function salvarCliente(
   if (dados.nome !== undefined) payload.nome = dados.nome
   if (dados.telefone !== undefined) payload.telefone = dados.telefone
   if (dados.aniversario !== undefined) {
-    let an
+    let aniversarioSalvar = dados.aniversario
+    if (aniversarioSalvar.includes('/')) {
+      const [dd, mm, yyyy] = aniversarioSalvar.split('/')
+      aniversarioSalvar = `${yyyy}-${mm}-${dd}`
+    }
+    payload.aniversario = aniversarioSalvar
+  }
+  if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes
+  if (dados.totalGasto !== undefined) payload.totalGasto = dados.totalGasto
+
+  await updateDoc(refDoc, payload)
+}
+
+export async function excluirCliente(id: string): Promise<void> {
+  const refDoc = doc(db, 'clientes', id)
+  await deleteDoc(refDoc)
+}
