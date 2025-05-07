@@ -33,7 +33,7 @@ export default function AgendamentosPage() {
     setClientes(listaClientes)
 
     const dados = snap.docs.map(d => {
-      const raw = d.data() as Record<string, unknown>
+      const raw = d.data() as Record<string, any>
       const dataCriacaoTs: Timestamp =
         (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
       return {
@@ -134,7 +134,9 @@ export default function AgendamentosPage() {
     <>
       <Header />
       <div className="pt-20 px-4 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Agendamentos</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">
+          Agendamentos
+        </h1>
 
         {agendamentos.length === 0 ? (
           <p className="text-gray-600">Nenhum agendamento.</p>
@@ -188,10 +190,15 @@ export default function AgendamentosPage() {
                         Pedido registrado em: {formatarData(ag.dataCriacao)}
                       </p>
 
-                      {/* Exibe local de entrega quando for entrega */}
                       {ag.localEntrega && (
                         <p className="text-sm text-gray-700">
                           <strong>Local de entrega:</strong> {ag.localEntrega}
+                        </p>
+                      )}
+
+                      {ag.observacao && (
+                        <p className="text-sm text-gray-700">
+                          <strong>Observação:</strong> {ag.observacao}
                         </p>
                       )}
 
