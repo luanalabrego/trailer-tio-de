@@ -18,12 +18,12 @@ import { Cliente } from '@/types'
 const colecao = collection(
   db,
   'clientes'
-) as CollectionReference<Omit<Cliente, 'id'>>
+) as CollectionReference<ClienteRaw>
 
 export async function listarClientes(): Promise<Cliente[]> {
   const snapshot = await getDocs(colecao)
   return snapshot.docs.map(
-    (docSnap: QueryDocumentSnapshot<Omit<Cliente, 'id'>>) => {
+    (docSnap: QueryDocumentSnapshot<ClienteRaw>) => {
       const data = docSnap.data()
 
       // formata aniversário para DD/MM/YYYY
