@@ -1,7 +1,6 @@
-// src/app/cardapio/page.tsx
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { listarProdutos } from '@/lib/firebase-produtos'
 import { listarClientes } from '@/lib/firebase-clientes'
@@ -37,9 +36,6 @@ export default function CardapioPage() {
   const [tipoEntrega, setTipoEntrega] = useState<'retirada' | 'entrega'>('retirada')
   const [localEntrega, setLocalEntrega] = useState('')
 
-  // ref para o input de data/hora
-  const dtRef = useRef<HTMLInputElement>(null)
-
   useEffect(() => {
     async function init() {
       const [produtos_, clientes_] = await Promise.all([
@@ -65,6 +61,7 @@ export default function CardapioPage() {
       return [...prev, { id: p.id, nome: p.nome, preco: p.preco, qtd }]
     })
     setQuantidades(q => ({ ...q, [p.id]: 1 }))
+    alert('Item adicionado ao carrinho')
   }
 
   const total = carrinho.reduce((sum, i) => sum + i.preco * i.qtd, 0)
@@ -97,10 +94,6 @@ export default function CardapioPage() {
     await handleAgendar()
   }
 
-  function confirmDate() {
-    dtRef.current?.blur()
-  }
-
   function enviarWhatsAppResumo(order: AgendamentoPayload) {
     const linhas = order.itens
       .map(i => `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`)
@@ -129,6 +122,13 @@ export default function CardapioPage() {
       alert('Defina data/hora, forma de pagamento e adicione itens.')
       return
     }
+    // validação de pelo menos 1h de antecedência
+    const dataSelecionada = new Date(dataHoraAgendada)
+    const dataMinima = new Date(Date.now() + 60 * 60 * 1000)
+    if (dataSelecionada < dataMinima) {
+      alert('Escolha um horário pelo menos 1 hora à frente do momento atual.')
+      return
+    }
     if (tipoEntrega === 'entrega' && !localEntrega) {
       alert('Escolha o local de entrega.')
       return
@@ -144,6 +144,7 @@ export default function CardapioPage() {
       observacao,
       tipoEntrega,
       localEntrega: tipoEntrega === 'entrega' ? localEntrega : undefined,
+      aniversario: clienteExistente?.aniversario || aniversario,
     }
 
     await salvarAgendamento(payload)
@@ -247,25 +248,13 @@ export default function CardapioPage() {
 
               <div className="mb-4">
                 <label className="block mb-1 text-sm text-gray-700">Agendar para</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    ref={dtRef}
-                    type="datetime-local"
-                    value={dataHoraAgendada}
-                    onChange={e => {
-                      setDataHoraAgendada(e.target.value)
-                      dtRef.current?.blur()
-                    }}
-                    className="w-full p-2 border rounded"
-                  />
-                  <button
-                    type="button"
-                    onClick={confirmDate}
-                    className="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                  >
-                    OK
-                  </button>
-                </div>
+                <input
+                  type="datetime-local"
+                  min={new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0,16)}
+                  value={dataHoraAgendada}
+                  onChange={e => setDataHoraAgendada(e.target.value)}
+                  className="w-full p-2 border rounded"
+                />
               </div>
 
               <div className="mb-4">
@@ -279,6 +268,7 @@ export default function CardapioPage() {
                   <option value="pix">Pix</option>
                   <option value="dinheiro">Dinheiro</option>
                   <option value="cartao">Cartão</option>
+                  <option value="alelo">Alelo</option>
                   <option value="outro">Outro</option>
                 </select>
               </div>
@@ -343,6 +333,7 @@ export default function CardapioPage() {
               <div>
                 <label className="block mb-1">WhatsApp</label>
                 <input
+                  autoFocus
                   type="tel"
                   value={telefone}
                   onChange={e => onTelefoneChange(e.target.value)}

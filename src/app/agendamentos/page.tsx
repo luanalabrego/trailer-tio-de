@@ -1,4 +1,3 @@
-// src/app/agendamentos/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -9,7 +8,6 @@ import {
   deleteDoc,
   updateDoc,
   doc,
-  Timestamp,
 } from 'firebase/firestore'
 import { Header } from '@/components/Header'
 import { Agendamento, Cliente, PedidoItem, Venda } from '@/types'
@@ -36,35 +34,41 @@ export default function AgendamentosPage() {
       getDocs(collection(db, 'agendamentos')),
     ])
     setClientes(listaClientes)
+
     const dados = snap.docs.map(d => {
-      const data = d.data() as AgendamentoFirestore
-      return { id: d.id, ...data }
+      const raw = d.data() as any
+      // fallback para registros antigos que tinham criadoEm
+      const dataCriacaoTs = raw.dataCriacao ?? raw.criadoEm
+
+      return {
+        id: d.id,
+        ...raw,
+        dataCriacao: dataCriacaoTs,
+      } as Agendamento
     })
+
     setAgendamentos(dados)
   }
 
   function toggle(id: string) {
     setExpanded(prev => {
       const s = new Set(prev)
-      if (s.has(id)) {
-        s.delete(id)
-      } else {
-        s.add(id)
-      }
+      if (s.has(id)) s.delete(id)
+      else s.add(id)
       return s
     })
   }
 
-  function formatarData(dt: Timestamp | { toDate(): Date } | string) {
+  function formatarData(dt: any) {
     if (!dt) return 'Inválida'
-    let date: Date
-    if (dt instanceof Timestamp) {
-      date = dt.toDate()
-    } else if (typeof (dt as { toDate?: unknown }).toDate === 'function') {
-      date = (dt as { toDate(): Date }).toDate()
-    } else {
-      date = new Date(dt as string)
+    if (typeof dt.toDate === 'function') {
+      return formatDateObj(dt.toDate())
     }
+    const date = dt instanceof Date ? dt : new Date(dt)
+    return formatDateObj(date)
+  }
+
+  function formatDateObj(date: Date) {
     if (isNaN(date.getTime())) return 'Inválida'
     return date.toLocaleString('pt-BR', {
       dateStyle: 'short',
@@ -86,13 +90,12 @@ export default function AgendamentosPage() {
     )} foi *confirmado*!`
     enviarWhatsApp(txt, ag.whatsapp)
     updateDoc(doc(db, 'agendamentos', ag.id), { status: 'confirmado' }).then(
-      () => carregar()
+      carregar
     )
   }
 
   async function handleRegistrarPagamento(ag: Agendamento) {
     try {
-      console.log('Registrando pagamento para', ag.id)
       await updateDoc(doc(db, 'agendamentos', ag.id), { pago: true })
       await carregar()
       alert('Pagamento registrado!')
@@ -161,7 +164,8 @@ export default function AgendamentosPage() {
                           {ag.nome} — {tipo} — {formatarData(ag.dataHora)}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {(ag.itens as PedidoItem[]).length} item(s) • {ag.formaPagamento}
+                          {(ag.itens as PedidoItem[]).length} item(s) •{' '}
+                          {ag.formaPagamento}
                         </p>
                       </div>
                     </div>
@@ -170,6 +174,9 @@ export default function AgendamentosPage() {
 
                   {isOpen && (
                     <div className="px-4 pb-4 space-y-4">
+                      <p className="text-sm text-gray-500">
+                        Pedido registrado em: {formatarData(ag.dataCriacao)}
+                      </p>
                       <ul className="space-y-2">
                         {(ag.itens as PedidoItem[]).map(i => (
                           <li key={i.id} className="flex justify-between">
