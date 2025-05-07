@@ -33,9 +33,12 @@ export default function AgendamentosPage() {
     setClientes(listaClientes)
 
     const dados = snap.docs.map(d => {
-      const raw = d.data() as Record<string, any>
+      // d.data() vem como Record<string, unknown>
+      const raw = d.data() as Record<string, unknown>
       // fallback para registros antigos que tinham criadoEm
-      const dataCriacaoTs: Timestamp = raw.dataCriacao ?? raw.criadoEm
+      const dataCriacaoTs: Timestamp =
+        (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
+
       return {
         id: d.id,
         ...raw,
@@ -57,15 +60,10 @@ export default function AgendamentosPage() {
 
   function formatarData(dt?: Timestamp | Date | string): string {
     if (!dt) return 'Inválida'
-    if (dt instanceof Timestamp) {
-      return formatDateObj(dt.toDate())
-    }
-    if (dt instanceof Date) {
-      return formatDateObj(dt)
-    }
+    if (dt instanceof Timestamp) return formatDateObj(dt.toDate())
+    if (dt instanceof Date) return formatDateObj(dt)
     // string
-    const date = new Date(dt)
-    return formatDateObj(date)
+    return formatDateObj(new Date(dt))
   }
 
   function formatDateObj(date: Date): string {
