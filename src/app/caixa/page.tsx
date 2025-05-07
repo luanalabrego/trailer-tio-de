@@ -13,24 +13,34 @@ export default function CaixaPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [vendas, setVendas] = useState<Venda[]>([])
 
-  const [clienteId, setClienteId] = useState('')
-  const [novoCliente, setNovoCliente] = useState<Omit<Cliente, 'id'>>({
-    nome: '',
-    telefone: '',
-    aniversario: '',
-  })
-  const [mostrarModalCliente, setMostrarModalCliente] = useState(false)
-
+  // carrinho
   const [itens, setItens] = useState<PedidoItem[]>([])
   const [buscaProduto, setBuscaProduto] = useState('')
+
+  // sugestão de produtos pela busca
+  const sugeridos = useMemo(
+    () =>
+      buscaProduto.trim() === ''
+        ? []
+        : produtos.filter(p =>
+            p.nome.toLowerCase().includes(buscaProduto.toLowerCase())
+          ),
+    [buscaProduto, produtos]
+  )
+
+  // seleção de venda: pago agora ou pendente
+  const [saleType, setSaleType] = useState<'paid' | 'pending' | null>(null)
   const [formaPagamento, setFormaPagamento] = useState('')
-  const [pago, setPago] = useState(true)
+  const [clienteId, setClienteId] = useState('')
+  const [mostrarModalCliente, setMostrarModalCliente] = useState(false)
+  const [novoCliente, setNovoCliente] = useState<Omit<Cliente,'id'>>({
+    nome:'', telefone:'', aniversario:''
+  })
 
   const total = itens.reduce((acc, cur) => acc + cur.preco * cur.qtd, 0)
 
   useEffect(() => {
     carregar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function carregar() {
@@ -44,62 +54,59 @@ export default function CaixaPage() {
     setVendas(v)
   }
 
-  const sugeridos = useMemo(
-    () =>
-      buscaProduto.trim() === ''
-        ? []
-        : produtos.filter((p) =>
-            p.nome.toLowerCase().includes(buscaProduto.toLowerCase())
-          ),
-    [buscaProduto, produtos]
-  )
-
   function adicionarProduto(prod: Produto) {
-    const existe = itens.find((i) => i.id === prod.id)
-    if (existe) {
-      setItens((prev) =>
-        prev.map((i) =>
+    setItens(prev => {
+      const existe = prev.find(i => i.id === prod.id)
+      if (existe) {
+        return prev.map(i =>
           i.id === prod.id ? { ...i, qtd: i.qtd + 1 } : i
         )
-      )
-    } else {
-      setItens((prev) => [
-        ...prev,
-        { id: prod.id, nome: prod.nome, preco: prod.preco, qtd: 1 },
-      ])
-    }
+      }
+      return [...prev, { id: prod.id, nome: prod.nome, preco: prod.preco, qtd: 1 }]
+    })
     setBuscaProduto('')
   }
 
+  function alterarQtd(id: string, delta: number) {
+    setItens(prev =>
+      prev
+        .map(i =>
+          i.id === id ? { ...i, qtd: Math.max(1, i.qtd + delta) } : i
+        )
+        .filter(i => i.qtd > 0)
+    )
+  }
+
   function removerProduto(id: string) {
-    setItens((prev) => prev.filter((i) => i.id !== id))
+    setItens(prev => prev.filter(i => i.id !== id))
   }
 
   async function handleFinalizar() {
     if (itens.length === 0) {
-      alert('Adicione ao menos um produto ao carrinho.')
+      alert('Adicione ao menos um produto.')
       return
     }
-    if (pago && !formaPagamento) {
+    if (saleType === 'paid' && !formaPagamento) {
       alert('Selecione a forma de pagamento.')
       return
     }
-    if (!pago && !clienteId) {
-      alert('Para venda pendente, selecione ou cadastre um cliente.')
+    if (saleType === 'pending' && !clienteId) {
+      alert('Selecione ou cadastre um cliente.')
       return
     }
     await registrarVenda({
-      clienteId,
+      clienteId: saleType === 'pending' ? clienteId : '',
       itens,
-      formaPagamento: pago ? formaPagamento : '',
+      formaPagamento: saleType === 'paid' ? formaPagamento : '',
       total,
-      pago,
+      pago: saleType === 'paid',
     })
-    alert('Venda registrada com sucesso!')
-    setClienteId('')
+    alert('Venda registrada!')
+    // reset
     setItens([])
+    setSaleType(null)
     setFormaPagamento('')
-    setPago(true)
+    setClienteId('')
     await carregar()
   }
 
@@ -107,68 +114,22 @@ export default function CaixaPage() {
     <>
       <Header />
       <div className="pt-20 px-4 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">Caixa</h1>
+        <h1 className="text-2xl font-bold mb-4">Caixa</h1>
 
-        <div className="bg-white p-4 rounded-xl shadow space-y-4 mb-8">
-
-          {/* Pago? */}
+        <div className="bg-white p-4 rounded-xl shadow space-y-6 mb-8">
+          {/* busca produto */}
           <div>
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={pago}
-                onChange={() => setPago((v) => !v)}
-                className="form-checkbox"
-              />
-              Venda paga
-            </label>
-          </div>
-
-          {/* Cliente só se não pago */}
-          {!pago && (
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <label className="block mb-1 text-sm text-gray-700">
-                  Cliente <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={clienteId}
-                  onChange={(e) => setClienteId(e.target.value)}
-                  className="w-full p-2 border rounded"
-                  required
-                >
-                  <option value="">Selecione o cliente</option>
-                  {clientes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nome}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button
-                onClick={() => setMostrarModalCliente(true)}
-                className="bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700 flex gap-1 items-center"
-              >
-                <Plus size={16} /> Novo
-              </button>
-            </div>
-          )}
-
-          {/* Busca de produto */}
-          <div>
-            <label className="block mb-1 text-sm text-gray-700">
-              Adicionar produto
-            </label>
+            <label className="block mb-1 text-sm">Adicionar produto</label>
             <input
               type="text"
               value={buscaProduto}
-              onChange={(e) => setBuscaProduto(e.target.value)}
+              onChange={e => setBuscaProduto(e.target.value)}
               placeholder="Digite o nome..."
               className="w-full p-2 border rounded"
             />
             {sugeridos.length > 0 && (
               <ul className="border rounded-md bg-white mt-1 max-h-40 overflow-auto">
-                {sugeridos.map((p) => (
+                {sugeridos.map(p => (
                   <li
                     key={p.id}
                     onClick={() => adicionarProduto(p)}
@@ -181,11 +142,11 @@ export default function CaixaPage() {
             )}
           </div>
 
-          {/* Carrinho */}
+          {/* carrinho */}
           <div>
-            <h3 className="font-semibold text-gray-700 mb-2">Carrinho</h3>
+            <h2 className="font-semibold mb-2">Carrinho</h2>
             {itens.length === 0 ? (
-              <p className="text-gray-600">Sem itens</p>
+              <p className="text-gray-600">Carrinho vazio</p>
             ) : (
               <table className="w-full text-sm border">
                 <thead className="bg-gray-100">
@@ -198,7 +159,7 @@ export default function CaixaPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {itens.map((item) => (
+                  {itens.map(item => (
                     <tr key={item.id} className="border-t">
                       <td className="p-2">{item.nome}</td>
                       <td className="p-2 text-center">{item.qtd}</td>
@@ -210,29 +171,13 @@ export default function CaixaPage() {
                       </td>
                       <td className="p-2 text-right flex gap-1 justify-end">
                         <button
-                          onClick={() =>
-                            setItens((prev) =>
-                              prev.map((i) =>
-                                i.id === item.id
-                                  ? { ...i, qtd: i.qtd - 1 }
-                                  : i
-                              )
-                            )
-                          }
+                          onClick={() => alterarQtd(item.id, -1)}
                           className="bg-gray-200 px-2 rounded hover:bg-gray-300"
                         >
                           –
                         </button>
                         <button
-                          onClick={() =>
-                            setItens((prev) =>
-                              prev.map((i) =>
-                                i.id === item.id
-                                  ? { ...i, qtd: i.qtd + 1 }
-                                  : i
-                              )
-                            )
-                          }
+                          onClick={() => alterarQtd(item.id, +1)}
                           className="bg-gray-200 px-2 rounded hover:bg-gray-300"
                         >
                           +
@@ -251,27 +196,87 @@ export default function CaixaPage() {
             )}
           </div>
 
-          {/* Pagamento e ações */}
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              onClick={handleFinalizar}
-              className="w-full sm:w-auto bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
-            >
-              Finalizar Venda
-            </button>
-          </div>
+          {/* escolher tipo de venda */}
+          {saleType === null && itens.length > 0 && (
+            <div className="flex gap-4">
+              <button
+                onClick={() => setSaleType('paid')}
+                className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700"
+              >
+                Venda paga
+              </button>
+              <button
+                onClick={() => setSaleType('pending')}
+                className="flex-1 bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600"
+              >
+                Venda pendente
+              </button>
+            </div>
+          )}
+
+          {/* pago: forma de pagamento e finalizar */}
+          {saleType === 'paid' && (
+            <div className="space-y-4">
+              <select
+                value={formaPagamento}
+                onChange={e => setFormaPagamento(e.target.value)}
+                className="w-full p-2 border rounded"
+              >
+                <option value="">Selecione forma de pagamento</option>
+                <option value="pix">Pix</option>
+                <option value="dinheiro">Dinheiro</option>
+                <option value="cartao">Cartão</option>
+                <option value="outro">Outro</option>
+              </select>
+              <button
+                onClick={handleFinalizar}
+                className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+              >
+                Finalizar venda paga
+              </button>
+            </div>
+          )}
+
+          {/* pendente: selecionar ou cadastrar cliente e finalizar */}
+          {saleType === 'pending' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <select
+                  value={clienteId}
+                  onChange={e => setClienteId(e.target.value)}
+                  className="flex-1 p-2 border rounded"
+                >
+                  <option value="">Selecione o cliente</option>
+                  {clientes.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setMostrarModalCliente(true)}
+                  className="bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700 flex gap-1 items-center"
+                >
+                  <Plus size={16} /> Novo
+                </button>
+              </div>
+              <button
+                onClick={handleFinalizar}
+                className="w-full bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600"
+              >
+                Finalizar venda pendente
+              </button>
+            </div>
+          )}
         </div>
 
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Vendas de hoje</h2>
+        <h2 className="text-xl font-bold mb-2">Vendas de hoje</h2>
         <ul className="space-y-2">
-          {vendas.map((v) => (
-            <li
-              key={v.id}
-              className="bg-white p-3 rounded shadow text-sm"
-            >
+          {vendas.map(v => (
+            <li key={v.id} className="bg-white p-3 rounded shadow text-sm">
               Cliente:{' '}
               {!v.pago
-                ? clientes.find((c) => c.id === v.clienteId)?.nome || '—'
+                ? clientes.find(c => c.id === v.clienteId)?.nome || '—'
                 : '—'}
               <br />
               Total: R$ {v.total.toFixed(2)}<br />
@@ -284,16 +289,14 @@ export default function CaixaPage() {
       {mostrarModalCliente && (
         <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
-              Novo Cliente
-            </h2>
+            <h2 className="text-xl font-bold mb-4">Novo Cliente</h2>
             <form
-              onSubmit={(e) => {
+              onSubmit={async e => {
                 e.preventDefault()
-                cadastrarCliente(novoCliente).then(() => {
-                  setMostrarModalCliente(false)
-                  carregar()
-                })
+                const c = await cadastrarCliente(novoCliente)
+                setClienteId(c.id)
+                setMostrarModalCliente(false)
+                await carregar()
               }}
               className="space-y-4"
             >
@@ -301,7 +304,7 @@ export default function CaixaPage() {
                 type="text"
                 placeholder="Nome"
                 value={novoCliente.nome}
-                onChange={(e) =>
+                onChange={e =>
                   setNovoCliente({ ...novoCliente, nome: e.target.value })
                 }
                 className="w-full p-2 border rounded"
@@ -311,7 +314,7 @@ export default function CaixaPage() {
                 type="tel"
                 placeholder="Telefone com DDD"
                 value={novoCliente.telefone}
-                onChange={(e) =>
+                onChange={e =>
                   setNovoCliente({
                     ...novoCliente,
                     telefone: e.target.value,
@@ -324,14 +327,11 @@ export default function CaixaPage() {
                 <button
                   type="button"
                   onClick={() => setMostrarModalCliente(false)}
-                  className="text-gray-600 hover:underline mr-4"
+                  className="mr-4 text-gray-600 hover:underline"
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-                >
+                <button className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
                   Salvar
                 </button>
               </div>
