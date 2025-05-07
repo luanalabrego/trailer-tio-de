@@ -81,6 +81,39 @@ export default function CaixaPage() {
     setItens(prev => prev.filter(i => i.id !== id))
   }
 
+  function abrirWhatsapp() {
+    const cliente = clientes.find(c => c.id === clienteId)
+    if (!cliente) return
+    const texto = `Olá ${cliente.nome}, aqui está o resumo da sua compra:\n\n` +
+      itens.map(i => `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`).join('\n') +
+      `\n\nTotal: R$ ${total.toFixed(2)}`
+    window.open(
+      `https://wa.me/55${cliente.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`,
+      '_blank'
+    )
+  }
+
+  function handleImprimir() {
+    const data = new Date().toLocaleString('pt-BR')
+    const html = `
+      <h1>Comprovante de Venda</h1>
+      <p><strong>Data:</strong> ${data}</p>
+      <ul>
+        ${itens.map(i => `<li>${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}</li>`).join('')}
+      </ul>
+      <p><strong>Total:</strong> R$ ${total.toFixed(2)}</p>
+      <p><strong>${saleType === 'paid' ? 'Pago' : 'Pendente'}</strong></p>
+    `
+    const w = window.open('', '_blank', 'width=600,height=600')
+    if (w) {
+      w.document.write(html)
+      w.document.close()
+      w.focus()
+      w.print()
+      w.close()
+    }
+  }
+
   async function handleFinalizar() {
     if (itens.length === 0) {
       alert('Adicione ao menos um produto.')
@@ -101,8 +134,20 @@ export default function CaixaPage() {
       total,
       pago: saleType === 'paid',
     })
-    alert('Venda registrada!')
-    // reset
+    // após sucesso, oferecer opções
+    if (saleType === 'paid') {
+      if (window.confirm('Venda registrada! Deseja enviar confirmação via WhatsApp?')) {
+        abrirWhatsapp()
+      }
+      if (window.confirm('Deseja imprimir o comprovante?')) {
+        handleImprimir()
+      }
+    } else {
+      if (window.confirm('Venda pendente registrada! Deseja imprimir o comprovante?')) {
+        handleImprimir()
+      }
+    }
+    // resetar tudo
     setItens([])
     setSaleType(null)
     setFormaPagamento('')
@@ -163,16 +208,15 @@ export default function CaixaPage() {
                     <tr key={item.id} className="border-t">
                       <td className="p-2">{item.nome}</td>
                       <td className="p-2 text-center">{item.qtd}</td>
-                      <td className="p-2 text-right">
-                        R$ {item.preco.toFixed(2)}
-                      </td>
+                      <td className="p-2 text-right">R$ {item.preco.toFixed(2)}</td>
                       <td className="p-2 text-right">
                         R$ {(item.preco * item.qtd).toFixed(2)}
                       </td>
                       <td className="p-2 text-right flex gap-1 justify-end">
                         <button
                           onClick={() => alterarQtd(item.id, -1)}
-                          className="bg-gray-200 px-2 rounded hover:bg-gray-300"
+                          className="bg-gray-200 px-2 rounded hover:bg-gray-300 disabled:opacity-50"
+                          disabled={item.qtd <= 1}
                         >
                           –
                         </button>
@@ -196,7 +240,7 @@ export default function CaixaPage() {
             )}
           </div>
 
-          {/* escolher tipo de venda */}
+          {/* tipo de venda */}
           {saleType === null && itens.length > 0 && (
             <div className="flex gap-4">
               <button
@@ -214,7 +258,7 @@ export default function CaixaPage() {
             </div>
           )}
 
-          {/* pago: forma de pagamento e finalizar */}
+          {/* finalização */}
           {saleType === 'paid' && (
             <div className="space-y-4">
               <select
@@ -236,8 +280,6 @@ export default function CaixaPage() {
               </button>
             </div>
           )}
-
-          {/* pendente: selecionar ou cadastrar cliente e finalizar */}
           {saleType === 'pending' && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
