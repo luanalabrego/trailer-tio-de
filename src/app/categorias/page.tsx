@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Header } from '@/components/Header'
 import {
   listarCategorias,
   salvarCategoria,
   excluirCategoria,
 } from '@/lib/firebase-categorias'
-import { Plus, Pencil, Trash2, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Search } from 'lucide-react'
 import { Categoria } from '@/types'
 
 export default function CategoriasPage() {
@@ -15,14 +15,14 @@ export default function CategoriasPage() {
   const [showModal, setShowModal] = useState(false)
   const [nome, setNome] = useState('')
   const [editarId, setEditarId] = useState<string | null>(null)
+  const [busca, setBusca] = useState('')
 
   useEffect(() => {
     carregar()
   }, [])
 
   async function carregar() {
-    const lista = await listarCategorias()
-    setCategorias(lista)
+    setCategorias(await listarCategorias())
   }
 
   function abrirModalNovo() {
@@ -48,14 +48,14 @@ export default function CategoriasPage() {
     const nomeTrim = nome.trim()
     if (!nomeTrim) return
 
-    // verifica duplicata (ignorando case), exceto se for o próprio em edição
+    // não permitir duplicatas
     const existe = categorias.some(
       c =>
         c.nome.toLowerCase() === nomeTrim.toLowerCase() &&
         c.id !== editarId
     )
     if (existe) {
-      alert('Já existe uma categoria com esse nome.')
+      alert('Já existe uma categoria com este nome.')
       return
     }
 
@@ -80,11 +80,21 @@ export default function CategoriasPage() {
     }
   }
 
+  // categorias filtradas pela busca
+  const categoriasFiltradas = useMemo(
+    () =>
+      categorias.filter(c =>
+        c.nome.toLowerCase().includes(busca.toLowerCase())
+      ),
+    [categorias, busca]
+  )
+
   return (
     <>
       <Header />
       <div className="pt-20 px-4 max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+
+        <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">Categorias</h1>
           <button
             onClick={abrirModalNovo}
@@ -95,9 +105,21 @@ export default function CategoriasPage() {
           </button>
         </div>
 
+        {/* campo de busca */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600" size={18} />
+          <input
+            type="text"
+            placeholder="Buscar categoria..."
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            className="w-full pl-10 p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-600"
+          />
+        </div>
+
         {/* Lista de categorias */}
         <ul className="space-y-2">
-          {categorias.map(cat => (
+          {categoriasFiltradas.map(cat => (
             <li
               key={cat.id}
               className="flex items-center justify-between bg-white p-3 rounded shadow"
@@ -107,12 +129,14 @@ export default function CategoriasPage() {
                 <button
                   onClick={() => abrirModalEdicao(cat)}
                   className="text-indigo-600 hover:text-indigo-800"
+                  title="Editar"
                 >
                   <Pencil size={18} />
                 </button>
                 <button
                   onClick={() => handleExcluir(cat.id)}
                   className="text-red-500 hover:text-red-700"
+                  title="Excluir"
                 >
                   <Trash2 size={18} />
                 </button>
@@ -134,7 +158,7 @@ export default function CategoriasPage() {
                   placeholder="Nome da categoria"
                   value={nome}
                   onChange={e => setNome(e.target.value)}
-                  className="w-full p-2 border border-gray-200 rounded-md"
+                  className="w-full p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-600"
                   required
                 />
                 <div className="flex justify-end gap-2">
