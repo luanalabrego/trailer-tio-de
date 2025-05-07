@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { listarProdutos } from '@/lib/firebase-produtos'
-import { listarClientes } from '@/lib/firebase-clientes'
+import { listarClientes, cadastrarCliente } from '@/lib/firebase-clientes'
 import { salvarAgendamento } from '@/lib/firebase-agendamentos'
 import { Produto, PedidoItem, NovoAgendamento, Cliente } from '@/types'
 
@@ -17,9 +17,9 @@ export default function CardapioPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [carrinho, setCarrinho] = useState<PedidoItem[]>([])
   const [view, setView] = useState<'menu' | 'carrinho'>('menu')
-
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [quantidades, setQuantidades] = useState<Record<string, number>>({})
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   // modal de cadastro telefônico
   const [showModal, setShowModal] = useState(false)
@@ -36,6 +36,7 @@ export default function CardapioPage() {
   const [tipoEntrega, setTipoEntrega] = useState<'retirada' | 'entrega'>('retirada')
   const [localEntrega, setLocalEntrega] = useState('')
 
+  // busca inicial: produtos + clientes, além de pré-login
   useEffect(() => {
     async function init() {
       const [prods, clis] = await Promise.all([
@@ -46,11 +47,11 @@ export default function CardapioPage() {
       setClientes(clis)
       setQuantidades(Object.fromEntries(prods.map(p => [p.id, 1])))
 
-      // pré-login: mantém o cliente logado se já havia entrado com o mesmo número
-      const tel = localStorage.getItem('clienteTelefone') || ''
-      if (tel) {
-        const clean = tel.replace(/\D/g, '')
-        const cli = clis.find(c => c.telefone.replace(/\D/g,'') === clean)
+      // pré-login: se já houver telefone no localStorage e existir no Firebase, mantém logado
+      const stored = localStorage.getItem('clienteTelefone') || ''
+      if (stored) {
+        const clean = stored.replace(/\D/g, '')
+        const cli = clis.find(c => c.telefone.replace(/\D/g, '') === clean)
         if (cli) {
           setClienteExistente(cli)
           setTelefone(clean)
@@ -59,6 +60,11 @@ export default function CardapioPage() {
     }
     init()
   }, [])
+
+  // categorias disponíveis
+  const categorias = Array.from(new Set(produtos.map(p => p.categoria)))
+  // categorias a exibir, conforme filtro
+  const categoriasToShow = selectedCategory ? [selectedCategory] : categorias
 
   function entrarCarrinho() {
     if (!clienteExistente) {
@@ -74,13 +80,14 @@ export default function CardapioPage() {
     setModalStep('phone')
   }
 
+  // passo 1: verificar telefone
   function handlePhoneContinue() {
     const clean = telefone.replace(/\D/g, '')
     if (!/^\d{10,11}$/.test(clean)) {
       alert('Digite um número válido com DDD, ex: "11999998888".')
       return
     }
-    const cli = clientes.find(c => c.telefone.replace(/\D/g,'') === clean)
+    const cli = clientes.find(c => c.telefone.replace(/\D/g, '') === clean)
     if (cli) {
       setClienteExistente(cli)
       localStorage.setItem('clienteTelefone', clean)
@@ -91,16 +98,22 @@ export default function CardapioPage() {
     }
   }
 
-  function handleRegisterSubmit() {
+  // passo 2: cadastrar novo cliente no Firebase e em estado/localStorage
+  async function handleRegisterSubmit() {
     if (!nome || !aniversario) {
       alert('Por favor preencha nome e data de nascimento.')
       return
     }
     const clean = telefone.replace(/\D/g, '')
+    // cria no Firebase
+    const newCli = await cadastrarCliente({ nome, telefone: clean, aniversario })
+    // persiste localmente
     localStorage.setItem('clienteTelefone', clean)
     localStorage.setItem('clienteNome', nome)
     localStorage.setItem('clienteAniversario', aniversario)
-    setClienteExistente({ id: '', nome, telefone: clean, aniversario })
+    // atualiza estado
+    setClienteExistente(newCli)
+    setClientes(prev => [...prev, newCli])
     setShowModal(false)
     setView('carrinho')
   }
@@ -113,15 +126,14 @@ export default function CardapioPage() {
     setTelefone('')
     setNome('')
     setAniversario('')
+    setSelectedCategory(null)
     setView('menu')
   }
 
-  // ajustar quantidade no carrinho
+  // funções para ajustar quantidade de cada item no carrinho
   const incrementarItem = (id: string) => {
     setCarrinho(prev =>
-      prev.map(i =>
-        i.id === id ? { ...i, qtd: i.qtd + 1 } : i
-      )
+      prev.map(i => i.id === id ? { ...i, qtd: i.qtd + 1 } : i)
     )
   }
   const decrementarItem = (id: string) => {
@@ -129,13 +141,14 @@ export default function CardapioPage() {
       prev.flatMap(i => {
         if (i.id === id) {
           if (i.qtd > 1) return { ...i, qtd: i.qtd - 1 }
-          return [] // remove item quando chegar a zero
+          return [] // remove se chegar a zero
         }
         return i
       })
     )
   }
 
+  // adicionar ao carrinho
   const adicionarAoCarrinho = (p: Produto) => {
     const qtd = quantidades[p.id] || 1
     setCarrinho(prev => {
@@ -153,6 +166,7 @@ export default function CardapioPage() {
 
   const total = carrinho.reduce((sum, i) => sum + i.preco * i.qtd, 0)
 
+  // finalizar e agendar pedido
   async function handleAgendar() {
     if (!dataHoraAgendada || !formaPagamento || carrinho.length === 0) {
       alert('Defina data/hora, forma de pagamento e adicione itens.')
@@ -184,7 +198,10 @@ export default function CardapioPage() {
         `Total: R$ ${payload.total.toFixed(2)}`,
         `Agendado para: ${new Date(payload.dataHora).toLocaleString('pt-BR')}`,
       ].join('\n\n')
-      window.open(`https://wa.me/55${telefone}?text=${encodeURIComponent(texto)}`, '_blank')
+      window.open(
+        `https://wa.me/55${telefone}?text=${encodeURIComponent(texto)}`,
+        '_blank'
+      )
     }
     // reset
     setCarrinho([])
@@ -195,8 +212,6 @@ export default function CardapioPage() {
     setLocalEntrega('')
     setView('menu')
   }
-
-  const categorias = Array.from(new Set(produtos.map(p => p.categoria)))
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 max-w-4xl mx-auto pt-8">
@@ -217,7 +232,8 @@ export default function CardapioPage() {
         </div>
       </div>
 
-      <header className="flex justify-between items-center mb-6">
+      {/* Top bar: título + botão Carrinho */}
+      <header className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-gray-800">Cardápio</h1>
         <button
           onClick={entrarCarrinho}
@@ -227,24 +243,48 @@ export default function CardapioPage() {
         </button>
       </header>
 
+      {/* Filtro de categorias */}
+      <div className="flex gap-2 overflow-x-auto mb-4">
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className={`px-3 py-1 rounded ${!selectedCategory ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}
+        >
+          Todos
+        </button>
+        {categorias.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-3 py-1 rounded ${selectedCategory === cat ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       {view === 'menu' ? (
-        categorias.map(cat => (
+        categoriasToShow.map(cat => (
           <section key={cat} className="mb-8">
             <h2 className="text-xl font-semibold text-indigo-600 mb-2">{cat}</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
               {produtos
                 .filter(p => p.categoria === cat)
                 .map(p => (
-                  <div key={p.id} className="bg-white p-4 rounded-xl shadow flex flex-col">
+                  <div key={p.id} className="bg-white p-2 rounded shadow flex flex-col">
                     {p.imagemUrl && (
-                      <Image src={p.imagemUrl} alt={p.nome} width={400} height={200}
-                        className="w-full h-32 object-cover rounded mb-2" />
+                      <Image
+                        src={p.imagemUrl}
+                        alt={p.nome}
+                        width={200}
+                        height={100}
+                        className="object-cover rounded mb-1"
+                      />
                     )}
-                    <h3 className="text-lg font-bold">{p.nome}</h3>
-                    <p className="text-sm text-gray-600 mb-4">
+                    <h3 className="text-md font-bold">{p.nome}</h3>
+                    <p className="text-sm text-gray-600 mb-2">
                       {p.unidade} — R$ {p.preco.toFixed(2)}
                     </p>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-1 mb-2">
                       <label className="text-sm">Qtd:</label>
                       <input
                         type="number"
@@ -256,12 +296,12 @@ export default function CardapioPage() {
                             [p.id]: Math.max(1, Number(e.target.value)),
                           }))
                         }
-                        className="w-16 p-1 border rounded text-center"
+                        className="w-12 p-1 border rounded text-center text-sm"
                       />
                     </div>
                     <button
                       onClick={() => adicionarAoCarrinho(p)}
-                      className="mt-auto bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                      className="mt-auto bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700"
                     >
                       Adicionar
                     </button>
@@ -271,7 +311,7 @@ export default function CardapioPage() {
           </section>
         ))
       ) : (
-        <div className="bg-white p-4 rounded-xl shadow border">
+        <div className="bg-white p-4 rounded shadow border">
           <div className="flex justify-between items-center mb-4">
             <span className="font-semibold">Cliente: {clienteExistente?.nome}</span>
             <button
@@ -296,7 +336,7 @@ export default function CardapioPage() {
                       >
                         –
                       </button>
-                      <span>{item.nome} × {item.qtd}</span>
+                      <span className="text-sm">{item.nome} × {item.qtd}</span>
                       <button
                         onClick={() => incrementarItem(item.id)}
                         className="px-2 py-1 bg-gray-200 rounded"
@@ -304,7 +344,7 @@ export default function CardapioPage() {
                         +
                       </button>
                     </div>
-                    <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
+                    <span className="text-sm">R$ {(item.preco * item.qtd).toFixed(2)}</span>
                   </li>
                 ))}
               </ul>
@@ -372,7 +412,8 @@ export default function CardapioPage() {
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
             {modalStep === 'phone' ? (
               <>
-                <h2 className="text-xl font-bold mb-4">Digite seu WhatsApp</h2>
+                <h2 className="text-xl font-bold mb-2">Digite seu WhatsApp</h2>
+                <label className="block mb-1 text-sm">Digite seu número:</label>
                 <input
                   type="tel"
                   value={telefone}
@@ -399,9 +440,7 @@ export default function CardapioPage() {
             ) : (
               <>
                 <h2 className="text-xl font-bold mb-2">Cadastro</h2>
-                <p className="mb-4 text-gray-600">
-                  Verificamos que você não tem cadastro. Preencha abaixo:
-                </p>
+                <label className="block mb-1 text-sm">Digite seu nome:</label>
                 <input
                   type="text"
                   value={nome}
@@ -409,6 +448,7 @@ export default function CardapioPage() {
                   placeholder="Nome"
                   className="w-full p-2 border rounded mb-3"
                 />
+                <label className="block mb-1 text-sm">Digite sua data de nascimento:</label>
                 <input
                   type="date"
                   placeholder="Data de Nascimento"
