@@ -184,6 +184,34 @@ export default function CardapioPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 max-w-4xl mx-auto pt-8">
+      {/* Custom Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Image
+            src="/logo.png"
+            alt="Logo"
+            width={48}
+            height={48}
+            className="rounded-full"
+            unoptimized
+          />
+          <div>
+            {clienteExistente ? (
+              <>
+                <h2 className="text-xl font-bold">
+                  Bem-vindo, {clienteExistente.nome}!
+                </h2>
+                <p className="text-sm text-gray-600">
+                  É ótimo ter você como nosso cliente.
+                </p>
+              </>
+            ) : (
+              <h2 className="text-xl font-bold">Bem-vindo!</h2>
+            )}
+          </div>
+        </div>
+      </div>
+
       <header className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Cardápio</h1>
         <button
@@ -194,160 +222,162 @@ export default function CardapioPage() {
         </button>
       </header>
 
-      {view === 'menu'
-        ? categorias.map(cat => (
-            <section key={cat} className="mb-8">
-              <h2 className="text-xl font-semibold text-indigo-600 mb-2">{cat}</h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {produtos
-                  .filter(p => p.categoria === cat)
-                  .map(p => (
-                    <div
-                      key={p.id}
-                      className="bg-white p-4 rounded-xl shadow flex flex-col"
+      {view === 'menu' ? (
+        categorias.map(cat => (
+          <section key={cat} className="mb-8">
+            <h2 className="text-xl font-semibold text-indigo-600 mb-2">
+              {cat}
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {produtos
+                .filter(p => p.categoria === cat)
+                .map(p => (
+                  <div
+                    key={p.id}
+                    className="bg-white p-4 rounded-xl shadow flex flex-col"
+                  >
+                    {p.imagemUrl && (
+                      <Image
+                        src={p.imagemUrl}
+                        alt={p.nome}
+                        width={400}
+                        height={200}
+                        className="w-full h-32 object-cover rounded mb-2"
+                      />
+                    )}
+                    <h3 className="text-lg font-bold">{p.nome}</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      {p.unidade} — R$ {p.preco.toFixed(2)}
+                    </p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <label className="text-sm">Qtd:</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={quantidades[p.id] || 1}
+                        onChange={e =>
+                          setQuantidades(q => ({
+                            ...q,
+                            [p.id]: Math.max(1, Number(e.target.value)),
+                          }))
+                        }
+                        className="w-16 p-1 border rounded text-center"
+                      />
+                    </div>
+                    <button
+                      onClick={() => adicionarAoCarrinho(p)}
+                      className="mt-auto bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
                     >
-                      {p.imagemUrl && (
-                        <Image
-                          src={p.imagemUrl}
-                          alt={p.nome}
-                          width={400}
-                          height={200}
-                          className="w-full h-32 object-cover rounded mb-2"
-                        />
-                      )}
-                      <h3 className="text-lg font-bold">{p.nome}</h3>
-                      <p className="text-sm text-gray-600 mb-4">
-                        {p.unidade} — R$ {p.preco.toFixed(2)}
-                      </p>
-                      <div className="flex items-center gap-2 mb-2">
-                        <label className="text-sm">Qtd:</label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={quantidades[p.id] || 1}
-                          onChange={e =>
-                            setQuantidades(q => ({
-                              ...q,
-                              [p.id]: Math.max(1, Number(e.target.value)),
-                            }))
-                          }
-                          className="w-16 p-1 border rounded text-center"
-                        />
-                      </div>
+                      Adicionar
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </section>
+        ))
+      ) : (
+        <div className="bg-white p-4 rounded-xl shadow border">
+          <div className="flex justify-between items-center mb-4">
+            <span className="font-semibold">
+              Cliente: {clienteExistente?.nome}
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setView('menu')}
+                className="text-sm text-indigo-600 hover:underline"
+              >
+                Continuar comprando
+              </button>
+              <button
+                onClick={mudarTelefone}
+                className="text-sm text-indigo-600 hover:underline"
+              >
+                Mudar número
+              </button>
+            </div>
+          </div>
+
+          {carrinho.length === 0 ? (
+            <p className="text-gray-600">Carrinho vazio.</p>
+          ) : (
+            <>
+              <ul className="space-y-2 mb-4">
+                {carrinho.map(item => (
+                  <li
+                    key={item.id}
+                    className="flex justify-between items-center"
+                  >
+                    <div>
+                      {item.nome} × {item.qtd}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
                       <button
-                        onClick={() => adicionarAoCarrinho(p)}
-                        className="mt-auto bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                        onClick={() => removerDoCarrinho(item.id)}
+                        className="text-red-500 text-sm hover:underline"
                       >
-                        Adicionar
+                        Remover
                       </button>
                     </div>
-                  ))}
-              </div>
-            </section>
-          ))
-        : (
-            <div className="bg-white p-4 rounded-xl shadow border">
-              <div className="flex justify-between items-center mb-4">
-                <span className="font-semibold">
-                  Cliente: {clienteExistente?.nome}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setView('menu')}
-                    className="text-sm text-indigo-600 hover:underline"
-                  >
-                    Continuar comprando
-                  </button>
-                  <button
-                    onClick={mudarTelefone}
-                    className="text-sm text-indigo-600 hover:underline"
-                  >
-                    Mudar número
-                  </button>
-                </div>
-              </div>
+                  </li>
+                ))}
+              </ul>
 
-              {carrinho.length === 0 ? (
-                <p className="text-gray-600">Carrinho vazio.</p>
-              ) : (
-                <>
-                  <ul className="space-y-2 mb-4">
-                    {carrinho.map(item => (
-                      <li
-                        key={item.id}
-                        className="flex justify-between items-center"
-                      >
-                        <div>
-                          {item.nome} × {item.qtd}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
-                          <button
-                            onClick={() => removerDoCarrinho(item.id)}
-                            className="text-red-500 text-sm hover:underline"
-                          >
-                            Remover
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="mb-4">
-                    <label className="block mb-1 text-sm text-gray-700">
-                      Agendar para
-                    </label>
-                    <input
-                      type="datetime-local"
-                      min={new Date(Date.now() + 3600000)
-                        .toISOString()
-                        .slice(0, 16)}
-                      value={dataHoraAgendada}
-                      onChange={e => setDataHoraAgendada(e.target.value)}
-                      className="w-full p-2 border rounded"
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label className="block mb-1 text-sm text-gray-700">
-                      Forma de Pagamento
-                    </label>
-                    <select
-                      value={formaPagamento}
-                      onChange={e => setFormaPagamento(e.target.value)}
-                      className="w-full p-2 border rounded"
-                    >
-                      <option value="">Selecione</option>
-                      <option value="pix">Pix</option>
-                      <option value="dinheiro">Dinheiro</option>
-                      <option value="cartao">Cartão</option>
-                      <option value="alelo">Alelo</option>
-                      <option value="outro">Outro</option>
-                    </select>
-                  </div>
-                  <div className="mb-4">
-                    <label className="block mb-1 text-sm text-gray-700">
-                      Observação
-                    </label>
-                    <textarea
-                      value={observacao}
-                      onChange={e => setObservacao(e.target.value)}
-                      className="w-full p-2 border rounded"
-                      rows={3}
-                    />
-                  </div>
-                  <div className="text-right font-bold text-lg mb-4">
-                    Total: R$ {total.toFixed(2)}
-                  </div>
-                  <button
-                    onClick={handleAgendar}
-                    className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
-                  >
-                    Finalizar Pedido
-                  </button>
-                </>
-              )}
-            </div>
+              <div className="mb-4">
+                <label className="block mb-1 text-sm text-gray-700">
+                  Agendar para
+                </label>
+                <input
+                  type="datetime-local"
+                  min={new Date(Date.now() + 3600000)
+                    .toISOString()
+                    .slice(0, 16)}
+                  value={dataHoraAgendada}
+                  onChange={e => setDataHoraAgendada(e.target.value)}
+                  className="w-full p-2 border rounded"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block mb-1 text-sm text-gray-700">
+                  Forma de Pagamento
+                </label>
+                <select
+                  value={formaPagamento}
+                  onChange={e => setFormaPagamento(e.target.value)}
+                  className="w-full p-2 border rounded"
+                >
+                  <option value="">Selecione</option>
+                  <option value="pix">Pix</option>
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="cartao">Cartão</option>
+                  <option value="alelo">Alelo</option>
+                  <option value="outro">Outro</option>
+                </select>
+              </div>
+              <div className="mb-4">
+                <label className="block mb-1 text-sm text-gray-700">
+                  Observação
+                </label>
+                <textarea
+                  value={observacao}
+                  onChange={e => setObservacao(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  rows={3}
+                />
+              </div>
+              <div className="text-right font-bold text-lg mb-4">
+                Total: R$ {total.toFixed(2)}
+              </div>
+              <button
+                onClick={handleAgendar}
+                className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+              >
+                Finalizar Pedido
+              </button>
+            </>
           )}
+        </div>
+      )}
 
       {/* modal */}
       {showModal && (
