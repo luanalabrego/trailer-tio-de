@@ -85,7 +85,7 @@ export default function CaixaPage() {
     const cliente = clientes.find(c => c.id === clienteId)
     if (!cliente) return
     const texto = `Olá ${cliente.nome}, aqui está o resumo da sua compra:\n\n` +
-      itens.map(i => `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`).join('\n') +
+      itens.map(i => `- ${i.nome} × ${i.qtd}`).join('\n') +
       `\n\nTotal: R$ ${total.toFixed(2)}`
     window.open(
       `https://wa.me/55${cliente.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`,
@@ -99,7 +99,7 @@ export default function CaixaPage() {
       <h1>Comprovante de Venda</h1>
       <p><strong>Data:</strong> ${data}</p>
       <ul>
-        ${itens.map(i => `<li>${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}</li>`).join('')}
+        ${itens.map(i => `<li>${i.nome} × ${i.qtd}</li>`).join('')}
       </ul>
       <p><strong>Total:</strong> R$ ${total.toFixed(2)}</p>
       <p><strong>${saleType === 'paid' ? 'Pago' : 'Pendente'}</strong></p>
@@ -155,6 +155,17 @@ export default function CaixaPage() {
     await carregar()
   }
 
+  // resumo de itens vendidos hoje (agregado)
+  const resumoVendasHoje = useMemo(() => {
+    const map = new Map<string, number>()
+    vendas.forEach(v =>
+      v.itens.forEach(i => {
+        map.set(i.nome, (map.get(i.nome) || 0) + i.qtd)
+      })
+    )
+    return Array.from(map.entries()).map(([nome, total]) => ({ nome, total }))
+  }, [vendas])
+
   return (
     <>
       <Header />
@@ -187,56 +198,49 @@ export default function CaixaPage() {
             )}
           </div>
 
-          {/* carrinho */}
+          {/* carrinho (lista em vez de tabela para mobile) */}
           <div>
             <h2 className="font-semibold mb-2">Carrinho</h2>
             {itens.length === 0 ? (
               <p className="text-gray-600">Carrinho vazio</p>
             ) : (
-              <table className="w-full text-sm border">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="p-2 text-left">Produto</th>
-                    <th className="p-2 text-center">Qtd</th>
-                    <th className="p-2 text-right">Preço</th>
-                    <th className="p-2 text-right">Subtotal</th>
-                    <th className="p-2 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {itens.map(item => (
-                    <tr key={item.id} className="border-t">
-                      <td className="p-2">{item.nome}</td>
-                      <td className="p-2 text-center">{item.qtd}</td>
-                      <td className="p-2 text-right">R$ {item.preco.toFixed(2)}</td>
-                      <td className="p-2 text-right">
-                        R$ {(item.preco * item.qtd).toFixed(2)}
-                      </td>
-                      <td className="p-2 text-right flex gap-1 justify-end">
+              <ul className="space-y-2">
+                {itens.map(item => (
+                  <li
+                    key={item.id}
+                    className="bg-gray-50 p-3 rounded flex flex-col gap-2"
+                  >
+                    <div className="flex justify-between">
+                      <span className="font-medium">{item.nome}</span>
+                      <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={() => alterarQtd(item.id, -1)}
-                          className="bg-gray-200 px-2 rounded hover:bg-gray-300 disabled:opacity-50"
                           disabled={item.qtd <= 1}
+                          className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50"
                         >
                           –
                         </button>
+                        <span>{item.qtd}</span>
                         <button
                           onClick={() => alterarQtd(item.id, +1)}
-                          className="bg-gray-200 px-2 rounded hover:bg-gray-300"
+                          className="px-2 py-1 bg-gray-200 rounded"
                         >
                           +
                         </button>
-                        <button
-                          onClick={() => removerProduto(item.id)}
-                          className="text-red-500 text-xs ml-2 hover:underline"
-                        >
-                          Remover
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                      <button
+                        onClick={() => removerProduto(item.id)}
+                        className="text-red-500 text-xs hover:underline"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
 
@@ -297,7 +301,7 @@ export default function CaixaPage() {
               <div className="flex items-center gap-2">
                 <select
                   value={clienteId}
-                  onChange={e => setClienteId(e.target.value)} 
+                  onChange={e => setClienteId(e.target.value)}
                   className="flex-1 p-2 border rounded"
                 >
                   <option value="">Selecione o cliente</option>
@@ -324,17 +328,12 @@ export default function CaixaPage() {
           )}
         </div>
 
-        <h2 className="text-xl font-bold mb-2">Vendas de hoje</h2>
-        <ul className="space-y-2">
-          {vendas.map(v => (
-            <li key={v.id} className="bg-white p-3 rounded shadow text-sm">
-              Cliente:{' '}
-              {!v.pago
-                ? clientes.find(c => c.id === v.clienteId)?.nome || '—'
-                : '—'}
-              <br />
-              Total: R$ {v.total.toFixed(2)}<br />
-              Pago: {v.pago ? 'Sim' : 'Não'}
+        <h2 className="text-xl font-bold mb-2">Itens vendidos hoje</h2>
+        <ul className="space-y-1 bg-white p-4 rounded-xl shadow">
+          {resumoVendasHoje.map(r => (
+            <li key={r.nome} className="flex justify-between">
+              <span>{r.nome}</span>
+              <span>Qtd: {r.total}</span>
             </li>
           ))}
         </ul>
