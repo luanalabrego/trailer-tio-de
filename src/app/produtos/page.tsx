@@ -1,10 +1,16 @@
-// src/produtos/page.tsx
-
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Header } from '@/components/Header'
-import { Plus, Upload, Pencil, Trash2, Table, LayoutGrid } from 'lucide-react'
+import {
+  Plus,
+  Upload,
+  Pencil,
+  Trash2,
+  Table,
+  LayoutGrid,
+  Search,
+} from 'lucide-react'
 import Image from 'next/image'
 import {
   listarProdutos,
@@ -28,6 +34,10 @@ export default function ProdutosPage() {
 
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
+
+  // novos estados para busca e filtro
+  const [busca, setBusca] = useState('')
+  const [filtroCat, setFiltroCat] = useState<string | null>(null)
 
   useEffect(() => {
     carregarProdutos()
@@ -97,16 +107,35 @@ export default function ProdutosPage() {
     }
   }
 
+  // produtos filtrados por busca e categoria
+  const produtosFiltrados = useMemo(() => {
+    return produtos.filter(p => {
+      const matchBusca = p.nome.toLowerCase().includes(busca.toLowerCase())
+      const matchCat = filtroCat ? p.categoria === filtroCat : true
+      return matchBusca && matchCat
+    })
+  }, [produtos, busca, filtroCat])
+
+  // categorias que aparecem na listagem
+  const categoriasVisiveis = useMemo(() => {
+    return categorias
+      .map(c => c.nome)
+      .filter((cat, i, arr) =>
+        produtosFiltrados.some(p => p.categoria === cat) && arr.indexOf(cat) === i
+      )
+  }, [categorias, produtosFiltrados])
+
   return (
     <>
       <Header />
       <div className="pt-20 px-4 max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">Produtos</h1>
           <div className="flex gap-2">
             <button
               onClick={() => setModoLista(!modoLista)}
               className="bg-gray-100 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-200"
+              title="Alternar lista/grade"
             >
               {modoLista ? <LayoutGrid size={18} /> : <Table size={18} />}
             </button>
@@ -120,94 +149,127 @@ export default function ProdutosPage() {
           </div>
         </div>
 
-        {/* Lista ou grid */}
-        {modoLista ? (
-          <table className="w-full text-left border rounded-xl overflow-hidden shadow-md">
-            <thead className="bg-gray-100 text-sm text-gray-700">
-              <tr>
-                <th className="p-3">Nome</th>
-                <th className="p-3">Categoria</th>
-                <th className="p-3">Unidade</th>
-                <th className="p-3">Preço</th>
-                <th className="p-3">Imagem</th>
-                <th className="p-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {produtos.map((p) => (
-                <tr key={p.id} className="border-t">
-                  <td className="p-3 font-medium text-gray-800">{p.nome}</td>
-                  <td className="p-3">{p.categoria}</td>
-                  <td className="p-3">{p.unidade}</td>
-                  <td className="p-3">R$ {p.preco.toFixed(2)}</td>
-                  <td className="p-3">
-                    {p.imagemUrl && (
-                      <Image
-                        src={p.imagemUrl}
-                        alt={p.nome}
-                        width={40}
-                        height={40}
-                        className="object-cover rounded"
-                      />
-                    )}
-                  </td>
-                  <td className="p-3 text-right flex justify-end gap-2">
-                    <button
-                      onClick={() => abrirModalEdicao(p)}
-                      className="text-indigo-600 hover:text-indigo-800"
-                    >
-                      <Pencil size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleExcluir(p.id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {produtos.map((produto) => (
-              <div
-                key={produto.id}
-                className="bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition relative"
-              >
-                <div className="absolute top-2 right-2 flex gap-2">
-                  <button
-                    onClick={() => abrirModalEdicao(produto)}
-                    className="text-indigo-600 hover:text-indigo-800"
-                  >
-                    <Pencil size={18} />
-                  </button>
-                  <button
-                    onClick={() => handleExcluir(produto.id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-                {produto.imagemUrl && (
-                  <Image
-                    src={produto.imagemUrl}
-                    alt={produto.nome}
-                    width={500}
-                    height={200}
-                    className="w-full h-32 object-cover mb-2 rounded"
-                  />
-                )}
-                <h2 className="font-bold text-lg text-gray-800">{produto.nome}</h2>
-                <p className="text-sm text-gray-600">{produto.categoria}</p>
-                <p className="text-sm text-gray-800 mt-2">
-                  {produto.unidade} — R$ {produto.preco.toFixed(2)}
-                </p>
-              </div>
-            ))}
+        {/* Busca e filtros */}
+        <div className="flex flex-wrap gap-2 items-center mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar por nome..."
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              className="w-full pl-10 p-2 border rounded-md"
+            />
           </div>
-        )}
+          <select
+            value={filtroCat ?? ''}
+            onChange={e => setFiltroCat(e.target.value || null)}
+            className="p-2 border rounded-md"
+          >
+            <option value="">Todas as categorias</option>
+            {categorias.map(cat => (
+              <option key={cat.id} value={cat.nome}>
+                {cat.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Agrupamento por categoria */}
+        {categoriasVisiveis.map(cat => (
+          <section key={cat} className="mb-8">
+            <h2 className="text-xl font-semibold text-indigo-600 mb-4">{cat}</h2>
+
+            {modoLista ? (
+              <table className="w-full text-left border rounded-xl overflow-hidden shadow-md mb-4">
+                <thead className="bg-gray-100 text-sm text-gray-700">
+                  <tr>
+                    <th className="p-3">Nome</th>
+                    <th className="p-3">Unidade</th>
+                    <th className="p-3">Preço</th>
+                    <th className="p-3">Imagem</th>
+                    <th className="p-3 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {produtosFiltrados
+                    .filter(p => p.categoria === cat)
+                    .map(p => (
+                      <tr key={p.id} className="border-t">
+                        <td className="p-3 font-medium text-gray-800">{p.nome}</td>
+                        <td className="p-3">{p.unidade}</td>
+                        <td className="p-3">R$ {p.preco.toFixed(2)}</td>
+                        <td className="p-3">
+                          {p.imagemUrl && (
+                            <Image
+                              src={p.imagemUrl}
+                              alt={p.nome}
+                              width={40}
+                              height={40}
+                              className="object-cover rounded"
+                            />
+                          )}
+                        </td>
+                        <td className="p-3 text-right flex justify-end gap-2">
+                          <button
+                            onClick={() => abrirModalEdicao(p)}
+                            className="text-indigo-600 hover:text-indigo-800"
+                          >
+                            <Pencil size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleExcluir(p.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {produtosFiltrados
+                  .filter(p => p.categoria === cat)
+                  .map(produto => (
+                    <div
+                      key={produto.id}
+                      className="bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition relative"
+                    >
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        <button
+                          onClick={() => abrirModalEdicao(produto)}
+                          className="text-indigo-600 hover:text-indigo-800"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleExcluir(produto.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                      {produto.imagemUrl && (
+                        <Image
+                          src={produto.imagemUrl}
+                          alt={produto.nome}
+                          width={500}
+                          height={200}
+                          className="w-full h-32 object-cover mb-2 rounded"
+                        />
+                      )}
+                      <h2 className="font-bold text-lg text-gray-800">{produto.nome}</h2>
+                      <p className="text-sm text-gray-800 mt-2">
+                        {produto.unidade} — R$ {produto.preco.toFixed(2)}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </section>
+        ))}
 
         {/* Modal de cadastro/edição */}
         {mostrarModal && (
@@ -221,18 +283,18 @@ export default function ProdutosPage() {
                   type="text"
                   placeholder="Nome"
                   value={nome}
-                  onChange={(e) => setNome(e.target.value)}
+                  onChange={e => setNome(e.target.value)}
                   className="w-full p-2 border rounded"
                   required
                 />
                 <select
                   value={categoria}
-                  onChange={(e) => setCategoria(e.target.value)}
+                  onChange={e => setCategoria(e.target.value)}
                   className="w-full p-2 border rounded"
                   required
                 >
                   <option value="">Selecione a categoria</option>
-                  {categorias.map((cat) => (
+                  {categorias.map(cat => (
                     <option key={cat.id} value={cat.nome}>
                       {cat.nome}
                     </option>
@@ -242,13 +304,13 @@ export default function ProdutosPage() {
                   type="number"
                   placeholder="Preço"
                   value={preco}
-                  onChange={(e) => setPreco(e.target.value)}
+                  onChange={e => setPreco(e.target.value)}
                   className="w-full p-2 border rounded"
                   required
                 />
                 <select
                   value={unidade}
-                  onChange={(e) => setUnidade(e.target.value)}
+                  onChange={e => setUnidade(e.target.value)}
                   className="w-full p-2 border rounded"
                   required
                 >
@@ -263,7 +325,7 @@ export default function ProdutosPage() {
                   <span>Selecionar Imagem</span>
                   <input
                     type="file"
-                    onChange={(e) => setImagem(e.target.files?.[0] || null)}
+                    onChange={e => setImagem(e.target.files?.[0] || null)}
                     className="hidden"
                   />
                 </label>
