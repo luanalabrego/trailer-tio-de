@@ -119,6 +119,7 @@ export default function CardapioPage() {
   }
 
   function mudarTelefone() {
+    // limpa dados locais
     localStorage.removeItem('clienteTelefone')
     localStorage.removeItem('clienteNome')
     localStorage.removeItem('clienteAniversario')
@@ -127,8 +128,11 @@ export default function CardapioPage() {
     setNome('')
     setAniversario('')
     setSelectedCategory(null)
-    setView('menu')
+    // em vez de voltar ao menu, abre direto o modal de telefone
+    setModalStep('phone')
+    setShowModal(true)
   }
+  
 
   // funções para ajustar quantidade de cada item no carrinho
   const incrementarItem = (id: string) => {
