@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore'
 import { Header } from '@/components/Header'
 import { Custo } from '@/types'
-import { Pencil, Trash2, X as Close, Search as SearchIcon } from 'lucide-react'
+import { Plus, Pencil, Trash2, X as Close, Search as SearchIcon } from 'lucide-react'
 
 export default function CustosPage() {
   // modal state
@@ -123,19 +123,23 @@ export default function CustosPage() {
     <>
       <Header />
       <div className="pt-20 px-6 xl:px-0 max-w-4xl mx-auto">
+
+        {/* título e botão idêntico ao de Categorias */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-semibold text-gray-900">Custos</h1>
           <button
             onClick={() => abrirModal()}
             className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-xl shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
           >
+            <Plus size={20} />
             Registrar Custo
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          {/* busca */}
-          <div className="relative">
+        {/* busca e filtros */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          {/* campo de busca */}
+          <div className="relative flex-1">
             <SearchIcon
               className="absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-600"
               size={20}
@@ -148,22 +152,25 @@ export default function CustosPage() {
               className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
             />
           </div>
-          {/* data início */}
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-          />
-          {/* data fim */}
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-          />
+
+          {/* datas lado a lado */}
+          <div className="flex gap-4">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            />
+          </div>
         </div>
 
+        {/* lista de custos */}
         <ul className="space-y-4">
           {custosFiltrados.map((c) => (
             <li
@@ -196,8 +203,9 @@ export default function CustosPage() {
         </ul>
       </div>
 
+      {/* modal */}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-75 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-90 z-50">
           <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
             <div className="flex justify-between items-center mb-6 border-b pb-2">
               <h2 className="text-xl font-semibold text-gray-900">
@@ -260,7 +268,7 @@ export default function CustosPage() {
                   type="submit"
                   className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center gap-1"
                 >
-                  Salvar
+                  <Plus size={16} /> Salvar
                 </button>
               </div>
             </form>
