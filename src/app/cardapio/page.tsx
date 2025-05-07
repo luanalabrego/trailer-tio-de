@@ -12,6 +12,7 @@ import { Produto, PedidoItem, NovoAgendamento, Cliente } from '@/types'
 type AgendamentoPayload = NovoAgendamento & {
   tipoEntrega: 'retirada' | 'entrega'
   localEntrega?: string
+  observacao?: string
 }
 
 export default function CardapioPage() {
@@ -137,12 +138,10 @@ export default function CardapioPage() {
       nome: clienteExistente?.nome || nome,
       whatsapp: telefone,
       dataHora: dataHoraAgendada,
-      criadoEm: new Date().toISOString(),
       formaPagamento,
       itens: carrinho,
       total,
       observacao,
-      aniversario: clienteExistente?.aniversario || aniversario,
       tipoEntrega,
       localEntrega: tipoEntrega === 'entrega' ? localEntrega : undefined,
     }

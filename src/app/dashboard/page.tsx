@@ -30,7 +30,7 @@ export default function Dashboard() {
 
     // Estoque baixo
     const estoque = await listarEstoque()
-    const abaixo = estoque.filter(p => p.estoque < 5).length
+    const abaixo = estoque.filter(p => p.quantidade < 5).length
     setEstoqueBaixo(abaixo)
 
     // Agendamentos do dia

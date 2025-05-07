@@ -52,6 +52,8 @@ export interface Agendamento {
   localEntrega?: string        // adiciona propriedade `localEntrega`
   confirmado?: boolean
   dataCriacao?: Timestamp
+  observacao?: string
+  aniversario?: string
 }
 
 export type NovoAgendamento = Omit<Agendamento, 'id' | 'status'>
