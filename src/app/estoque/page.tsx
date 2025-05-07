@@ -1,5 +1,3 @@
-// src/app/estoque/page.tsx
-
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
@@ -37,11 +35,9 @@ export default function EstoquePage() {
   }, [])
 
   async function carregar() {
-    const lista = await listarEstoque()
-    setItens(lista)
+    setItens(await listarEstoque())
   }
 
-  // nomes únicos para dropdowns
   const nomesUnicos = useMemo(
     () => Array.from(new Set(itens.map(i => i.nome))),
     [itens]
@@ -62,37 +58,29 @@ export default function EstoquePage() {
       dataValidade
     )
     resetAddForm()
-    await carregar()
+    carregar()
   }
 
   async function handleRemove(e: React.FormEvent) {
     e.preventDefault()
-
     let remaining = quantidadeRemover
-    // pega só os lotes deste nome, ordenados pela data de inserção (mais antigos primeiro)
     const lotes = itens
       .filter(i => i.nome === nomeRemover)
-      .sort((a, b) => {
-        const ta = a.inseridoEm?.toDate?.() ?? new Date()
-        const tb = b.inseridoEm?.toDate?.() ?? new Date()
-        return ta.getTime() - tb.getTime()
-      })
+      .sort((a, b) =>
+        (a.inseridoEm?.toDate?.() ?? new Date()).getTime() -
+        (b.inseridoEm?.toDate?.() ?? new Date()).getTime()
+      )
 
     for (const lote of lotes) {
       if (remaining <= 0) break
-
       const disponivel = lote.quantidade
       const deduzir = Math.min(disponivel, remaining)
-      const novaQtd = disponivel - deduzir
-
-      // atualiza o lote no Firestore
-      await ajustarQuantidade(lote.id, novaQtd)
-
+      await ajustarQuantidade(lote.id, disponivel - deduzir)
       remaining -= deduzir
     }
 
     resetRemoveForm()
-    await carregar()
+    carregar()
   }
 
   function resetAddForm() {
@@ -111,7 +99,6 @@ export default function EstoquePage() {
     setShowRemoveModal(false)
   }
 
-  // gera o resumo por nome, somando todos os lotes e pegando a validade mais próxima
   const resumo = useMemo(() => {
     const map = new Map<string, { total: number; proximidade: Date }>()
     itens.forEach(item => {
@@ -136,25 +123,10 @@ export default function EstoquePage() {
       <Header />
 
       <div className="pt-20 px-4 max-w-4xl mx-auto">
-        {/* Resumo */}
-        <div className="mb-6 bg-white p-4 rounded-xl shadow">
-          <h2 className="text-xl font-semibold mb-3">Resumo de Estoque</h2>
-          <ul className="space-y-1">
-            {resumo.map(r => (
-              <li key={r.nome} className="flex justify-between">
-                <span>{r.nome}</span>
-                <span>
-                  Total: <strong>{r.total}</strong> | Validade:{' '}
-                  {r.proximidade.toLocaleDateString()}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
 
-        {/* Botões */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Estoque</h1>
+        {/* Título e Botões acima do resumo */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold mb-4 sm:mb-0">Estoque</h1>
           <div className="flex gap-2">
             <button
               onClick={() => setShowAddModal(true)}
@@ -171,7 +143,23 @@ export default function EstoquePage() {
           </div>
         </div>
 
-        {/* Listagem */}
+        {/* Resumo de Estoque */}
+        <div className="mb-6 bg-white p-4 rounded-xl shadow">
+          <h2 className="text-xl font-semibold mb-3">Resumo de Estoque</h2>
+          <ul className="space-y-1">
+            {resumo.map(r => (
+              <li key={r.nome} className="flex justify-between">
+                <span>{r.nome}</span>
+                <span>
+                  Total: <strong>{r.total}</strong> | Validade:{' '}
+                  {r.proximidade.toLocaleDateString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Listagem detalhada */}
         <ul className="space-y-2 mb-12">
           {itens.map(item => (
             <li
