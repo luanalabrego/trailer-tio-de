@@ -59,7 +59,7 @@ export default function ClientesPage() {
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault()
     await salvarCliente({
-      id: clienteSelecionado?.id,
+      id: clienteSelecionado!.id,
       nome,
       telefone,
       aniversario,   // YYYY-MM-DD
