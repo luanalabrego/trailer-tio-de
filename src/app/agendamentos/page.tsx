@@ -162,11 +162,15 @@ export default function AgendamentosPage() {
                     className="w-full flex justify-between items-center p-4"
                   >
                     <div className="flex items-center gap-2">
-                      {ag.pago && (
-                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                          Pago
-                        </span>
-                      )}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          ag.pago
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {ag.pago ? 'Pago' : 'Pendente'}
+                      </span>
                       <div className="text-left">
                         <p className="font-semibold text-gray-800">
                           {ag.nome} — {tipo} — {formatarData(ag.dataHora)}
