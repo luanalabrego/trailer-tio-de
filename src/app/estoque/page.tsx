@@ -15,7 +15,7 @@ export default function EstoquePage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showRemoveModal, setShowRemoveModal] = useState(false)
 
-  // para expandir/ocultar detalhes por nome
+  // quais nomes estão com detalhes abertos
   const [detalhesVisiveis, setDetalhesVisiveis] = useState<string[]>([])
   // busca por nome
   const [busca, setBusca] = useState('')
@@ -47,12 +47,12 @@ export default function EstoquePage() {
     e.preventDefault()
     const dataInsercao = new Date()
     const [y2, m2, d2] = validade.split('-').map(Number)
-    const dataValidade = new Date(y2, m2 - 1, d2)
+    const dataVal = new Date(y2, m2 - 1, d2)
     await criarOuAtualizarItemEstoque(
       nome.trim(),
       quantidade,
       dataInsercao,
-      dataValidade
+      dataVal
     )
     resetAddForm()
     carregar()
@@ -92,26 +92,16 @@ export default function EstoquePage() {
     setShowRemoveModal(false)
   }
 
+  // resumo por nome: só total
   const resumo = useMemo(() => {
-    const map = new Map<string, { total: number; proximidade: Date }>()
+    const map = new Map<string, number>()
     itens.forEach(item => {
-      const vd = item.validade?.toDate?.() ?? new Date()
-      const e = map.get(item.nome)
-      if (e) {
-        e.total += item.quantidade
-        if (vd < e.proximidade) e.proximidade = vd
-      } else {
-        map.set(item.nome, { total: item.quantidade, proximidade: vd })
-      }
+      map.set(item.nome, (map.get(item.nome) || 0) + item.quantidade)
     })
-    return Array.from(map.entries()).map(([nome, { total, proximidade }]) => ({
-      nome,
-      total,
-      proximidade,
-    }))
+    return Array.from(map.entries()).map(([nome, total]) => ({ nome, total }))
   }, [itens])
 
-  // aplica filtro de busca
+  // aplica filtro de busca ao resumo
   const resumoFiltrado = useMemo(
     () => resumo.filter(r =>
       r.nome.toLowerCase().includes(busca.toLowerCase())
@@ -132,7 +122,7 @@ export default function EstoquePage() {
       <Header />
       <div className="pt-20 px-4 max-w-4xl mx-auto">
 
-        {/* Título e Botões */}
+        {/* Título e Ações */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
           <h1 className="text-2xl font-bold mb-4 sm:mb-0">Estoque</h1>
           <div className="flex gap-2">
@@ -163,18 +153,16 @@ export default function EstoquePage() {
           />
         </div>
 
-        {/* Resumo de Estoque com detalhes */}
+        {/* Resumo de Estoque */}
         <div className="mb-6 bg-white p-4 rounded-xl shadow">
           <h2 className="text-xl font-semibold mb-3">Resumo de Estoque</h2>
           <ul className="space-y-2">
             {resumoFiltrado.map(r => (
               <li key={r.nome} className="border-t pt-2">
                 <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-medium">{r.nome}</span>{' '}
-                    – Total: <strong>{r.total}</strong> | Próxima validade:{' '}
-                    {r.proximidade.toLocaleDateString()}
-                  </div>
+                  <span className="font-medium">
+                    {r.nome} – Total: <strong>{r.total}</strong>
+                  </span>
                   <button
                     onClick={() => toggleDetalhes(r.nome)}
                     className="text-indigo-600 hover:underline text-sm"
@@ -193,12 +181,6 @@ export default function EstoquePage() {
                           key={item.id}
                           className="flex justify-between text-sm"
                         >
-                          <span>
-                            Inserido:{' '}
-                            {item.inseridoEm?.toDate
-                              ? item.inseridoEm.toDate().toLocaleDateString()
-                              : '—'}
-                          </span>
                           <span>
                             Validade:{' '}
                             {item.validade?.toDate
@@ -224,6 +206,7 @@ export default function EstoquePage() {
             className="p-6 rounded-xl shadow-lg w-full max-w-md bg-white space-y-4"
           >
             <h2 className="text-lg font-semibold">Adicionar / Atualizar Estoque</h2>
+
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-1">
                 <input
@@ -240,6 +223,7 @@ export default function EstoquePage() {
                 /> Novo item
               </label>
             </div>
+
             {!isNewItem ? (
               <select
                 value={nome}
@@ -262,6 +246,7 @@ export default function EstoquePage() {
                 required
               />
             )}
+
             <input
               type="number"
               placeholder="Quantidade"
@@ -271,6 +256,7 @@ export default function EstoquePage() {
               min={0}
               required
             />
+
             <label className="flex flex-col">
               Data de validade
               <input
@@ -281,6 +267,7 @@ export default function EstoquePage() {
                 required
               />
             </label>
+
             <div className="flex justify-end gap-2">
               <button
                 type="button"
