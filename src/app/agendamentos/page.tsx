@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { db } from '@/firebase/firebase'
 import {
   collection,
@@ -45,6 +45,20 @@ export default function AgendamentosPage() {
 
     setAgendamentos(dados)
   }
+
+  // Ordena agendamentos por dataHora ascendente
+  const sortedAgendamentos = useMemo(() => {
+    return [...agendamentos].sort((a, b) => {
+      const getTime = (dt: any) => {
+        if (dt instanceof Timestamp) return dt.toDate().getTime()
+        if (typeof dt === 'string' || dt instanceof String)
+          return new Date(dt as string).getTime()
+        if (dt instanceof Date) return dt.getTime()
+        return 0
+      }
+      return getTime(a.dataHora) - getTime(b.dataHora)
+    })
+  }, [agendamentos])
 
   function toggle(id: string) {
     setExpanded(prev => {
@@ -94,8 +108,7 @@ export default function AgendamentosPage() {
       await updateDoc(doc(db, 'agendamentos', ag.id), { pago: true })
       await carregar()
       alert('Pagamento registrado!')
-    } catch (err) {
-      console.error('Erro ao registrar pagamento:', err)
+    } catch {
       alert('Falha ao registrar pagamento. Veja o console.')
     }
   }
@@ -120,12 +133,14 @@ export default function AgendamentosPage() {
     await registrarVenda(venda)
     await deleteDoc(doc(db, 'agendamentos', ag.id))
     if (!ag.pago) {
-      const txt = `Olá ${ag.nome}, seu pedido de ${formatarData(
-        ag.dataHora
-      )} foi entregue, mas ainda consta *pendente* de R$ ${Number(
-        ag.total
-      ).toFixed(2)}.`
-      enviarWhatsApp(txt, ag.whatsapp)
+      enviarWhatsApp(
+        `Olá ${ag.nome}, seu pedido de ${formatarData(
+          ag.dataHora
+        )} foi entregue, mas ainda consta pendente de R$ ${Number(
+          ag.total
+        ).toFixed(2)}.`,
+        ag.whatsapp
+      )
     }
     await carregar()
   }
@@ -134,15 +149,13 @@ export default function AgendamentosPage() {
     <>
       <Header />
       <div className="pt-20 px-4 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">
-          Agendamentos
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Agendamentos</h1>
 
-        {agendamentos.length === 0 ? (
+        {sortedAgendamentos.length === 0 ? (
           <p className="text-gray-600">Nenhum agendamento.</p>
         ) : (
           <div className="space-y-4">
-            {agendamentos.map(ag => {
+            {sortedAgendamentos.map(ag => {
               const isOpen = expanded.has(ag.id)
               const tipo = ag.localEntrega ? 'Entrega' : 'Retirada'
               const borderClass =
