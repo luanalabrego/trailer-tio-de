@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { Header } from '@/components/Header'
 import { db } from '@/firebase/firebase'
 import {
@@ -10,7 +10,7 @@ import {
   getDocs,
   Timestamp,
 } from 'firebase/firestore'
-import { CreditCard, DollarSign, Zap, Tag, Search as SearchIcon } from 'lucide-react'
+import { CreditCard, DollarSign, Zap, Tag } from 'lucide-react'
 import { Venda, Custo } from '@/types'
 
 type VendaFirestore = Omit<Venda, 'id'>
@@ -34,51 +34,52 @@ export default function FinanceiroPage() {
     const perfil = localStorage.getItem('perfil')
     if (perfil !== 'ADM') {
       setAcessoNegado(true)
-    } else {
-      carregar()
+      return
     }
+
+    async function fetchDados() {
+      const inicio = new Date(dataInicio)
+      inicio.setHours(0, 0, 0, 0)
+      const fim = new Date(dataFim)
+      fim.setHours(23, 59, 59, 999)
+
+      // vendas
+      const qV = query(
+        collection(db, 'vendas'),
+        where('data', '>=', Timestamp.fromDate(inicio)),
+        where('data', '<=', Timestamp.fromDate(fim))
+      )
+      const snapV = await getDocs(qV)
+      let listaV = snapV.docs.map(d => {
+        const data = d.data() as VendaFirestore
+        return { id: d.id, ...data }
+      })
+      if (filtroMetodo !== 'todos') {
+        listaV = listaV.filter(v => v.formaPagamento === filtroMetodo)
+      }
+      setVendas(listaV)
+
+      // custos
+      const qC = query(
+        collection(db, 'custos'),
+        where('data', '>=', Timestamp.fromDate(inicio)),
+        where('data', '<=', Timestamp.fromDate(fim))
+      )
+      const snapC = await getDocs(qC)
+      const listaC = snapC.docs.map(d => {
+        const data = d.data() as CustoFirestore
+        return { id: d.id, ...data }
+      })
+      setCustos(listaC)
+
+      // caixa
+      const snapCx = await getDocs(collection(db, 'caixa'))
+      const listaCx = snapCx.docs.map(d => d.data() as CaixaFirestore)
+      setCaixas(listaCx)
+    }
+
+    fetchDados()
   }, [dataInicio, dataFim, filtroMetodo])
-
-  async function carregar() {
-    const inicio = new Date(dataInicio)
-    inicio.setHours(0, 0, 0, 0)
-    const fim = new Date(dataFim)
-    fim.setHours(23, 59, 59, 999)
-
-    // vendas
-    const qV = query(
-      collection(db, 'vendas'),
-      where('data', '>=', Timestamp.fromDate(inicio)),
-      where('data', '<=', Timestamp.fromDate(fim))
-    )
-    const snapV = await getDocs(qV)
-    let listaV = snapV.docs.map(d => {
-      const data = d.data() as VendaFirestore
-      return { id: d.id, ...data }
-    })
-    if (filtroMetodo !== 'todos') {
-      listaV = listaV.filter(v => v.formaPagamento === filtroMetodo)
-    }
-    setVendas(listaV)
-
-    // custos
-    const qC = query(
-      collection(db, 'custos'),
-      where('data', '>=', Timestamp.fromDate(inicio)),
-      where('data', '<=', Timestamp.fromDate(fim))
-    )
-    const snapC = await getDocs(qC)
-    const listaC = snapC.docs.map(d => {
-      const data = d.data() as CustoFirestore
-      return { id: d.id, ...data }
-    })
-    setCustos(listaC)
-
-    // caixa
-    const snapCx = await getDocs(collection(db, 'caixa'))
-    const listaCx = snapCx.docs.map(d => d.data() as CaixaFirestore)
-    setCaixas(listaCx)
-  }
 
   // totais
   const totais = vendas.reduce(
