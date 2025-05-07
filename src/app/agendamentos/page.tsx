@@ -8,15 +8,13 @@ import {
   deleteDoc,
   updateDoc,
   doc,
+  Timestamp,
 } from 'firebase/firestore'
 import { Header } from '@/components/Header'
 import { Agendamento, Cliente, PedidoItem, Venda } from '@/types'
 import { listarClientes } from '@/lib/firebase-clientes'
 import { registrarVenda } from '@/lib/firebase-caixa'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-
-// Tipo para os dados vindos do Firestore, sem o campo 'id'
-type AgendamentoFirestore = Omit<Agendamento, 'id'>
 
 export default function AgendamentosPage() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
@@ -25,7 +23,6 @@ export default function AgendamentosPage() {
 
   useEffect(() => {
     carregar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function carregar() {
@@ -36,10 +33,9 @@ export default function AgendamentosPage() {
     setClientes(listaClientes)
 
     const dados = snap.docs.map(d => {
-      const raw = d.data() as any
+      const raw = d.data() as Record<string, any>
       // fallback para registros antigos que tinham criadoEm
-      const dataCriacaoTs = raw.dataCriacao ?? raw.criadoEm
-
+      const dataCriacaoTs: Timestamp = raw.dataCriacao ?? raw.criadoEm
       return {
         id: d.id,
         ...raw,
@@ -59,16 +55,20 @@ export default function AgendamentosPage() {
     })
   }
 
-  function formatarData(dt: any) {
+  function formatarData(dt?: Timestamp | Date | string): string {
     if (!dt) return 'Inválida'
-    if (typeof dt.toDate === 'function') {
+    if (dt instanceof Timestamp) {
       return formatDateObj(dt.toDate())
     }
-    const date = dt instanceof Date ? dt : new Date(dt)
+    if (dt instanceof Date) {
+      return formatDateObj(dt)
+    }
+    // string
+    const date = new Date(dt)
     return formatDateObj(date)
   }
 
-  function formatDateObj(date: Date) {
+  function formatDateObj(date: Date): string {
     if (isNaN(date.getTime())) return 'Inválida'
     return date.toLocaleString('pt-BR', {
       dateStyle: 'short',
