@@ -30,12 +30,13 @@ export default function ProdutosPage() {
   const [categoria, setCategoria] = useState('')
   const [preco, setPreco] = useState('')
   const [unidade, setUnidade] = useState('')
+  const [mlVolume, setMlVolume] = useState('')      // para produtos em ml
   const [imagem, setImagem] = useState<File | null>(null)
 
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
 
-  // novos estados para busca e filtro
+  // busca e filtro
   const [busca, setBusca] = useState('')
   const [filtroCat, setFiltroCat] = useState<string | null>(null)
 
@@ -45,13 +46,11 @@ export default function ProdutosPage() {
   }, [])
 
   async function carregarProdutos() {
-    const lista = await listarProdutos()
-    setProdutos(lista)
+    setProdutos(await listarProdutos())
   }
 
   async function carregarCategorias() {
-    const lista = await listarCategorias()
-    setCategorias(lista)
+    setCategorias(await listarCategorias())
   }
 
   const abrirModalNovo = () => {
@@ -61,6 +60,7 @@ export default function ProdutosPage() {
     setCategoria('')
     setPreco('')
     setUnidade('')
+    setMlVolume('')
     setImagem(null)
     setMostrarModal(true)
   }
@@ -71,7 +71,14 @@ export default function ProdutosPage() {
     setNome(p.nome)
     setCategoria(p.categoria)
     setPreco(String(p.preco))
-    setUnidade(p.unidade)
+    // separa ml se unidade terminar com " ml"
+    if (p.unidade.endsWith(' ml')) {
+      setUnidade('ml')
+      setMlVolume(p.unidade.replace(' ml', ''))
+    } else {
+      setUnidade(p.unidade)
+      setMlVolume('')
+    }
     setImagem(null)
     setMostrarModal(true)
   }
@@ -80,6 +87,9 @@ export default function ProdutosPage() {
     e.preventDefault()
     if (!nome.trim() || !categoria || !preco || !unidade) return
 
+    const unidadeFinal =
+      unidade === 'ml' ? `${mlVolume.trim()} ml` : unidade
+
     try {
       await salvarProduto(
         {
@@ -87,13 +97,13 @@ export default function ProdutosPage() {
           nome: nome.trim(),
           categoria,
           preco: parseFloat(preco),
-          unidade,
+          unidade: unidadeFinal,
           imagemUrl: produtoSelecionado?.imagemUrl || '',
         },
         imagem ?? undefined
       )
       setMostrarModal(false)
-      await carregarProdutos()
+      carregarProdutos()
     } catch (erro) {
       console.error('❌ produtos.erro salvarProduto', erro)
       alert('Erro ao salvar produto. Verifique o console.')
@@ -103,11 +113,10 @@ export default function ProdutosPage() {
   const handleExcluir = async (id: string) => {
     if (confirm('Deseja realmente excluir este produto?')) {
       await excluirProduto(id)
-      await carregarProdutos()
+      carregarProdutos()
     }
   }
 
-  // produtos filtrados por busca e categoria
   const produtosFiltrados = useMemo(() => {
     return produtos.filter(p => {
       const matchBusca = p.nome.toLowerCase().includes(busca.toLowerCase())
@@ -116,19 +125,18 @@ export default function ProdutosPage() {
     })
   }, [produtos, busca, filtroCat])
 
-  // categorias que aparecem na listagem
   const categoriasVisiveis = useMemo(() => {
-    return categorias
-      .map(c => c.nome)
-      .filter((cat, i, arr) =>
-        produtosFiltrados.some(p => p.categoria === cat) && arr.indexOf(cat) === i
-      )
-  }, [categorias, produtosFiltrados])
+    return Array.from(new Set(
+      produtosFiltrados.map(p => p.categoria)
+    ))
+  }, [produtosFiltrados])
 
   return (
     <>
       <Header />
       <div className="pt-20 px-4 max-w-6xl mx-auto">
+
+        {/* título e ações */}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">Produtos</h1>
           <div className="flex gap-2">
@@ -141,7 +149,7 @@ export default function ProdutosPage() {
             </button>
             <button
               onClick={abrirModalNovo}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition"
+              className="flex items-center gap-2 bg-white border border-indigo-600 text-indigo-600 px-4 py-2 rounded-md hover:bg-indigo-50 transition"
             >
               <Plus size={18} />
               Novo Produto
@@ -149,22 +157,22 @@ export default function ProdutosPage() {
           </div>
         </div>
 
-        {/* Busca e filtros */}
-        <div className="flex flex-wrap gap-2 items-center mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+        {/* busca + filtro */}
+        <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600" size={18} />
             <input
               type="text"
               placeholder="Buscar por nome..."
               value={busca}
               onChange={e => setBusca(e.target.value)}
-              className="w-full pl-10 p-2 border rounded-md"
+              className="w-full pl-10 p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-600"
             />
           </div>
           <select
             value={filtroCat ?? ''}
             onChange={e => setFiltroCat(e.target.value || null)}
-            className="p-2 border rounded-md"
+            className="p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-600"
           >
             <option value="">Todas as categorias</option>
             {categorias.map(cat => (
@@ -175,7 +183,7 @@ export default function ProdutosPage() {
           </select>
         </div>
 
-        {/* Agrupamento por categoria */}
+        {/* agrupado por categoria */}
         {categoriasVisiveis.map(cat => (
           <section key={cat} className="mb-8">
             <h2 className="text-xl font-semibold text-indigo-600 mb-4">{cat}</h2>
@@ -273,7 +281,7 @@ export default function ProdutosPage() {
 
         {/* Modal de cadastro/edição */}
         {mostrarModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
             <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl relative">
               <h2 className="text-xl font-bold text-gray-800 mb-4">
                 {modoEdicao ? 'Editar Produto' : 'Novo Produto'}
@@ -284,13 +292,13 @@ export default function ProdutosPage() {
                   placeholder="Nome"
                   value={nome}
                   onChange={e => setNome(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border border-gray-200 rounded-md"
                   required
                 />
                 <select
                   value={categoria}
                   onChange={e => setCategoria(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border border-gray-200 rounded-md"
                   required
                 >
                   <option value="">Selecione a categoria</option>
@@ -305,13 +313,13 @@ export default function ProdutosPage() {
                   placeholder="Preço"
                   value={preco}
                   onChange={e => setPreco(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border border-gray-200 rounded-md"
                   required
                 />
                 <select
                   value={unidade}
                   onChange={e => setUnidade(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border border-gray-200 rounded-md"
                   required
                 >
                   <option value="">Selecione a unidade</option>
@@ -320,7 +328,17 @@ export default function ProdutosPage() {
                   <option value="kg">Kg</option>
                   <option value="ml">ml</option>
                 </select>
-                <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200">
+                {unidade === 'ml' && (
+                  <input
+                    type="number"
+                    placeholder="Quantidade em ml"
+                    value={mlVolume}
+                    onChange={e => setMlVolume(e.target.value)}
+                    className="w-full p-2 border border-gray-200 rounded-md"
+                    required
+                  />
+                )}
+                <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200">
                   <Upload size={18} />
                   <span>Selecionar Imagem</span>
                   <input
@@ -335,7 +353,7 @@ export default function ProdutosPage() {
                 <div className="text-right">
                   <button
                     type="submit"
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
                   >
                     Salvar Produto
                   </button>
