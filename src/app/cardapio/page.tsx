@@ -36,7 +36,7 @@ export default function CardapioPage() {
   const [tipoEntrega, setTipoEntrega] = useState<'retirada' | 'entrega'>('retirada')
   const [localEntrega, setLocalEntrega] = useState('')
 
-  // busca inicial: produtos + clientes, além de pré-login
+  // busca inicial
   useEffect(() => {
     async function init() {
       const [prods, clis] = await Promise.all([
@@ -47,7 +47,6 @@ export default function CardapioPage() {
       setClientes(clis)
       setQuantidades(Object.fromEntries(prods.map(p => [p.id, 1])))
 
-      // pré-login: se já houver telefone no localStorage e existir no Firebase, mantém logado
       const stored = localStorage.getItem('clienteTelefone') || ''
       if (stored) {
         const clean = stored.replace(/\D/g, '')
@@ -61,9 +60,7 @@ export default function CardapioPage() {
     init()
   }, [])
 
-  // categorias disponíveis
   const categorias = Array.from(new Set(produtos.map(p => p.categoria)))
-  // categorias a exibir, conforme filtro
   const categoriasToShow = selectedCategory ? [selectedCategory] : categorias
 
   function entrarCarrinho() {
@@ -80,7 +77,6 @@ export default function CardapioPage() {
     setModalStep('phone')
   }
 
-  // passo 1: verificar telefone
   function handlePhoneContinue() {
     const clean = telefone.replace(/\D/g, '')
     if (!/^\d{10,11}$/.test(clean)) {
@@ -98,20 +94,14 @@ export default function CardapioPage() {
     }
   }
 
-  // passo 2: cadastrar novo cliente no Firebase e em estado/localStorage
   async function handleRegisterSubmit() {
     if (!nome || !aniversario) {
       alert('Por favor preencha nome e data de nascimento.')
       return
     }
     const clean = telefone.replace(/\D/g, '')
-    // cria no Firebase
     const newCli = await cadastrarCliente({ nome, telefone: clean, aniversario })
-    // persiste localmente
     localStorage.setItem('clienteTelefone', clean)
-    localStorage.setItem('clienteNome', nome)
-    localStorage.setItem('clienteAniversario', aniversario)
-    // atualiza estado
     setClienteExistente(newCli)
     setClientes(prev => [...prev, newCli])
     setShowModal(false)
@@ -119,40 +109,31 @@ export default function CardapioPage() {
   }
 
   function mudarTelefone() {
-    // limpa dados locais
     localStorage.removeItem('clienteTelefone')
-    localStorage.removeItem('clienteNome')
-    localStorage.removeItem('clienteAniversario')
     setClienteExistente(null)
     setTelefone('')
     setNome('')
     setAniversario('')
     setSelectedCategory(null)
-    // em vez de voltar ao menu, abre direto o modal de telefone
     setModalStep('phone')
     setShowModal(true)
   }
-  
 
-  // funções para ajustar quantidade de cada item no carrinho
-  const incrementarItem = (id: string) => {
+  const incrementarItem = (id: string) =>
     setCarrinho(prev =>
-      prev.map(i => i.id === id ? { ...i, qtd: i.qtd + 1 } : i)
+      prev.map(i => (i.id === id ? { ...i, qtd: i.qtd + 1 } : i))
     )
-  }
-  const decrementarItem = (id: string) => {
+  const decrementarItem = (id: string) =>
     setCarrinho(prev =>
       prev.flatMap(i => {
         if (i.id === id) {
           if (i.qtd > 1) return { ...i, qtd: i.qtd - 1 }
-          return [] // remove se chegar a zero
+          return []
         }
         return i
       })
     )
-  }
 
-  // adicionar ao carrinho
   const adicionarAoCarrinho = (p: Produto) => {
     const qtd = quantidades[p.id] || 1
     setCarrinho(prev => {
@@ -170,7 +151,6 @@ export default function CardapioPage() {
 
   const total = carrinho.reduce((sum, i) => sum + i.preco * i.qtd, 0)
 
-  // finalizar e agendar pedido
   async function handleAgendar() {
     if (!dataHoraAgendada || !formaPagamento || carrinho.length === 0) {
       alert('Defina data/hora, forma de pagamento e adicione itens.')
@@ -196,18 +176,17 @@ export default function CardapioPage() {
       const linhas = payload.itens
         .map(i => `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`)
         .join('\n')
-      const texto = [
-        `Olá ${payload.nome}, aqui está seu pedido:`,
-        linhas,
-        `Total: R$ ${payload.total.toFixed(2)}`,
-        `Agendado para: ${new Date(payload.dataHora).toLocaleString('pt-BR')}`,
-      ].join('\n\n')
       window.open(
-        `https://wa.me/55${telefone}?text=${encodeURIComponent(texto)}`,
+        `https://wa.me/55${telefone}?text=${encodeURIComponent(
+          `Olá ${payload.nome},\n${linhas}\nTotal: R$ ${payload.total.toFixed(
+            2
+          )}\nAgendado para: ${new Date(
+            payload.dataHora
+          ).toLocaleString('pt-BR')}`
+        )}`,
         '_blank'
       )
     }
-    // reset
     setCarrinho([])
     setDataHoraAgendada('')
     setFormaPagamento('')
@@ -219,15 +198,25 @@ export default function CardapioPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 max-w-4xl mx-auto pt-8">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Logo" width={48} height={48} className="rounded-full" unoptimized />
+          <Image
+            src="/logo.png"
+            alt="Logo"
+            width={48}
+            height={48}
+            className="rounded-full"
+            unoptimized
+          />
           <div>
             {clienteExistente ? (
               <>
-                <h2 className="text-xl font-bold">Bem-vindo, {clienteExistente.nome}!</h2>
-                <p className="text-sm text-gray-600">É ótimo ter você como nosso cliente.</p>
+                <h2 className="text-xl font-bold">
+                  Bem-vindo, {clienteExistente.nome}!
+                </h2>
+                <p className="text-sm text-gray-600">
+                  É ótimo ter você como nosso cliente.
+                </p>
               </>
             ) : (
               <h2 className="text-xl font-bold">Bem-vindo!</h2>
@@ -236,7 +225,6 @@ export default function CardapioPage() {
         </div>
       </div>
 
-      {/* Top bar: título + botão Carrinho */}
       <header className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-gray-800">Cardápio</h1>
         <button
@@ -247,11 +235,12 @@ export default function CardapioPage() {
         </button>
       </header>
 
-      {/* Filtro de categorias */}
       <div className="flex gap-2 overflow-x-auto mb-4">
         <button
           onClick={() => setSelectedCategory(null)}
-          className={`px-3 py-1 rounded ${!selectedCategory ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}
+          className={`px-3 py-1 rounded ${
+            !selectedCategory ? 'bg-indigo-600 text-white' : 'bg-gray-200'
+          }`}
         >
           Todos
         </button>
@@ -259,7 +248,9 @@ export default function CardapioPage() {
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1 rounded ${selectedCategory === cat ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}
+            className={`px-3 py-1 rounded ${
+              selectedCategory === cat ? 'bg-indigo-600 text-white' : 'bg-gray-200'
+            }`}
           >
             {cat}
           </button>
@@ -274,7 +265,10 @@ export default function CardapioPage() {
               {produtos
                 .filter(p => p.categoria === cat)
                 .map(p => (
-                  <div key={p.id} className="bg-white p-2 rounded shadow flex flex-col">
+                  <div
+                    key={p.id}
+                    className="bg-white p-2 rounded shadow flex flex-col"
+                  >
                     {p.imagemUrl && (
                       <Image
                         src={p.imagemUrl}
@@ -315,99 +309,130 @@ export default function CardapioPage() {
           </section>
         ))
       ) : (
-        <div className="bg-white p-4 rounded shadow border">
-          <div className="flex justify-between items-center mb-4">
-            <span className="font-semibold">Cliente: {clienteExistente?.nome}</span>
+        <>
+          {/* ← Voltar ao menu */}
+          <div className="mb-4">
             <button
-              onClick={mudarTelefone}
-              className="text-sm text-indigo-600 hover:underline"
+              onClick={() => setView('menu')}
+              className="text-indigo-600 hover:underline"
             >
-              Mudar número
+              ← Voltar ao menu
             </button>
           </div>
 
-          {carrinho.length === 0 ? (
-            <p className="text-gray-600">Carrinho vazio.</p>
-          ) : (
-            <>
-              <ul className="space-y-2 mb-4">
-                {carrinho.map(item => (
-                  <li key={item.id} className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => decrementarItem(item.id)}
-                        className="px-2 py-1 bg-gray-200 rounded"
-                      >
-                        –
-                      </button>
-                      <span className="text-sm">{item.nome} × {item.qtd}</span>
-                      <button
-                        onClick={() => incrementarItem(item.id)}
-                        className="px-2 py-1 bg-gray-200 rounded"
-                      >
-                        +
-                      </button>
-                    </div>
-                    <span className="text-sm">R$ {(item.preco * item.qtd).toFixed(2)}</span>
-                  </li>
-                ))}
-              </ul>
+          {/* Início do carrinho */}
+          <div className="bg-white p-4 rounded shadow border">
+            <div className="flex justify-between items-center mb-4">
+              <span className="font-semibold">
+                Cliente: {clienteExistente?.nome}
+              </span>
+              <button
+                onClick={mudarTelefone}
+                className="text-sm text-indigo-600 hover:underline"
+              >
+                Mudar número
+              </button>
+            </div>
 
-              <div className="mb-4">
-                <label className="block mb-1 text-sm text-gray-700">Agendar para</label>
-                <input
-                  type="datetime-local"
-                  min={new Date(Date.now() + 3600000).toISOString().slice(0, 16)}
-                  value={dataHoraAgendada}
-                  onChange={e => setDataHoraAgendada(e.target.value)}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block mb-1 text-sm text-gray-700">Forma de Pagamento</label>
-                <select
-                  value={formaPagamento}
-                  onChange={e => setFormaPagamento(e.target.value)}
-                  className="w-full p-2 border rounded"
-                >
-                  <option value="">Selecione</option>
-                  <option value="pix">Pix</option>
-                  <option value="dinheiro">Dinheiro</option>
-                  <option value="cartao">Cartão</option>
-                  <option value="alelo">Alelo</option>
-                  <option value="outro">Outro</option>
-                </select>
-              </div>
-              <div className="mb-4">
-                <label className="block mb-1 text-sm text-gray-700">Observação</label>
-                <textarea
-                  value={observacao}
-                  onChange={e => setObservacao(e.target.value)}
-                  className="w-full p-2 border rounded"
-                  rows={3}
-                />
-              </div>
-              <div className="text-right font-bold text-lg mb-4">
-                Total: R$ {total.toFixed(2)}
-              </div>
+            {carrinho.length === 0 ? (
+              <p className="text-gray-600">Carrinho vazio.</p>
+            ) : (
+              <>
+                <ul className="space-y-2 mb-4">
+                  {carrinho.map(item => (
+                    <li
+                      key={item.id}
+                      className="flex justify-between items-center"
+                    >
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => decrementarItem(item.id)}
+                          className="px-2 py-1 bg-gray-200 rounded"
+                        >
+                          –
+                        </button>
+                        <span className="text-sm">
+                          {item.nome} × {item.qtd}
+                        </span>
+                        <button
+                          onClick={() => incrementarItem(item.id)}
+                          className="px-2 py-1 bg-gray-200 rounded"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="text-sm">
+                        R$ {(item.preco * item.qtd).toFixed(2)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setView('menu')}
-                  className="flex-1 bg-gray-400 text-white py-2 rounded hover:bg-gray-500"
-                >
-                  Continuar Comprando
-                </button>
-                <button
-                  onClick={handleAgendar}
-                  className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700"
-                >
-                  Finalizar Pedido
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+                <div className="mb-4">
+                  <label className="block mb-1 text-sm text-gray-700">
+                    Agendar para
+                  </label>
+                  <input
+                    type="datetime-local"
+                    min={new Date(Date.now() + 3600000)
+                      .toISOString()
+                      .slice(0, 16)}
+                    value={dataHoraAgendada}
+                    onChange={e => setDataHoraAgendada(e.target.value)}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block mb-1 text-sm text-gray-700">
+                    Forma de Pagamento
+                  </label>
+                  <select
+                    value={formaPagamento}
+                    onChange={e => setFormaPagamento(e.target.value)}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="">Selecione</option>
+                    <option value="pix">Pix</option>
+                    <option value="dinheiro">Dinheiro</option>
+                    <option value="cartao">Cartão</option>
+                    <option value="alelo">Alelo</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label className="block mb-1 text-sm text-gray-700">
+                    Observação
+                  </label>
+                  <textarea
+                    value={observacao}
+                    onChange={e => setObservacao(e.target.value)}
+                    className="w-full p-2 border rounded"
+                    rows={3}
+                  />
+                </div>
+                <div className="text-right font-bold text-lg mb-4">
+                  Total: R$ {total.toFixed(2)}
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setView('menu')}
+                    className="flex-1 bg-gray-400 text-white py-2 rounded hover:bg-gray-500"
+                  >
+                    Continuar Comprando
+                  </button>
+                  <button
+                    onClick={handleAgendar}
+                    className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700"
+                  >
+                    Finalizar Pedido
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          {/* Fim do carrinho */}
+        </>
       )}
 
       {/* modal */}
@@ -416,8 +441,12 @@ export default function CardapioPage() {
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
             {modalStep === 'phone' ? (
               <>
-                <h2 className="text-xl font-bold mb-2">Digite seu WhatsApp</h2>
-                <label className="block mb-1 text-sm">Digite seu número:</label>
+                <h2 className="text-xl font-bold mb-2">
+                  Digite seu WhatsApp
+                </h2>
+                <label className="block mb-1 text-sm">
+                  Digite seu número:
+                </label>
                 <input
                   type="tel"
                   value={telefone}
@@ -444,7 +473,9 @@ export default function CardapioPage() {
             ) : (
               <>
                 <h2 className="text-xl font-bold mb-2">Cadastro</h2>
-                <label className="block mb-1 text-sm">Digite seu nome:</label>
+                <label className="block mb-1 text-sm">
+                  Digite seu nome:
+                </label>
                 <input
                   type="text"
                   value={nome}
@@ -452,7 +483,9 @@ export default function CardapioPage() {
                   placeholder="Nome"
                   className="w-full p-2 border rounded mb-3"
                 />
-                <label className="block mb-1 text-sm">Digite sua data de nascimento:</label>
+                <label className="block mb-1 text-sm">
+                  Digite sua data de nascimento:
+                </label>
                 <input
                   type="date"
                   placeholder="Data de Nascimento"
