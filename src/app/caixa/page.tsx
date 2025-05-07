@@ -13,11 +13,9 @@ export default function CaixaPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [vendas, setVendas] = useState<Venda[]>([])
 
-  // carrinho
+  // carrinho e busca
   const [itens, setItens] = useState<PedidoItem[]>([])
   const [buscaProduto, setBuscaProduto] = useState('')
-
-  // sugestões de produtos pela busca
   const sugeridos = useMemo(
     () =>
       buscaProduto.trim() === ''
@@ -39,6 +37,7 @@ export default function CaixaPage() {
     aniversario: '',
   })
 
+  // modal final
   const [showFinalModal, setShowFinalModal] = useState(false)
 
   const total = itens.reduce((acc, cur) => acc + cur.preco * cur.qtd, 0)
@@ -74,9 +73,7 @@ export default function CaixaPage() {
   function alterarQtd(id: string, delta: number) {
     setItens(prev =>
       prev
-        .map(i =>
-          i.id === id ? { ...i, qtd: Math.max(1, i.qtd + delta) } : i
-        )
+        .map(i => (i.id === id ? { ...i, qtd: Math.max(1, i.qtd + delta) } : i))
         .filter(i => i.qtd > 0)
     )
   }
@@ -85,44 +82,71 @@ export default function CaixaPage() {
     setItens(prev => prev.filter(i => i.id !== id))
   }
 
-  // abre janela com HTML e chama window.print()
   function handleImprimir() {
-    const data = new Date().toLocaleString('pt-BR')
-    const html = `
-      <h1>Comprovante de Venda</h1>
-      <p><strong>Data:</strong> ${data}</p>
-      <ul>
-        ${itens
-          .map(i => `<li>${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}</li>`)
-          .join('')}
-      </ul>
-      <p><strong>Total:</strong> R$ ${total.toFixed(2)}</p>
-      <p><strong>${saleType === 'paid' ? 'Pago' : 'Pendente'}</strong></p>
-    `
-    const w = window.open('', '', 'width=300,height=500')
+    const w = window.open('', '_blank')
     if (!w) return
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8"/>
+          <title>Comprovante de Venda</title>
+          <style>
+            body { font-family: sans-serif; padding: 1rem; }
+            h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+            ul { padding-left: 1.2rem; }
+            li { margin-bottom: 0.3rem; }
+          </style>
+        </head>
+        <body>
+          <h1>Comprovante de Venda</h1>
+          <p><strong>Data:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+          <ul>
+            ${itens
+              .map(
+                i =>
+                  `<li>${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(
+                    2
+                  )}</li>`
+              )
+              .join('')}
+          </ul>
+          <p><strong>Total:</strong> R$ ${total.toFixed(2)}</p>
+          <p><strong>${saleType === 'paid' ? 'Pago' : 'Pendente'}</strong></p>
+        </body>
+      </html>
+    `
     w.document.write(html)
     w.document.close()
-    w.focus()
-    w.print()
-    w.close()
+    w.onload = () => {
+      w.focus()
+      w.print()
+      w.close()
+    }
   }
 
-  // monta mensagem para WhatsApp incluindo total e pendente
   function abrirWhatsapp() {
     const cli = clientes.find(c => c.id === clienteId)
     if (!cli) return
+
     const texto =
       `Olá ${cli.nome}, aqui está o resumo da sua compra:\n\n` +
       itens.map(i => `- ${i.nome} × ${i.qtd}`).join('\n') +
       `\n\nTotal: R$ ${total.toFixed(2)}\nStatus: pendente de pagamento`
-    window.open(
-      `https://wa.me/55${cli.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`,
-      '_blank'
-    )
+
+    const w = window.open('', '_blank')
+    if (!w) return
+    w.document.write('<p>Abrindo WhatsApp...</p>')
+    w.document.close()
+    w.onload = () => {
+      w.location.href = `https://wa.me/55${cli.telefone.replace(
+        /\D/g,
+        ''
+      )}?text=${encodeURIComponent(texto)}`
+    }
   }
 
-  // abre modal de confirmação final
   function handleShowFinalModal() {
     if (itens.length === 0) {
       alert('Adicione ao menos um produto.')
@@ -139,8 +163,8 @@ export default function CaixaPage() {
     setShowFinalModal(true)
   }
 
-  // registra e finaliza tudo
   async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
+    // 1) registra a venda
     await registrarVenda({
       clienteId: saleType === 'pending' ? clienteId : '',
       itens,
@@ -148,10 +172,11 @@ export default function CaixaPage() {
       total,
       pago: saleType === 'paid',
     })
+    // 2) executa ação
     if (action === 'print') handleImprimir()
     if (action === 'whatsapp') abrirWhatsapp()
+    // 3) feedback e reset
     alert('Pedido finalizado!')
-    // reset
     setItens([])
     setSaleType(null)
     setFormaPagamento('')
@@ -160,7 +185,6 @@ export default function CaixaPage() {
     await carregar()
   }
 
-  // resumo de itens vendidos hoje (agregado)
   const resumoVendasHoje = useMemo(() => {
     const m = new Map<string, number>()
     vendas.forEach(v =>
@@ -178,9 +202,11 @@ export default function CaixaPage() {
         <h1 className="text-2xl font-bold mb-4">Caixa</h1>
 
         <div className="bg-white p-4 rounded-xl shadow space-y-6 mb-8">
-          {/* busca produto */}
+          {/* busca */}
           <div>
-            <label className="block mb-1 text-sm">Adicionar produto</label>
+            <label className="block mb-1 text-sm">
+              Adicionar produto
+            </label>
             <input
               type="text"
               value={buscaProduto}
@@ -217,7 +243,9 @@ export default function CaixaPage() {
                   >
                     <div className="flex justify-between">
                       <span className="font-medium">{item.nome}</span>
-                      <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
+                      <span>
+                        R$ {(item.preco * item.qtd).toFixed(2)}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
