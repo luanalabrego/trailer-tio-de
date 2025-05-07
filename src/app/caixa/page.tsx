@@ -9,6 +9,7 @@ import { Plus } from 'lucide-react'
 import { Cliente, Produto, PedidoItem, Venda } from '@/types'
 
 export default function CaixaPage() {
+  // estados iniciais
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [vendas, setVendas] = useState<Venda[]>([])
@@ -37,11 +38,11 @@ export default function CaixaPage() {
     aniversario: '',
   })
 
-  // modal final
+  // modal de confirmação
   const [showFinalModal, setShowFinalModal] = useState(false)
-
   const total = itens.reduce((acc, cur) => acc + cur.preco * cur.qtd, 0)
 
+  // carrega dados iniciais
   useEffect(() => {
     carregar()
   }, [])
@@ -57,6 +58,7 @@ export default function CaixaPage() {
     setVendas(v)
   }
 
+  // operações do carrinho
   function adicionarProduto(prod: Produto) {
     setItens(prev => {
       const existe = prev.find(i => i.id === prod.id)
@@ -82,10 +84,10 @@ export default function CaixaPage() {
     setItens(prev => prev.filter(i => i.id !== id))
   }
 
+  // impressão do recibo
   function handleImprimir() {
     const w = window.open('', '_blank')
     if (!w) return
-
     const html = `
       <!DOCTYPE html>
       <html>
@@ -126,21 +128,20 @@ export default function CaixaPage() {
     }
   }
 
-  function abrirWhatsapp() {
+  // URL do WhatsApp
+  function getWhatsappUrl() {
     const cli = clientes.find(c => c.id === clienteId)
-    if (!cli) return
-
+    if (!cli) return ''
     const texto =
       `Olá ${cli.nome}, aqui está o resumo da sua compra:\n\n` +
       itens.map(i => `- ${i.nome} × ${i.qtd}`).join('\n') +
       `\n\nTotal: R$ ${total.toFixed(2)}\nStatus: pendente de pagamento`
-
-    const url = `https://wa.me/55${cli.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(
+    return `https://wa.me/55${cli.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(
       texto
     )}`
-    window.open(url, '_blank')
   }
 
+  // abre modal de confirmação
   function handleShowFinalModal() {
     if (itens.length === 0) {
       alert('Adicione ao menos um produto.')
@@ -151,21 +152,15 @@ export default function CaixaPage() {
       return
     }
     if (saleType === 'pending' && !clienteId) {
-      alert('Por favor, selecione ou cadastre um cliente antes de continuar.')
+      alert('Selecione ou cadastre um cliente.')
       return
     }
     setShowFinalModal(true)
   }
 
+  // confirmação final: grava + ação
   async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
-    // 1. Abre o pop-up de impressão ou WhatsApp imediatamente
-    if (action === 'print') {
-      handleImprimir()
-    } else if (action === 'whatsapp') {
-      abrirWhatsapp()
-    }
-
-    // 2. Registra a venda no Firestore
+    // 1) gravar sempre
     await registrarVenda({
       clienteId: saleType === 'pending' ? clienteId : '',
       itens,
@@ -174,8 +169,19 @@ export default function CaixaPage() {
       pago: saleType === 'paid',
     })
 
-    // 3. Feedback e reset do estado
-    alert('Venda finalizada!')
+    // 2) ação pós-gravação
+    if (action === 'print') {
+      handleImprimir()
+      alert('Venda finalizada!')
+    } else if (action === 'whatsapp') {
+      alert('Venda finalizada! Redirecionando para o WhatsApp…')
+      window.location.href = getWhatsappUrl()
+      return
+    } else {
+      alert('Venda finalizada!')
+    }
+
+    // 3) resetar estado e recarregar (se não redirecionou)
     setItens([])
     setSaleType(null)
     setFormaPagamento('')
@@ -184,6 +190,7 @@ export default function CaixaPage() {
     await carregar()
   }
 
+  // resumo de vendas do dia
   const resumoVendasHoje = useMemo(() => {
     const m = new Map<string, number>()
     vendas.forEach(v =>
@@ -203,7 +210,9 @@ export default function CaixaPage() {
         <div className="bg-white p-4 rounded-xl shadow space-y-6 mb-8">
           {/* busca */}
           <div>
-            <label className="block mb-1 text-sm">Adicionar produto</label>
+            <label className="block mb-1 text-sm">
+              Adicionar produto
+            </label>
             <input
               type="text"
               value={buscaProduto}
@@ -272,7 +281,7 @@ export default function CaixaPage() {
             )}
           </div>
 
-          {/* tipo de venda */}
+          {/* escolha de tipo de venda */}
           {saleType === null && itens.length > 0 && (
             <div className="flex gap-4">
               <button
@@ -290,7 +299,7 @@ export default function CaixaPage() {
             </div>
           )}
 
-          {/* detalhes após escolha */}
+          {/* detalhes após selecionar */}
           {saleType === 'paid' && (
             <div className="space-y-4">
               <button
@@ -356,6 +365,7 @@ export default function CaixaPage() {
           )}
         </div>
 
+        {/* resumo de vendas do dia */}
         <h2 className="text-xl font-bold mb-2">Itens vendidos hoje</h2>
         <ul className="space-y-1 bg-white p-4 rounded-xl shadow">
           {resumoVendasHoje.map(r => (
@@ -439,15 +449,6 @@ export default function CaixaPage() {
                 }
                 className="w-full p-2 border rounded"
                 required
-              />
-              <input
-                type="date"
-                placeholder="Aniversário"
-                value={novoCliente.aniversario}
-                onChange={e =>
-                  setNovoCliente({ ...novoCliente, aniversario: e.target.value })
-                }
-                className="w-full p-2 border rounded"
               />
               <div className="text-right">
                 <button
