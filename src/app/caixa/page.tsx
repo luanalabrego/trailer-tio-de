@@ -1,7 +1,6 @@
-// src/app/caixa/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Header } from '@/components/Header'
 import { registrarVenda, listarVendasDoDia } from '@/lib/firebase-caixa'
 import { listarClientes, cadastrarCliente } from '@/lib/firebase-clientes'
@@ -23,7 +22,7 @@ export default function CaixaPage() {
   const [mostrarModalCliente, setMostrarModalCliente] = useState(false)
 
   const [itens, setItens] = useState<PedidoItem[]>([])
-  const [produtoSelecionado, setProdutoSelecionado] = useState('')
+  const [buscaProduto, setBuscaProduto] = useState('')
   const [formaPagamento, setFormaPagamento] = useState('')
   const [pago, setPago] = useState(true)
 
@@ -45,28 +44,35 @@ export default function CaixaPage() {
     setVendas(v)
   }
 
-  function adicionarProduto(id: string) {
-    if (!id) return
-    const existe = itens.find(i => i.id === id)
+  const sugeridos = useMemo(
+    () =>
+      buscaProduto.trim() === ''
+        ? []
+        : produtos.filter((p) =>
+            p.nome.toLowerCase().includes(buscaProduto.toLowerCase())
+          ),
+    [buscaProduto, produtos]
+  )
+
+  function adicionarProduto(prod: Produto) {
+    const existe = itens.find((i) => i.id === prod.id)
     if (existe) {
-      setItens(prev =>
-        prev.map(i =>
-          i.id === id ? { ...i, qtd: i.qtd + 1 } : i
+      setItens((prev) =>
+        prev.map((i) =>
+          i.id === prod.id ? { ...i, qtd: i.qtd + 1 } : i
         )
       )
     } else {
-      const prod = produtos.find(p => p.id === id)
-      if (prod) {
-        setItens(prev => [
-          ...prev,
-          { id: prod.id, nome: prod.nome, preco: prod.preco, qtd: 1 },
-        ])
-      }
+      setItens((prev) => [
+        ...prev,
+        { id: prod.id, nome: prod.nome, preco: prod.preco, qtd: 1 },
+      ])
     }
+    setBuscaProduto('')
   }
 
   function removerProduto(id: string) {
-    setItens(prev => prev.filter(i => i.id !== id))
+    setItens((prev) => prev.filter((i) => i.id !== id))
   }
 
   async function handleFinalizar() {
@@ -82,7 +88,6 @@ export default function CaixaPage() {
       alert('Para venda pendente, selecione ou cadastre um cliente.')
       return
     }
-
     await registrarVenda({
       clienteId,
       itens,
@@ -90,72 +95,12 @@ export default function CaixaPage() {
       total,
       pago,
     })
-
     alert('Venda registrada com sucesso!')
-
     setClienteId('')
     setItens([])
-    setProdutoSelecionado('')
     setFormaPagamento('')
     setPago(true)
     await carregar()
-  }
-
-  function handleImprimir() {
-    if (itens.length === 0) {
-      alert('Não há itens para imprimir.')
-      return
-    }
-    const data = new Date().toLocaleString('pt-BR')
-    const html = `
-      <h1>Comprovante de Venda</h1>
-      <p><strong>Data:</strong> ${data}</p>
-      <ul>
-        ${itens
-          .map(i =>
-            `<li>${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}</li>`
-          )
-          .join('')}
-      </ul>
-      <p><strong>Total:</strong> R$ ${total.toFixed(2)}</p>
-      <p><strong>Forma de Pagamento:</strong> ${pago ? formaPagamento : '—'}</p>
-      <p><strong>Pago:</strong> ${pago ? 'Sim' : 'Não'}</p>
-    `
-    const w = window.open('', '_blank', 'width=600,height=600')
-    if (w) {
-      w.document.write(html)
-      w.document.close()
-      w.focus()
-      w.print()
-      w.close()
-    }
-  }
-
-  const abrirWhatsapp = () => {
-    const cliente = clientes.find(c => c.id === clienteId)
-    if (!cliente) return
-
-    const texto = `Olá ${cliente.nome}, resumo da sua compra:\n\n${itens
-      .map(i => `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`)
-      .join('\n')}\n\nTotal: R$ ${total.toFixed(2)}`
-
-    window.open(
-      `https://wa.me/55${cliente.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`,
-      '_blank'
-    )
-  }
-
-  async function handleSalvarNovoCliente(e: React.FormEvent) {
-    e.preventDefault()
-    if (!novoCliente.nome || !novoCliente.telefone) return
-
-    const clienteCriado = await cadastrarCliente(novoCliente)
-    setNovoCliente({ nome: '', telefone: '', aniversario: '' })
-    setMostrarModalCliente(false)
-    await carregar()
-    if (clienteCriado) {
-      setClienteId(clienteCriado.id)
-    }
   }
 
   return (
@@ -165,114 +110,145 @@ export default function CaixaPage() {
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Caixa</h1>
 
         <div className="bg-white p-4 rounded-xl shadow space-y-4 mb-8">
-          {/* Cliente */}
-          <div className="flex justify-between items-center">
-            <div className="w-full">
-              <label className="block mb-1 text-sm text-gray-700">
-                Cliente { !pago && <span className="text-red-500">*</span> }
-              </label>
-              <select
-                value={clienteId}
-                onChange={e => setClienteId(e.target.value)}
-                className="w-full p-2 border rounded"
-                required={!pago}
-              >
-                <option value="">
-                  { pago ? 'Opcional (venda paga)' : 'Selecione o cliente' }
-                </option>
-                {clientes.map(c => (
-                  <option key={c.id} value={c.id}>{c.nome}</option>
-                ))}
-              </select>
-            </div>
-            <button
-              onClick={() => setMostrarModalCliente(true)}
-              className="ml-2 bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700 flex gap-1 items-center"
-            >
-              <Plus size={16} /> Novo
-            </button>
+
+          {/* Pago? */}
+          <div>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={pago}
+                onChange={() => setPago((v) => !v)}
+                className="form-checkbox"
+              />
+              Venda paga
+            </label>
           </div>
 
-          {/* Produtos */}
+          {/* Cliente só se não pago */}
+          {!pago && (
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <label className="block mb-1 text-sm text-gray-700">
+                  Cliente <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={clienteId}
+                  onChange={(e) => setClienteId(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  required
+                >
+                  <option value="">Selecione o cliente</option>
+                  {clientes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={() => setMostrarModalCliente(true)}
+                className="bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700 flex gap-1 items-center"
+              >
+                <Plus size={16} /> Novo
+              </button>
+            </div>
+          )}
+
+          {/* Busca de produto */}
           <div>
             <label className="block mb-1 text-sm text-gray-700">
-              Adicionar Produtos
+              Adicionar produto
             </label>
-            <select
-              value={produtoSelecionado}
-              onChange={e => {
-                adicionarProduto(e.target.value)
-                setProdutoSelecionado('')
-              }}
+            <input
+              type="text"
+              value={buscaProduto}
+              onChange={(e) => setBuscaProduto(e.target.value)}
+              placeholder="Digite o nome..."
               className="w-full p-2 border rounded"
-            >
-              <option value="">Escolha um produto</option>
-              {produtos.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.nome} — R$ {p.preco.toFixed(2)}
-                </option>
-              ))}
-            </select>
+            />
+            {sugeridos.length > 0 && (
+              <ul className="border rounded-md bg-white mt-1 max-h-40 overflow-auto">
+                {sugeridos.map((p) => (
+                  <li
+                    key={p.id}
+                    onClick={() => adicionarProduto(p)}
+                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                  >
+                    {p.nome} — R$ {p.preco.toFixed(2)}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* Carrinho */}
-          <div className="mt-4">
+          <div>
             <h3 className="font-semibold text-gray-700 mb-2">Carrinho</h3>
-            <table className="w-full text-sm border">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-2 text-left">Produto</th>
-                  <th className="p-2 text-center">Qtd</th>
-                  <th className="p-2 text-right">Preço</th>
-                  <th className="p-2 text-right">Subtotal</th>
-                  <th className="p-2 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {itens.map(item => (
-                  <tr key={item.id} className="border-t">
-                    <td className="p-2">{item.nome}</td>
-                    <td className="p-2 text-center">{item.qtd}</td>
-                    <td className="p-2 text-right">R$ {item.preco.toFixed(2)}</td>
-                    <td className="p-2 text-right">
-                      R$ {(item.preco * item.qtd).toFixed(2)}
-                    </td>
-                    <td className="p-2 text-right flex gap-1 justify-end">
-                      <button
-                        onClick={() =>
-                          setItens(prev =>
-                            prev.map(i =>
-                              i.id === item.id ? { ...i, qtd: i.qtd - 1 } : i
-                            )
-                          )
-                        }
-                        className="bg-gray-200 px-2 rounded hover:bg-gray-300"
-                      >
-                        –
-                      </button>
-                      <button
-                        onClick={() =>
-                          setItens(prev =>
-                            prev.map(i =>
-                              i.id === item.id ? { ...i, qtd: i.qtd + 1 } : i
-                            )
-                          )
-                        }
-                        className="bg-gray-200 px-2 rounded hover:bg-gray-300"
-                      >
-                        +
-                      </button>
-                      <button
-                        onClick={() => removerProduto(item.id)}
-                        className="text-red-500 text-xs ml-2 hover:underline"
-                      >
-                        Remover
-                      </button>
-                    </td>
+            {itens.length === 0 ? (
+              <p className="text-gray-600">Sem itens</p>
+            ) : (
+              <table className="w-full text-sm border">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="p-2 text-left">Produto</th>
+                    <th className="p-2 text-center">Qtd</th>
+                    <th className="p-2 text-right">Preço</th>
+                    <th className="p-2 text-right">Subtotal</th>
+                    <th className="p-2 text-right">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {itens.map((item) => (
+                    <tr key={item.id} className="border-t">
+                      <td className="p-2">{item.nome}</td>
+                      <td className="p-2 text-center">{item.qtd}</td>
+                      <td className="p-2 text-right">
+                        R$ {item.preco.toFixed(2)}
+                      </td>
+                      <td className="p-2 text-right">
+                        R$ {(item.preco * item.qtd).toFixed(2)}
+                      </td>
+                      <td className="p-2 text-right flex gap-1 justify-end">
+                        <button
+                          onClick={() =>
+                            setItens((prev) =>
+                              prev.map((i) =>
+                                i.id === item.id
+                                  ? { ...i, qtd: i.qtd - 1 }
+                                  : i
+                              )
+                            )
+                          }
+                          className="bg-gray-200 px-2 rounded hover:bg-gray-300"
+                        >
+                          –
+                        </button>
+                        <button
+                          onClick={() =>
+                            setItens((prev) =>
+                              prev.map((i) =>
+                                i.id === item.id
+                                  ? { ...i, qtd: i.qtd + 1 }
+                                  : i
+                              )
+                            )
+                          }
+                          className="bg-gray-200 px-2 rounded hover:bg-gray-300"
+                        >
+                          +
+                        </button>
+                        <button
+                          onClick={() => removerProduto(item.id)}
+                          className="text-red-500 text-xs ml-2 hover:underline"
+                        >
+                          Remover
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* Pagamento e ações */}
@@ -283,28 +259,21 @@ export default function CaixaPage() {
             >
               Finalizar Venda
             </button>
-            <button
-              onClick={handleImprimir}
-              disabled={itens.length === 0}
-              className="w-full sm:w-auto bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700"
-            >
-              Imprimir Comprovante
-            </button>
-            <button
-              onClick={abrirWhatsapp}
-              disabled={!clienteId}
-              className="w-full sm:w-auto bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
-            >
-              Enviar via WhatsApp
-            </button>
           </div>
         </div>
 
         <h2 className="text-xl font-bold text-gray-800 mb-2">Vendas de hoje</h2>
         <ul className="space-y-2">
-          {vendas.map(v => (
-            <li key={v.id} className="bg-white p-3 rounded shadow text-sm">
-              Cliente: {clientes.find(c => c.id === v.clienteId)?.nome || '—'}<br />
+          {vendas.map((v) => (
+            <li
+              key={v.id}
+              className="bg-white p-3 rounded shadow text-sm"
+            >
+              Cliente:{' '}
+              {!v.pago
+                ? clientes.find((c) => c.id === v.clienteId)?.nome || '—'
+                : '—'}
+              <br />
               Total: R$ {v.total.toFixed(2)}<br />
               Pago: {v.pago ? 'Sim' : 'Não'}
             </li>
@@ -313,15 +282,26 @@ export default function CaixaPage() {
       </div>
 
       {mostrarModalCliente && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+        <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Novo Cliente</h2>
-            <form onSubmit={handleSalvarNovoCliente} className="space-y-4">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Novo Cliente
+            </h2>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                cadastrarCliente(novoCliente).then(() => {
+                  setMostrarModalCliente(false)
+                  carregar()
+                })
+              }}
+              className="space-y-4"
+            >
               <input
                 type="text"
                 placeholder="Nome"
                 value={novoCliente.nome}
-                onChange={e =>
+                onChange={(e) =>
                   setNovoCliente({ ...novoCliente, nome: e.target.value })
                 }
                 className="w-full p-2 border rounded"
@@ -331,22 +311,15 @@ export default function CaixaPage() {
                 type="tel"
                 placeholder="Telefone com DDD"
                 value={novoCliente.telefone}
-                onChange={e =>
-                  setNovoCliente({ ...novoCliente, telefone: e.target.value })
+                onChange={(e) =>
+                  setNovoCliente({
+                    ...novoCliente,
+                    telefone: e.target.value,
+                  })
                 }
                 className="w-full p-2 border rounded"
                 required
               />
-              <input
-                type="date"
-                placeholder="Data de aniversário"
-                value={novoCliente.aniversario}
-                onChange={e =>
-                  setNovoCliente({ ...novoCliente, aniversario: e.target.value })
-                }
-                className="w-full p-2 border rounded"
-              />
-              <p className="text-xs text-gray-500">Formato: dia/mês/ano</p>
               <div className="text-right">
                 <button
                   type="button"
