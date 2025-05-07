@@ -19,9 +19,6 @@ export default function EstoquePage() {
   const [isNewItem, setIsNewItem] = useState(false)
   const [nome, setNome] = useState('')
   const [quantidade, setQuantidade] = useState(0)
-  const [inseridoEm, setInseridoEm] = useState(
-    new Date().toISOString().slice(0, 10)
-  )
   const [validade, setValidade] = useState(
     new Date().toISOString().slice(0, 10)
   )
@@ -46,8 +43,9 @@ export default function EstoquePage() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
 
-    const [y, m, d] = inseridoEm.split('-').map(Number)
-    const dataInsercao = new Date(y, m - 1, d)
+    // usa data de hoje como inserção
+    const dataInsercao = new Date()
+
     const [y2, m2, d2] = validade.split('-').map(Number)
     const dataValidade = new Date(y2, m2 - 1, d2)
 
@@ -87,9 +85,7 @@ export default function EstoquePage() {
     setIsNewItem(false)
     setNome('')
     setQuantidade(0)
-    const hoje = new Date().toISOString().slice(0, 10)
-    setInseridoEm(hoje)
-    setValidade(hoje)
+    setValidade(new Date().toISOString().slice(0, 10))
     setShowAddModal(false)
   }
 
@@ -189,10 +185,10 @@ export default function EstoquePage() {
 
       {/* Modal Adicionar/Atualizar */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
           <form
             onSubmit={handleAdd}
-            className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md space-y-4"
+            className="p-6 rounded-xl shadow-lg w-full max-w-md space-y-4 bg-white"
           >
             <h2 className="text-lg font-semibold">
               Adicionar / Atualizar Estoque
@@ -224,9 +220,7 @@ export default function EstoquePage() {
               >
                 <option value="">Selecione um item</option>
                 {nomesUnicos.map(n => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
+                  <option key={n} value={n}>{n}</option>
                 ))}
               </select>
             ) : (
@@ -249,17 +243,6 @@ export default function EstoquePage() {
               min={0}
               required
             />
-
-            <label className="flex flex-col">
-              Data de inserção
-              <input
-                type="date"
-                value={inseridoEm}
-                onChange={e => setInseridoEm(e.target.value)}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </label>
 
             <label className="flex flex-col">
               Data de validade
@@ -293,10 +276,10 @@ export default function EstoquePage() {
 
       {/* Modal Remoção */}
       {showRemoveModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
           <form
             onSubmit={handleRemove}
-            className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md space-y-4"
+            className="p-6 rounded-xl shadow-lg w-full max-w-md space-y-4 bg-white"
           >
             <h2 className="text-lg font-semibold">Remover Estoque</h2>
 
@@ -308,9 +291,7 @@ export default function EstoquePage() {
             >
               <option value="">Selecione o item</option>
               {nomesUnicos.map(n => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
+                <option key={n} value={n}>{n}</option>
               ))}
             </select>
 
