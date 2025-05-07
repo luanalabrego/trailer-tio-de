@@ -33,12 +33,9 @@ export default function AgendamentosPage() {
     setClientes(listaClientes)
 
     const dados = snap.docs.map(d => {
-      // d.data() vem como Record<string, unknown>
       const raw = d.data() as Record<string, unknown>
-      // fallback para registros antigos que tinham criadoEm
       const dataCriacaoTs: Timestamp =
         (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
-
       return {
         id: d.id,
         ...raw,
@@ -62,7 +59,6 @@ export default function AgendamentosPage() {
     if (!dt) return 'Inválida'
     if (dt instanceof Timestamp) return formatDateObj(dt.toDate())
     if (dt instanceof Date) return formatDateObj(dt)
-    // string
     return formatDateObj(new Date(dt))
   }
 
@@ -93,6 +89,7 @@ export default function AgendamentosPage() {
   }
 
   async function handleRegistrarPagamento(ag: Agendamento) {
+    if (!confirm('Deseja registrar o pagamento deste pedido?')) return
     try {
       await updateDoc(doc(db, 'agendamentos', ag.id), { pago: true })
       await carregar()
@@ -101,6 +98,12 @@ export default function AgendamentosPage() {
       console.error('Erro ao registrar pagamento:', err)
       alert('Falha ao registrar pagamento. Veja o console.')
     }
+  }
+
+  async function handleCancelarPedido(ag: Agendamento) {
+    if (!confirm('Tem certeza que deseja cancelar este pedido?')) return
+    await updateDoc(doc(db, 'agendamentos', ag.id), { status: 'cancelado' })
+    await carregar()
   }
 
   async function finalizarPedido(ag: Agendamento) {
@@ -142,10 +145,17 @@ export default function AgendamentosPage() {
             {agendamentos.map(ag => {
               const isOpen = expanded.has(ag.id)
               const tipo = ag.localEntrega ? 'Entrega' : 'Retirada'
+              const borderClass =
+                ag.status === 'pendente'
+                  ? 'border-yellow-400'
+                  : ag.status === 'confirmado'
+                  ? 'border-green-400'
+                  : 'border-red-400'
+
               return (
                 <div
                   key={ag.id}
-                  className="bg-white rounded-xl shadow border"
+                  className={`bg-white rounded-xl shadow border-l-4 ${borderClass}`}
                 >
                   <button
                     onClick={() => toggle(ag.id)}
@@ -188,12 +198,22 @@ export default function AgendamentosPage() {
                         ))}
                       </ul>
                       <div className="flex gap-2 pt-2">
-                        <button
-                          onClick={() => confirmacaoPedido(ag)}
-                          className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
-                        >
-                          Confirmar Pedido
-                        </button>
+                        {ag.status !== 'confirmado' && (
+                          <button
+                            onClick={() => confirmacaoPedido(ag)}
+                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                          >
+                            Confirmar Pedido
+                          </button>
+                        )}
+                        {ag.status !== 'cancelado' && (
+                          <button
+                            onClick={() => handleCancelarPedido(ag)}
+                            className="bg-red-600 text-white px-3 py-1 rounded text-sm"
+                          >
+                            Cancelar Pedido
+                          </button>
+                        )}
                         <button
                           onClick={() => handleRegistrarPagamento(ag)}
                           disabled={ag.pago}
