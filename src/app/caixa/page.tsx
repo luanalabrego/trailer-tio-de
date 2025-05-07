@@ -6,6 +6,7 @@ import { registrarVenda, listarVendasDoDia } from '@/lib/firebase-caixa'
 import { listarClientes, cadastrarCliente } from '@/lib/firebase-clientes'
 import { listarProdutos } from '@/lib/firebase-produtos'
 import { Plus } from 'lucide-react'
+import { jsPDF } from 'jspdf'
 import { Cliente, Produto, PedidoItem, Venda } from '@/types'
 
 export default function CaixaPage() {
@@ -17,7 +18,7 @@ export default function CaixaPage() {
   const [itens, setItens] = useState<PedidoItem[]>([])
   const [buscaProduto, setBuscaProduto] = useState('')
 
-  // sugestão de produtos pela busca
+  // sugestões
   const sugeridos = useMemo(
     () =>
       buscaProduto.trim() === ''
@@ -28,7 +29,7 @@ export default function CaixaPage() {
     [buscaProduto, produtos]
   )
 
-  // seleção de venda: pago agora ou pendente
+  // estado da venda
   const [saleType, setSaleType] = useState<'paid' | 'pending' | null>(null)
   const [formaPagamento, setFormaPagamento] = useState('')
   const [clienteId, setClienteId] = useState('')
@@ -36,6 +37,7 @@ export default function CaixaPage() {
   const [novoCliente, setNovoCliente] = useState<Omit<Cliente,'id'>>({
     nome:'', telefone:'', aniversario:''
   })
+  const [showFinalModal, setShowFinalModal] = useState(false)
 
   const total = itens.reduce((acc, cur) => acc + cur.preco * cur.qtd, 0)
 
@@ -84,34 +86,27 @@ export default function CaixaPage() {
   function abrirWhatsapp() {
     const cliente = clientes.find(c => c.id === clienteId)
     if (!cliente) return
-    const texto = `Olá ${cliente.nome}, aqui está o resumo da sua compra:\n\n` +
-      itens.map(i => `- ${i.nome} × ${i.qtd}`).join('\n') +
-      `\n\nTotal: R$ ${total.toFixed(2)}`
+    const texto =
+      `Olá ${cliente.nome}, aqui está o resumo da sua compra:\n\n` +
+      itens.map(i => `- ${i.nome} × ${i.qtd}`).join('\n')
     window.open(
       `https://wa.me/55${cliente.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`,
       '_blank'
     )
   }
 
-  function handleImprimir() {
+  function gerarPDF() {
+    const doc = new jsPDF()
     const data = new Date().toLocaleString('pt-BR')
-    const html = `
-      <h1>Comprovante de Venda</h1>
-      <p><strong>Data:</strong> ${data}</p>
-      <ul>
-        ${itens.map(i => `<li>${i.nome} × ${i.qtd}</li>`).join('')}
-      </ul>
-      <p><strong>Total:</strong> R$ ${total.toFixed(2)}</p>
-      <p><strong>${saleType === 'paid' ? 'Pago' : 'Pendente'}</strong></p>
-    `
-    const w = window.open('', '_blank', 'width=600,height=600')
-    if (w) {
-      w.document.write(html)
-      w.document.close()
-      w.focus()
-      w.print()
-      w.close()
-    }
+    doc.setFontSize(16)
+    doc.text('Comprovante de Venda', 10, 10)
+    doc.setFontSize(12)
+    doc.text(`Data: ${data}`, 10, 20)
+    itens.forEach((i, idx) => {
+      doc.text(`${i.nome} × ${i.qtd}`, 10, 30 + idx * 10)
+    })
+    doc.text(`Total: R$ ${total.toFixed(2)}`, 10, 40 + itens.length * 10)
+    doc.save('recibo.pdf')
   }
 
   async function handleFinalizar() {
@@ -134,37 +129,8 @@ export default function CaixaPage() {
       total,
       pago: saleType === 'paid',
     })
-    // após sucesso, oferecer opções
-    if (saleType === 'paid') {
-      if (window.confirm('Venda registrada! Deseja enviar confirmação via WhatsApp?')) {
-        abrirWhatsapp()
-      }
-      if (window.confirm('Deseja imprimir o comprovante?')) {
-        handleImprimir()
-      }
-    } else {
-      if (window.confirm('Venda pendente registrada! Deseja imprimir o comprovante?')) {
-        handleImprimir()
-      }
-    }
-    // resetar tudo
-    setItens([])
-    setSaleType(null)
-    setFormaPagamento('')
-    setClienteId('')
-    await carregar()
+    setShowFinalModal(true)
   }
-
-  // resumo de itens vendidos hoje (agregado)
-  const resumoVendasHoje = useMemo(() => {
-    const map = new Map<string, number>()
-    vendas.forEach(v =>
-      v.itens.forEach(i => {
-        map.set(i.nome, (map.get(i.nome) || 0) + i.qtd)
-      })
-    )
-    return Array.from(map.entries()).map(([nome, total]) => ({ nome, total }))
-  }, [vendas])
 
   return (
     <>
@@ -173,7 +139,7 @@ export default function CaixaPage() {
         <h1 className="text-2xl font-bold mb-4">Caixa</h1>
 
         <div className="bg-white p-4 rounded-xl shadow space-y-6 mb-8">
-          {/* busca produto */}
+          {/* adicionar produto */}
           <div>
             <label className="block mb-1 text-sm">Adicionar produto</label>
             <input
@@ -198,7 +164,7 @@ export default function CaixaPage() {
             )}
           </div>
 
-          {/* carrinho (lista em vez de tabela para mobile) */}
+          {/* carrinho mobile-friendly */}
           <div>
             <h2 className="font-semibold mb-2">Carrinho</h2>
             {itens.length === 0 ? (
@@ -244,7 +210,7 @@ export default function CaixaPage() {
             )}
           </div>
 
-          {/* tipo de venda */}
+          {/* escolher tipo de venda */}
           {saleType === null && itens.length > 0 && (
             <div className="flex gap-4">
               <button
@@ -262,7 +228,7 @@ export default function CaixaPage() {
             </div>
           )}
 
-          {/* finalização com botão Voltar */}
+          {/* detalhe pagamento */}
           {saleType === 'paid' && (
             <div className="space-y-4">
               <button
@@ -276,7 +242,7 @@ export default function CaixaPage() {
                 onChange={e => setFormaPagamento(e.target.value)}
                 className="w-full p-2 border rounded"
               >
-                <option value="">Selecione forma de pagamento</option>
+                <option value="">Forma de pagamento</option>
                 <option value="pix">Pix</option>
                 <option value="dinheiro">Dinheiro</option>
                 <option value="cartao">Cartão</option>
@@ -286,7 +252,7 @@ export default function CaixaPage() {
                 onClick={handleFinalizar}
                 className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
               >
-                Finalizar venda paga
+                Finalizar Paga
               </button>
             </div>
           )}
@@ -304,7 +270,7 @@ export default function CaixaPage() {
                   onChange={e => setClienteId(e.target.value)}
                   className="flex-1 p-2 border rounded"
                 >
-                  <option value="">Selecione o cliente</option>
+                  <option value="">Selecione cliente</option>
                   {clientes.map(c => (
                     <option key={c.id} value={c.id}>
                       {c.nome}
@@ -322,15 +288,24 @@ export default function CaixaPage() {
                 onClick={handleFinalizar}
                 className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
               >
-                Finalizar venda pendente
+                Finalizar Pendente
               </button>
             </div>
           )}
         </div>
 
+        {/* vendas de hoje resumido */}
         <h2 className="text-xl font-bold mb-2">Itens vendidos hoje</h2>
         <ul className="space-y-1 bg-white p-4 rounded-xl shadow">
-          {resumoVendasHoje.map(r => (
+          {useMemo(() => {
+            const m = new Map<string, number>()
+            vendas.forEach(v =>
+              v.itens.forEach(i =>
+                m.set(i.nome, (m.get(i.nome) || 0) + i.qtd)
+              )
+            )
+            return Array.from(m.entries()).map(([nome, total]) => ({ nome, total }))
+          }, [vendas]).map(r => (
             <li key={r.nome} className="flex justify-between">
               <span>{r.nome}</span>
               <span>Qtd: {r.total}</span>
@@ -339,6 +314,38 @@ export default function CaixaPage() {
         </ul>
       </div>
 
+      {/* modal finalizar */}
+      {showFinalModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm">
+            <h2 className="text-lg font-semibold mb-4">Venda registrada!</h2>
+            <div className="flex gap-4">
+              <button
+                onClick={() => { gerarPDF(); setShowFinalModal(false) }}
+                className="flex-1 bg-gray-800 text-white py-2 rounded hover:bg-gray-900"
+              >
+                Imprimir recibo
+              </button>
+              {saleType === 'pending' && (
+                <button
+                  onClick={() => { abrirWhatsapp(); setShowFinalModal(false) }}
+                  className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700"
+                >
+                  Enviar no WhatsApp
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setShowFinalModal(false)}
+              className="mt-4 text-gray-600 hover:underline"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* modal novo cliente */}
       {mostrarModalCliente && (
         <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
