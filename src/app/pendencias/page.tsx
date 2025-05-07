@@ -10,6 +10,7 @@ import {
   getDocs,
   updateDoc,
   doc,
+  Timestamp,
 } from 'firebase/firestore'
 import { Cliente, Venda, PedidoItem } from '@/types'
 import { ChevronDown, ChevronUp } from 'lucide-react'
@@ -23,8 +24,13 @@ export default function PagamentosPendentesPage() {
 
   useEffect(() => {
     carregar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  /** Normaliza telefone para 11 dígitos (DDD + número), cortando DDI se houver */
+  function normalizeTel(raw: string): string {
+    const digits = raw.replace(/\D/g, '')
+    return digits.length > 11 ? digits.slice(-11) : digits
+  }
 
   async function carregar() {
     const [listaClientes, snapVendas, snapAgendamentos] = await Promise.all([
@@ -34,11 +40,11 @@ export default function PagamentosPendentesPage() {
     ])
     setClientes(listaClientes)
 
-    // mapeia telefone → clienteId
+    // mapa telefone normalizado → clienteId
     const mapClientePorTel = listaClientes.reduce<Record<string, string>>(
       (acc, c) => {
-        const tel = c.telefone.replace(/\D/g, '')
-        acc[tel] = c.id
+        const telNorm = normalizeTel(c.telefone)
+        acc[telNorm] = c.id
         return acc
       },
       {}
@@ -53,30 +59,25 @@ export default function PagamentosPendentesPage() {
     const pendentesAgend: VendaUnificada[] = snapAgendamentos.docs
       .map(d => {
         const raw = d.data() as Record<string, any>
-        // use raw.clienteId if você salvou no agendamento, ou fallback por telefone
+        const telNorm = normalizeTel(String(raw.whatsapp || ''))
         const clienteId =
-          (raw.clienteId as string | undefined) ||
-          mapClientePorTel[
-            String(raw.whatsapp || '').replace(/\D/g, '').slice(-11)
-          ] ||
-          ''
+          (raw.clienteId as string) || mapClientePorTel[telNorm] || ''
         return {
           id: d.id,
+          clienteId,
           itens: raw.itens as PedidoItem[],
           total: Number(raw.total),
           pago: Boolean(raw.pago),
-          data: raw.dataHora, // pode ser Timestamp ou ISO string
+          data: raw.dataHora as Timestamp,
           formaPagamento: String(raw.formaPagamento),
-          clienteId,
         }
       })
-      .filter(a => !a.pago)
+      .filter(v => !v.pago)
 
     setVendas([...pendentesVendas, ...pendentesAgend])
   }
 
   async function confirmarPagamento(id: string) {
-    // tenta em 'vendas', senão em 'agendamentos'
     try {
       await updateDoc(doc(db, 'vendas', id), { pago: true })
     } catch {
@@ -86,13 +87,9 @@ export default function PagamentosPendentesPage() {
   }
 
   async function pagarTudo(vendasCliente: VendaUnificada[]) {
-    if (
-      !confirm(
-        'Deseja mesmo marcar todas as pendências deste cliente como pagas?'
-      )
-    )
+    if (!confirm('Deseja marcar todas as pendências deste cliente como pagas?')) {
       return
-
+    }
     await Promise.all(
       vendasCliente.map(v =>
         updateDoc(doc(db, 'vendas', v.id), { pago: true }).catch(() =>
@@ -118,17 +115,18 @@ export default function PagamentosPendentesPage() {
       `Total geral: R$ ${total}`,
       `Aguardamos seu pagamento. Obrigado!`,
     ].join('\n\n')
-    const tel = cliente.telefone.replace(/\D/g, '')
+    const tel = normalizeTel(cliente.telefone)
     window.open(
       `https://wa.me/55${tel}?text=${encodeURIComponent(texto)}`,
       '_blank'
     )
   }
 
-  // agrupa por clienteId
+  // agrupa pendências por clienteId
   const porCliente = vendas.reduce<Record<string, VendaUnificada[]>>(
     (acc, v) => {
-      ;(acc[v.clienteId] ??= []).push(v)
+      if (!acc[v.clienteId]) acc[v.clienteId] = []
+      acc[v.clienteId].push(v)
       return acc
     },
     {}
@@ -137,16 +135,18 @@ export default function PagamentosPendentesPage() {
   function toggle(clienteId: string) {
     setExpanded(prev => {
       const s = new Set(prev)
-      s.has(clienteId) ? s.delete(clienteId) : s.add(clienteId)
+      if (s.has(clienteId)) s.delete(clienteId)
+      else s.add(clienteId)
       return s
     })
   }
 
-  function formatarData(dt: any): string {
-    let d: Date
-    if (dt?.toDate) d = dt.toDate()
-    else d = new Date(dt)
-    return isNaN(d.getTime()) ? 'Inválida' : d.toLocaleDateString('pt-BR')
+  function formatarData(dt: Timestamp | { toDate(): Date } | string): string {
+    let dateObj: Date
+    if (dt instanceof Timestamp) dateObj = dt.toDate()
+    else if (typeof (dt as any).toDate === 'function') dateObj = (dt as any).toDate()
+    else dateObj = new Date(dt as string)
+    return dateObj.toLocaleDateString('pt-BR')
   }
 
   return (
@@ -174,9 +174,7 @@ export default function PagamentosPendentesPage() {
                     className="w-full flex justify-between items-center p-4"
                   >
                     <div>
-                      <p className="font-semibold text-gray-800">
-                        {cliente.nome}
-                      </p>
+                      <p className="font-semibold text-gray-800">{cliente.nome}</p>
                       <p className="text-sm text-gray-600">
                         {list.length} pedido(s) — Total: R$ {total.toFixed(2)}
                       </p>
