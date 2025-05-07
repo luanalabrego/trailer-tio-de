@@ -16,7 +16,7 @@ import { Venda, Custo } from '@/types'
 
 type VendaFirestore = Omit<Venda, 'id'>
 type CustoFirestore = Omit<Custo, 'id'>
-type AgendamentoFirestore = Omit<Venda, 'id'>  // assume mesmos campos de Venda
+type AgendamentoFirestore = Omit<Venda, 'id'>  // mesmos campos de Venda
 type CaixaFirestore = { valor: number; data: Timestamp }
 
 export default function FinanceiroPage() {
@@ -32,7 +32,7 @@ export default function FinanceiroPage() {
   const [dataFim, setDataFim] = useState<string>(isoHoje)
   const [filtroMetodo, setFiltroMetodo] = useState<string>('todos')
 
-  // converte "YYYY-MM-DD" para Date local
+  // cria Date local a partir de "YYYY-MM-DD"
   function parseLocalDate(str: string): Date {
     const [year, month, day] = str.split('-').map(Number)
     return new Date(year, month - 1, day)
@@ -52,46 +52,34 @@ export default function FinanceiroPage() {
       fim.setHours(23, 59, 59, 999)
 
       // VENDAS
-      const qV = query(
+      const snapV = await getDocs(query(
         collection(db, 'vendas'),
         where('data', '>=', Timestamp.fromDate(inicio)),
         where('data', '<=', Timestamp.fromDate(fim))
-      )
-      const snapV = await getDocs(qV)
-      let listaV = snapV.docs.map(d => {
-        const data = d.data() as VendaFirestore
-        return { id: d.id, ...data }
-      })
+      ))
+      const listaV = snapV.docs.map(d => ({ id: d.id, ...(d.data() as VendaFirestore) }))
 
-      // AGENDAMENTOS (também considerados vendas)
-      const qA = query(
+      // AGENDAMENTOS (também como vendas)
+      const snapA = await getDocs(query(
         collection(db, 'agendamentos'),
         where('data', '>=', Timestamp.fromDate(inicio)),
         where('data', '<=', Timestamp.fromDate(fim))
-      )
-      const snapA = await getDocs(qA)
-      const listaA = snapA.docs.map(d => {
-        const data = d.data() as AgendamentoFirestore
-        return { id: d.id, ...data }
-      })
+      ))
+      const listaA = snapA.docs.map(d => ({ id: d.id, ...(d.data() as AgendamentoFirestore) }))
 
-      // filtra por método se necessário
-      const todasVendas = [...listaV, ...listaA].filter(v => {
-        return filtroMetodo === 'todos' || v.formaPagamento === filtroMetodo
-      })
-      setVendas(todasVendas)
+      // FILTRO POR MÉTODO
+      const todasV = [...listaV, ...listaA].filter(v =>
+        filtroMetodo === 'todos' || v.formaPagamento === filtroMetodo
+      )
+      setVendas(todasV)
 
       // CUSTOS
-      const qC = query(
+      const snapC = await getDocs(query(
         collection(db, 'custos'),
         where('data', '>=', Timestamp.fromDate(inicio)),
         where('data', '<=', Timestamp.fromDate(fim))
-      )
-      const snapC = await getDocs(qC)
-      const listaC = snapC.docs.map(d => {
-        const data = d.data() as CustoFirestore
-        return { id: d.id, ...data }
-      })
+      ))
+      const listaC = snapC.docs.map(d => ({ id: d.id, ...(d.data() as CustoFirestore) }))
       setCustos(listaC)
 
       // CAIXA
@@ -103,7 +91,7 @@ export default function FinanceiroPage() {
     carregar()
   }, [dataInicio, dataFim, filtroMetodo])
 
-  // calcula totais
+  // totais
   const totais = vendas.reduce(
     (acc, v) => {
       if (v.pago) acc.receita += v.total ?? 0
@@ -116,7 +104,7 @@ export default function FinanceiroPage() {
   const totalCaixa = caixas.reduce((sum, c) => sum + (c.valor ?? 0), 0)
   const lucro = totais.receita - totalCustos
   const margem = totais.receita > 0 ? (lucro / totais.receita) * 100 : 0
-  const pedidosPendentesCount = vendas.filter(v => !v.pago).length
+  const pendentesCount = vendas.filter(v => !v.pago).length
 
   const resumoPorMetodo = vendas.reduce<Record<string, number>>((acc, v) => {
     const m = v.formaPagamento || 'outro'
@@ -201,7 +189,7 @@ export default function FinanceiroPage() {
                   R$ {totais.pendente.toFixed(2)}
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
-                  {pedidosPendentesCount} pedidos
+                  {pendentesCount} pedidos
                 </p>
               </div>
             </div>
@@ -231,7 +219,10 @@ export default function FinanceiroPage() {
               </p>
             </div>
 
-            {/* cards por método de pagamento */}
+            {/* seção de métodos de pagamento */}
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Resumo por Método de Pagamento
+            </h2>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {tipos.map(({ key, label, Icon }) => (
                 <div
