@@ -251,7 +251,7 @@ export default function CaixaPage() {
               </button>
               <button
                 onClick={() => setSaleType('pending')}
-                className="flex-1 bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600"
+                className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700"
               >
                 Marcar
               </button>
@@ -297,7 +297,7 @@ export default function CaixaPage() {
               <div className="flex items-center gap-2">
                 <select
                   value={clienteId}
-                  onChange={e => setClienteId(e.target.value)}
+                  onChange={e => setClienteId(e.target.value)} 
                   className="flex-1 p-2 border rounded"
                 >
                   <option value="">Selecione o cliente</option>
@@ -316,7 +316,7 @@ export default function CaixaPage() {
               </div>
               <button
                 onClick={handleFinalizar}
-                className="w-full bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600"
+                className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
               >
                 Finalizar venda pendente
               </button>
