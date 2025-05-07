@@ -48,7 +48,7 @@ export default function CategoriasPage() {
     const nomeTrim = nome.trim()
     if (!nomeTrim) return
 
-    // não permitir duplicatas
+    // não permitir duplicatas (exceto editando o próprio)
     const existe = categorias.some(
       c =>
         c.nome.toLowerCase() === nomeTrim.toLowerCase() &&
@@ -56,6 +56,7 @@ export default function CategoriasPage() {
     )
     if (existe) {
       alert('Já existe uma categoria com este nome.')
+      fecharModal()
       return
     }
 
@@ -80,7 +81,6 @@ export default function CategoriasPage() {
     }
   }
 
-  // categorias filtradas pela busca
   const categoriasFiltradas = useMemo(
     () =>
       categorias.filter(c =>
@@ -147,7 +147,7 @@ export default function CategoriasPage() {
 
         {/* Modal de cadastro/edição */}
         {showModal && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-75 z-50">
             <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
               <h2 className="text-xl font-bold text-gray-800 mb-4">
                 {editarId ? 'Editar Categoria' : 'Nova Categoria'}
@@ -192,6 +192,7 @@ export default function CategoriasPage() {
             </div>
           </div>
         )}
+
       </div>
     </>
   )
