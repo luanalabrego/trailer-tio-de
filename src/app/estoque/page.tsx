@@ -15,6 +15,9 @@ export default function EstoquePage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showRemoveModal, setShowRemoveModal] = useState(false)
 
+  // para expandir/ocultar detalhes por nome
+  const [detalhesVisiveis, setDetalhesVisiveis] = useState<string[]>([])
+
   // adicionar/atualizar
   const [isNewItem, setIsNewItem] = useState(false)
   const [nome, setNome] = useState('')
@@ -42,10 +45,7 @@ export default function EstoquePage() {
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
-
-    // usa data de hoje como inserção
     const dataInsercao = new Date()
-
     const [y2, m2, d2] = validade.split('-').map(Number)
     const dataValidade = new Date(y2, m2 - 1, d2)
 
@@ -114,13 +114,19 @@ export default function EstoquePage() {
     }))
   }, [itens])
 
+  function toggleDetalhes(nome: string) {
+    setDetalhesVisiveis(prev =>
+      prev.includes(nome) ? prev.filter(n => n !== nome) : [...prev, nome]
+    )
+  }
+
   return (
     <>
       <Header />
 
       <div className="pt-20 px-4 max-w-4xl mx-auto">
 
-        {/* Título e Botões acima do resumo */}
+        {/* Título e Botões */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
           <h1 className="text-2xl font-bold mb-4 sm:mb-0">Estoque</h1>
           <div className="flex gap-2">
@@ -139,48 +145,60 @@ export default function EstoquePage() {
           </div>
         </div>
 
-        {/* Resumo de Estoque */}
+        {/* Resumo de Estoque com detalhes */}
         <div className="mb-6 bg-white p-4 rounded-xl shadow">
           <h2 className="text-xl font-semibold mb-3">Resumo de Estoque</h2>
-          <ul className="space-y-1">
+          <ul className="space-y-2">
             {resumo.map(r => (
-              <li key={r.nome} className="flex justify-between">
-                <span>{r.nome}</span>
-                <span>
-                  Total: <strong>{r.total}</strong> | Validade:{' '}
-                  {r.proximidade.toLocaleDateString()}
-                </span>
+              <li key={r.nome} className="border-t pt-2">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="font-medium">{r.nome}</span>{' '}
+                    – Total: <strong>{r.total}</strong> | Próxima validade:{' '}
+                    {r.proximidade.toLocaleDateString()}
+                  </div>
+                  <button
+                    onClick={() => toggleDetalhes(r.nome)}
+                    className="text-indigo-600 hover:underline text-sm"
+                  >
+                    {detalhesVisiveis.includes(r.nome)
+                      ? 'Ocultar detalhes'
+                      : 'Ver detalhes'}
+                  </button>
+                </div>
+                {detalhesVisiveis.includes(r.nome) && (
+                  <ul className="mt-2 ml-4 space-y-1">
+                    {itens
+                      .filter(i => i.nome === r.nome)
+                      .map(item => (
+                        <li
+                          key={item.id}
+                          className="flex justify-between text-sm"
+                        >
+                          <span>
+                            Inserido:{' '}
+                            {item.inseridoEm?.toDate
+                              ? item.inseridoEm.toDate().toLocaleDateString()
+                              : '—'}
+                          </span>
+                          <span>
+                            Validade:{' '}
+                            {item.validade?.toDate
+                              ? item.validade.toDate().toLocaleDateString()
+                              : '—'}
+                          </span>
+                          <span>Qtd: {item.quantidade}</span>
+                        </li>
+                      ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
         </div>
 
-        {/* Listagem detalhada */}
-        <ul className="space-y-2 mb-12">
-          {itens.map(item => (
-            <li
-              key={item.id}
-              className="flex justify-between items-center bg-white p-4 rounded shadow"
-            >
-              <div>
-                <p className="font-medium">{item.nome}</p>
-                <p className="text-sm text-gray-600">
-                  Inserido:{' '}
-                  {item.inseridoEm?.toDate
-                    ? item.inseridoEm.toDate().toLocaleDateString()
-                    : '—'}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Validade:{' '}
-                  {item.validade?.toDate
-                    ? item.validade.toDate().toLocaleDateString()
-                    : '—'}
-                </p>
-              </div>
-              <span className="font-semibold">Qtd: {item.quantidade}</span>
-            </li>
-          ))}
-        </ul>
+        {/* Não exibimos lista completa aqui mais */}
+
       </div>
 
       {/* Modal Adicionar/Atualizar */}
