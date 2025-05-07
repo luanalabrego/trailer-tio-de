@@ -45,16 +45,27 @@ export function Header() {
 
   return (
     <header className="bg-white shadow fixed top-0 w-full z-50">
-      <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4">
         {/* Logo */}
-        <div className="flex items-center space-x-2">
-          <Image src="/logo.png" alt="Logo" width={36} height={36} className="rounded-full" />
-          <span className="font-semibold text-lg">Trailer Tio Dê</span>
-        </div>
+        <Link href="/">
+          <a className="flex items-center">
+            <Image
+              src="/logo.png"            // coloque o seu logo em public/logo.png
+              alt="Trailer Tio Dê"
+              width={64}
+              height={64}
+              unoptimized                // evita loader externo, garante renderização direta
+              className="w-12 h-12 sm:w-16 sm:h-16"
+            />
+            <span className="ml-2 text-xl sm:text-2xl font-bold text-gray-800">
+              Trailer Tio Dê
+            </span>
+          </a>
+        </Link>
 
         {/* Desktop */}
         <nav className="hidden md:flex space-x-6">
-          {Object.entries(groupedLinks).map(([grupo, links]) => (
+          {Object.entries(groupedLinks).map(([grupo, links]) =>
             links.length === 1 ? (
               <Link
                 key={links[0].href}
@@ -83,7 +94,6 @@ export function Header() {
                     }`}
                   />
                 </button>
-
                 {submenuAberto === grupo && (
                   <ul className="absolute mt-2 w-48 bg-white border rounded shadow-lg z-50">
                     {links.map(link => (
@@ -105,7 +115,7 @@ export function Header() {
                 )}
               </div>
             )
-          ))}
+          )}
           <button
             onClick={handleLogout}
             className="text-sm text-red-500 hover:underline"
@@ -132,7 +142,9 @@ export function Header() {
                   href={links[0].href}
                   onClick={() => setMenuAberto(false)}
                   className={`block py-2 text-sm ${
-                    pathname === links[0].href ? 'text-indigo-600' : 'text-gray-700'
+                    pathname === links[0].href
+                      ? 'text-indigo-600'
+                      : 'text-gray-700'
                   }`}
                 >
                   {grupo}
@@ -149,7 +161,9 @@ export function Header() {
                           href={link.href}
                           onClick={() => setMenuAberto(false)}
                           className={`block py-1 text-sm ${
-                            pathname === link.href ? 'text-indigo-600' : 'text-gray-700'
+                            pathname === link.href
+                              ? 'text-indigo-600'
+                              : 'text-gray-700'
                           }`}
                         >
                           {link.name}
