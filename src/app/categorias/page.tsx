@@ -7,7 +7,7 @@ import {
   salvarCategoria,
   excluirCategoria,
 } from '@/lib/firebase-categorias'
-import { Plus, Pencil, Trash2, X as Close, Search as SearchIcon } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Search } from 'lucide-react'
 import { Categoria } from '@/types'
 
 export default function CategoriasPage() {
@@ -48,6 +48,7 @@ export default function CategoriasPage() {
     const nomeTrim = nome.trim()
     if (!nomeTrim) return
 
+    // não permitir duplicatas (exceto editando o próprio)
     const existe = categorias.some(
       c =>
         c.nome.toLowerCase() === nomeTrim.toLowerCase() &&
@@ -64,7 +65,7 @@ export default function CategoriasPage() {
       await carregar()
       fecharModal()
     } catch (err) {
-      console.error('Erro ao salvar categoria', err)
+      console.error('❌ categorias.erro salvando', err)
       alert('Erro ao salvar categoria.')
     }
   }
@@ -75,7 +76,7 @@ export default function CategoriasPage() {
       await excluirCategoria(id)
       await carregar()
     } catch (err) {
-      console.error('Erro ao excluir categoria', err)
+      console.error('❌ categorias.erro excluindo', err)
       alert('Erro ao excluir categoria.')
     }
   }
@@ -91,112 +92,108 @@ export default function CategoriasPage() {
   return (
     <>
       <Header />
-      <div className="pt-20 px-6 xl:px-0 max-w-3xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-semibold text-gray-900">Categorias</h1>
+      <div className="pt-20 px-4 max-w-2xl mx-auto">
+
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-gray-800">Categorias</h1>
           <button
             onClick={abrirModalNovo}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-xl shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            className="flex items-center gap-2 bg-white border border-indigo-600 text-indigo-600 px-4 py-2 rounded-md hover:bg-indigo-50 transition"
           >
-            <Plus size={20} />
+            <Plus size={18} />
             Nova Categoria
           </button>
         </div>
 
-        <div className="relative mb-8">
-          <SearchIcon
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-600"
-            size={20}
-          />
+        {/* campo de busca */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600" size={18} />
           <input
             type="text"
             placeholder="Buscar categoria..."
             value={busca}
             onChange={e => setBusca(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            className="w-full pl-10 p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-600"
           />
         </div>
 
-        <ul className="space-y-4">
+        {/* Lista de categorias */}
+        <ul className="space-y-2">
           {categoriasFiltradas.map(cat => (
             <li
               key={cat.id}
-              className="bg-white p-5 rounded-2xl shadow flex justify-between items-center"
+              className="flex items-center justify-between bg-white p-3 rounded shadow"
             >
-              <span className="text-lg font-medium text-gray-800">{cat.nome}</span>
-              <div className="flex items-center space-x-4">
+              <span className="text-gray-800 font-medium">{cat.nome}</span>
+              <div className="flex gap-2">
                 <button
                   onClick={() => abrirModalEdicao(cat)}
-                  className="text-indigo-600 hover:text-indigo-800 transition"
+                  className="text-indigo-600 hover:text-indigo-800"
                   title="Editar"
                 >
-                  <Pencil size={20} />
+                  <Pencil size={18} />
                 </button>
                 <button
                   onClick={() => handleExcluir(cat.id)}
-                  className="text-red-500 hover:text-red-700 transition"
+                  className="text-red-500 hover:text-red-700"
                   title="Excluir"
                 >
-                  <Trash2 size={20} />
+                  <Trash2 size={18} />
                 </button>
               </div>
             </li>
           ))}
         </ul>
-      </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
-            <div className="flex justify-between items-center mb-6 border-b pb-2">
-              <h2 className="text-xl font-semibold text-gray-900">
+        {/* Modal de cadastro/edição */}
+        {showModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-75 z-50">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">
                 {editarId ? 'Editar Categoria' : 'Nova Categoria'}
               </h2>
-              <button onClick={fecharModal}>
-                <Close size={24} className="text-gray-600 hover:text-gray-800 transition" />
-              </button>
+              <form onSubmit={handleSalvar} className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Nome da categoria"
+                  value={nome}
+                  onChange={e => setNome(e.target.value)}
+                  className="w-full p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-600"
+                  required
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={fecharModal}
+                    className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-md flex items-center gap-1"
+                  >
+                    <X size={16} /> Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className={`px-4 py-2 rounded-md text-white flex items-center gap-1 ${
+                      editarId
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : 'bg-indigo-600 hover:bg-indigo-700'
+                    }`}
+                  >
+                    {editarId ? (
+                      <>
+                        <Pencil size={16} /> Atualizar
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={16} /> Salvar
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={handleSalvar} className="space-y-5">
-              <input
-                type="text"
-                placeholder="Nome da categoria"
-                value={nome}
-                onChange={e => setNome(e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                required
-              />
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={fecharModal}
-                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded-xl hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition flex items-center gap-1"
-                >
-                  <Close size={16} />
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className={`px-4 py-2 rounded-xl text-white flex items-center gap-1 ${
-                    editarId ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500'
-                  } focus:outline-none focus:ring-2 transition`}
-                >
-                  {editarId ? (
-                    <>
-                      <Pencil size={16} />
-                      Atualizar
-                    </>
-                  ) : (
-                    <>
-                      <Plus size={16} />
-                      Salvar
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        )}
+
+      </div>
     </>
   )
 }
