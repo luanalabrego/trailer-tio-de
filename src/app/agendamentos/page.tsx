@@ -134,9 +134,7 @@ export default function AgendamentosPage() {
     <>
       <Header />
       <div className="pt-20 px-4 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">
-          Agendamentos
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Agendamentos</h1>
 
         {agendamentos.length === 0 ? (
           <p className="text-gray-600">Nenhum agendamento.</p>
@@ -189,18 +187,25 @@ export default function AgendamentosPage() {
                       <p className="text-sm text-gray-500">
                         Pedido registrado em: {formatarData(ag.dataCriacao)}
                       </p>
+
+                      {/* Exibe local de entrega quando for entrega */}
+                      {ag.localEntrega && (
+                        <p className="text-sm text-gray-700">
+                          <strong>Local de entrega:</strong> {ag.localEntrega}
+                        </p>
+                      )}
+
                       <ul className="space-y-2">
                         {(ag.itens as PedidoItem[]).map(i => (
                           <li key={i.id} className="flex justify-between">
                             <span>
                               {i.nome} × {i.qtd}
                             </span>
-                            <span>
-                              R$ {(i.preco * i.qtd).toFixed(2)}
-                            </span>
+                            <span>R$ {(i.preco * i.qtd).toFixed(2)}</span>
                           </li>
                         ))}
                       </ul>
+
                       <div className="flex gap-2 pt-2">
                         {ag.status !== 'confirmado' && (
                           <button
