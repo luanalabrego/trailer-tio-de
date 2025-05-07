@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Header } from '@/components/Header'
-import { Plus, Minus, X as Close } from 'lucide-react'
+import { Plus, Minus, X as Close, Search } from 'lucide-react'
 import {
   listarEstoque,
   criarOuAtualizarItemEstoque,
@@ -17,14 +17,14 @@ export default function EstoquePage() {
 
   // para expandir/ocultar detalhes por nome
   const [detalhesVisiveis, setDetalhesVisiveis] = useState<string[]>([])
+  // busca por nome
+  const [busca, setBusca] = useState('')
 
   // adicionar/atualizar
   const [isNewItem, setIsNewItem] = useState(false)
   const [nome, setNome] = useState('')
   const [quantidade, setQuantidade] = useState(0)
-  const [validade, setValidade] = useState(
-    new Date().toISOString().slice(0, 10)
-  )
+  const [validade, setValidade] = useState(new Date().toISOString().slice(0, 10))
 
   // remoção
   const [nomeRemover, setNomeRemover] = useState('')
@@ -48,7 +48,6 @@ export default function EstoquePage() {
     const dataInsercao = new Date()
     const [y2, m2, d2] = validade.split('-').map(Number)
     const dataValidade = new Date(y2, m2 - 1, d2)
-
     await criarOuAtualizarItemEstoque(
       nome.trim(),
       quantidade,
@@ -68,7 +67,6 @@ export default function EstoquePage() {
         (a.inseridoEm?.toDate?.() ?? new Date()).getTime() -
         (b.inseridoEm?.toDate?.() ?? new Date()).getTime()
       )
-
     for (const lote of lotes) {
       if (remaining <= 0) break
       const disponivel = lote.quantidade
@@ -76,7 +74,6 @@ export default function EstoquePage() {
       await ajustarQuantidade(lote.id, disponivel - deduzir)
       remaining -= deduzir
     }
-
     resetRemoveForm()
     carregar()
   }
@@ -114,16 +111,25 @@ export default function EstoquePage() {
     }))
   }, [itens])
 
+  // aplica filtro de busca
+  const resumoFiltrado = useMemo(
+    () => resumo.filter(r =>
+      r.nome.toLowerCase().includes(busca.toLowerCase())
+    ),
+    [resumo, busca]
+  )
+
   function toggleDetalhes(nome: string) {
     setDetalhesVisiveis(prev =>
-      prev.includes(nome) ? prev.filter(n => n !== nome) : [...prev, nome]
+      prev.includes(nome)
+        ? prev.filter(n => n !== nome)
+        : [...prev, nome]
     )
   }
 
   return (
     <>
       <Header />
-
       <div className="pt-20 px-4 max-w-4xl mx-auto">
 
         {/* Título e Botões */}
@@ -145,11 +151,23 @@ export default function EstoquePage() {
           </div>
         </div>
 
+        {/* Busca */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600" size={18}/>
+          <input
+            type="text"
+            placeholder="Buscar item..."
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            className="w-full pl-10 p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-600"
+          />
+        </div>
+
         {/* Resumo de Estoque com detalhes */}
         <div className="mb-6 bg-white p-4 rounded-xl shadow">
           <h2 className="text-xl font-semibold mb-3">Resumo de Estoque</h2>
           <ul className="space-y-2">
-            {resumo.map(r => (
+            {resumoFiltrado.map(r => (
               <li key={r.nome} className="border-t pt-2">
                 <div className="flex justify-between items-center">
                   <div>
@@ -196,9 +214,6 @@ export default function EstoquePage() {
             ))}
           </ul>
         </div>
-
-        {/* Não exibimos lista completa aqui mais */}
-
       </div>
 
       {/* Modal Adicionar/Atualizar */}
@@ -206,12 +221,9 @@ export default function EstoquePage() {
         <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
           <form
             onSubmit={handleAdd}
-            className="p-6 rounded-xl shadow-lg w-full max-w-md space-y-4 bg-white"
+            className="p-6 rounded-xl shadow-lg w-full max-w-md bg-white space-y-4"
           >
-            <h2 className="text-lg font-semibold">
-              Adicionar / Atualizar Estoque
-            </h2>
-
+            <h2 className="text-lg font-semibold">Adicionar / Atualizar Estoque</h2>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-1">
                 <input
@@ -228,7 +240,6 @@ export default function EstoquePage() {
                 /> Novo item
               </label>
             </div>
-
             {!isNewItem ? (
               <select
                 value={nome}
@@ -251,7 +262,6 @@ export default function EstoquePage() {
                 required
               />
             )}
-
             <input
               type="number"
               placeholder="Quantidade"
@@ -261,7 +271,6 @@ export default function EstoquePage() {
               min={0}
               required
             />
-
             <label className="flex flex-col">
               Data de validade
               <input
@@ -272,7 +281,6 @@ export default function EstoquePage() {
                 required
               />
             </label>
-
             <div className="flex justify-end gap-2">
               <button
                 type="button"
@@ -297,10 +305,9 @@ export default function EstoquePage() {
         <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
           <form
             onSubmit={handleRemove}
-            className="p-6 rounded-xl shadow-lg w-full max-w-md space-y-4 bg-white"
+            className="p-6 rounded-xl shadow-lg w-full max-w-md bg-white space-y-4"
           >
             <h2 className="text-lg font-semibold">Remover Estoque</h2>
-
             <select
               value={nomeRemover}
               onChange={e => setNomeRemover(e.target.value)}
@@ -312,7 +319,6 @@ export default function EstoquePage() {
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>
-
             <input
               type="number"
               placeholder="Quantidade a remover"
@@ -322,7 +328,6 @@ export default function EstoquePage() {
               min={1}
               required
             />
-
             <div className="flex justify-end gap-2">
               <button
                 type="button"
