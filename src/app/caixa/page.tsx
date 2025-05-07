@@ -13,7 +13,6 @@ export default function CaixaPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [vendas, setVendas] = useState<Venda[]>([])
 
-  // carrinho e busca
   const [itens, setItens] = useState<PedidoItem[]>([])
   const [buscaProduto, setBuscaProduto] = useState('')
   const sugeridos = useMemo(
@@ -26,7 +25,6 @@ export default function CaixaPage() {
     [buscaProduto, produtos]
   )
 
-  // estado da venda
   const [saleType, setSaleType] = useState<'paid' | 'pending' | null>(null)
   const [formaPagamento, setFormaPagamento] = useState('')
   const [clienteId, setClienteId] = useState('')
@@ -37,9 +35,7 @@ export default function CaixaPage() {
     aniversario: '',
   })
 
-  // modal final
   const [showFinalModal, setShowFinalModal] = useState(false)
-
   const total = itens.reduce((acc, cur) => acc + cur.preco * cur.qtd, 0)
 
   useEffect(() => {
@@ -77,7 +73,6 @@ export default function CaixaPage() {
         .filter(i => i.qtd > 0)
     )
   }
-
   function removerProduto(id: string) {
     setItens(prev => prev.filter(i => i.id !== id))
   }
@@ -85,38 +80,18 @@ export default function CaixaPage() {
   function handleImprimir() {
     const w = window.open('', '_blank')
     if (!w) return
-
     const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8"/>
-          <title>Comprovante de Venda</title>
-          <style>
-            body { font-family: sans-serif; padding: 1rem; }
-            h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-            ul { padding-left: 1.2rem; }
-            li { margin-bottom: 0.3rem; }
-          </style>
-        </head>
-        <body>
-          <h1>Comprovante de Venda</h1>
-          <p><strong>Data:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-          <ul>
-            ${itens
-              .map(
-                i =>
-                  `<li>${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(
-                    2
-                  )}</li>`
-              )
-              .join('')}
-          </ul>
-          <p><strong>Total:</strong> R$ ${total.toFixed(2)}</p>
-          <p><strong>${saleType === 'paid' ? 'Pago' : 'Pendente'}</strong></p>
-        </body>
-      </html>
-    `
+      <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Comprovante</title>
+      <style>body{font-family:sans-serif;padding:1rem}h1{font-size:1.5rem}</style>
+      </head><body>
+        <h1>Comprovante de Venda</h1>
+        <p><strong>Data:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+        <ul>
+          ${itens.map(i=>`<li>${i.nome} × ${i.qtd} = R$ ${(i.preco*i.qtd).toFixed(2)}</li>`).join('')}
+        </ul>
+        <p><strong>Total:</strong> R$ ${total.toFixed(2)}</p>
+        <p><strong>${saleType==='paid'?'Pago':'Pendente'}</strong></p>
+      </body></html>`
     w.document.write(html)
     w.document.close()
     w.onload = () => {
@@ -126,19 +101,16 @@ export default function CaixaPage() {
     }
   }
 
-  function abrirWhatsapp() {
+  function getWhatsappUrl() {
     const cli = clientes.find(c => c.id === clienteId)
-    if (!cli) return
-
+    if (!cli) return ''
     const texto =
       `Olá ${cli.nome}, aqui está o resumo da sua compra:\n\n` +
       itens.map(i => `- ${i.nome} × ${i.qtd}`).join('\n') +
       `\n\nTotal: R$ ${total.toFixed(2)}\nStatus: pendente de pagamento`
-
-    const url = `https://wa.me/55${cli.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(
+    return `https://wa.me/55${cli.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(
       texto
     )}`
-    window.open(url, '_blank')
   }
 
   function handleShowFinalModal() {
@@ -151,31 +123,35 @@ export default function CaixaPage() {
       return
     }
     if (saleType === 'pending' && !clienteId) {
-      alert('Por favor, selecione ou cadastre um cliente antes de continuar.')
+      alert('Selecione ou cadastre um cliente.')
       return
     }
     setShowFinalModal(true)
   }
 
-  async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
-    // 1. Abre o pop-up de impressão ou WhatsApp imediatamente
-    if (action === 'print') {
-      handleImprimir()
-    } else if (action === 'whatsapp') {
-      abrirWhatsapp()
-    }
-
-    // 2. Registra a venda no Firestore
+  async function confirmarRegistro(action: 'print'|'skip'|'whatsapp') {
+    // 1. registra a venda
     await registrarVenda({
-      clienteId: saleType === 'pending' ? clienteId : '',
+      clienteId: saleType==='pending'? clienteId : '',
       itens,
-      formaPagamento: saleType === 'paid' ? formaPagamento : '',
+      formaPagamento: saleType==='paid'? formaPagamento : '',
       total,
-      pago: saleType === 'paid',
+      pago: saleType==='paid',
     })
 
-    // 3. Feedback e reset do estado
-    alert('Venda finalizada!')
+    // 2. ação pós-registro
+    if (action === 'print') {
+      handleImprimir()
+      alert('Venda finalizada!')
+    } else if (action === 'whatsapp') {
+      alert('Venda finalizada! Redirecionando para o WhatsApp…')
+      window.location.href = getWhatsappUrl()
+      return // interrompe o reset para não recarregar antes do redirect
+    } else {
+      alert('Venda finalizada!')
+    }
+
+    // 3. reset e recarrega (caso não tenha redirecionado)
     setItens([])
     setSaleType(null)
     setFormaPagamento('')
@@ -188,7 +164,7 @@ export default function CaixaPage() {
     const m = new Map<string, number>()
     vendas.forEach(v =>
       v.itens.forEach(i =>
-        m.set(i.nome, (m.get(i.nome) || 0) + i.qtd)
+        m.set(i.nome, (m.get(i.nome)||0) + i.qtd)
       )
     )
     return Array.from(m.entries()).map(([nome, total]) => ({ nome, total }))
@@ -199,7 +175,6 @@ export default function CaixaPage() {
       <Header />
       <div className="pt-20 px-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Caixa</h1>
-
         <div className="bg-white p-4 rounded-xl shadow space-y-6 mb-8">
           {/* busca */}
           <div>
@@ -367,7 +342,6 @@ export default function CaixaPage() {
         </ul>
       </div>
 
-      {/* modal de conclusão */}
       {showFinalModal && (
         <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm">
@@ -405,7 +379,6 @@ export default function CaixaPage() {
         </div>
       )}
 
-      {/* modal novo cliente */}
       {mostrarModalCliente && (
         <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
