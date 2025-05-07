@@ -33,14 +33,14 @@ export default function AgendamentosPage() {
     setClientes(listaClientes)
 
     const dados = snap.docs.map(d => {
-      const raw = d.data() as Record<string, unknown>
+      const raw = d.data() as Record<string, any>
       const dataCriacaoTs: Timestamp =
         (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
       return {
         id: d.id,
-        ...(raw as Omit<Agendamento, 'id' | 'dataCriacao'>),
+        ...raw,
         dataCriacao: dataCriacaoTs,
-      }
+      } as Agendamento
     })
 
     setAgendamentos(dados)
@@ -49,9 +49,10 @@ export default function AgendamentosPage() {
   // Ordena agendamentos por dataHora ascendente
   const sortedAgendamentos = useMemo(() => {
     return [...agendamentos].sort((a, b) => {
-      const getTime = (dt: Timestamp | Date | string) => {
+      const getTime = (dt: any) => {
         if (dt instanceof Timestamp) return dt.toDate().getTime()
-        if (typeof dt === 'string') return new Date(dt).getTime()
+        if (typeof dt === 'string' || dt instanceof String)
+          return new Date(dt as string).getTime()
         if (dt instanceof Date) return dt.getTime()
         return 0
       }
@@ -70,18 +71,17 @@ export default function AgendamentosPage() {
 
   function formatarData(dt?: Timestamp | Date | string): string {
     if (!dt) return 'Inválida'
-    return formatDateObj(
-      dt instanceof Timestamp ? dt.toDate() : new Date(dt as string)
-    )
+    if (dt instanceof Timestamp) return formatDateObj(dt.toDate())
+    if (dt instanceof Date) return formatDateObj(dt)
+    return formatDateObj(new Date(dt))
   }
 
   function formatDateObj(date: Date): string {
-    return isNaN(date.getTime())
-      ? 'Inválida'
-      : date.toLocaleString('pt-BR', {
-          dateStyle: 'short',
-          timeStyle: 'short',
-        })
+    if (isNaN(date.getTime())) return 'Inválida'
+    return date.toLocaleString('pt-BR', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    })
   }
 
   function enviarWhatsApp(texto: string, telRaw: string) {
@@ -104,9 +104,13 @@ export default function AgendamentosPage() {
 
   async function handleRegistrarPagamento(ag: Agendamento) {
     if (!confirm('Deseja registrar o pagamento deste pedido?')) return
-    await updateDoc(doc(db, 'agendamentos', ag.id), { pago: true })
-    await carregar()
-    alert('Pagamento registrado!')
+    try {
+      await updateDoc(doc(db, 'agendamentos', ag.id), { pago: true })
+      await carregar()
+      alert('Pagamento registrado!')
+    } catch {
+      alert('Falha ao registrar pagamento. Veja o console.')
+    }
   }
 
   async function handleCancelarPedido(ag: Agendamento) {
