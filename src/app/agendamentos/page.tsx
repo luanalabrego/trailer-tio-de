@@ -214,23 +214,22 @@ export default function AgendamentosPage() {
                             Cancelar Pedido
                           </button>
                         )}
-                        <button
-                          onClick={() => handleRegistrarPagamento(ag)}
-                          disabled={ag.pago}
-                          className={`px-3 py-1 rounded text-sm ${
-                            ag.pago
-                              ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                              : 'bg-purple-600 text-white hover:bg-purple-700'
-                          }`}
-                        >
-                          {ag.pago ? 'Já Pago' : 'Registrar Pagamento'}
-                        </button>
-                        <button
-                          onClick={() => finalizarPedido(ag)}
-                          className="bg-green-600 text-white px-3 py-1 rounded text-sm"
-                        >
-                          Finalizar Pedido
-                        </button>
+                        {ag.status === 'confirmado' && !ag.pago && (
+                          <button
+                            onClick={() => handleRegistrarPagamento(ag)}
+                            className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
+                          >
+                            Registrar Pagamento
+                          </button>
+                        )}
+                        {ag.status === 'confirmado' && (
+                          <button
+                            onClick={() => finalizarPedido(ag)}
+                            className="bg-green-600 text-white px-3 py-1 rounded text-sm"
+                          >
+                            Finalizar Pedido
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
