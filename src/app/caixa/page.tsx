@@ -85,21 +85,7 @@ export default function CaixaPage() {
     setItens(prev => prev.filter(i => i.id !== id))
   }
 
-  // monta mensagem para WhatsApp incluindo total e pendente
-  function abrirWhatsapp() {
-    const cli = clientes.find(c => c.id === clienteId)
-    if (!cli) return
-    const texto =
-      `Olá ${cli.nome}, aqui está o resumo da sua compra:\n\n` +
-      itens.map(i => `- ${i.nome} × ${i.qtd}`).join('\n') +
-      `\n\nTotal: R$ ${total.toFixed(2)}\nStatus: pendente de pagamento`
-    window.open(
-      `https://wa.me/55${cli.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`,
-      '_blank'
-    )
-  }
-
-  // abre uma janela simples para imprimir
+  // abre janela com HTML e chama window.print()
   function handleImprimir() {
     const data = new Date().toLocaleString('pt-BR')
     const html = `
@@ -122,7 +108,22 @@ export default function CaixaPage() {
     w.close()
   }
 
-  async function handleFinalizar() {
+  // monta mensagem para WhatsApp incluindo total e pendente
+  function abrirWhatsapp() {
+    const cli = clientes.find(c => c.id === clienteId)
+    if (!cli) return
+    const texto =
+      `Olá ${cli.nome}, aqui está o resumo da sua compra:\n\n` +
+      itens.map(i => `- ${i.nome} × ${i.qtd}`).join('\n') +
+      `\n\nTotal: R$ ${total.toFixed(2)}\nStatus: pendente de pagamento`
+    window.open(
+      `https://wa.me/55${cli.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`,
+      '_blank'
+    )
+  }
+
+  // abre modal de confirmação final
+  function handleShowFinalModal() {
     if (itens.length === 0) {
       alert('Adicione ao menos um produto.')
       return
@@ -132,9 +133,14 @@ export default function CaixaPage() {
       return
     }
     if (saleType === 'pending' && !clienteId) {
-      alert('Selecione ou cadastre um cliente.')
+      alert('Por favor, insira o nome do cliente antes de continuar.')
       return
     }
+    setShowFinalModal(true)
+  }
+
+  // registra e finaliza tudo
+  async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
     await registrarVenda({
       clienteId: saleType === 'pending' ? clienteId : '',
       itens,
@@ -142,7 +148,16 @@ export default function CaixaPage() {
       total,
       pago: saleType === 'paid',
     })
-    setShowFinalModal(true)
+    if (action === 'print') handleImprimir()
+    if (action === 'whatsapp') abrirWhatsapp()
+    alert('Pedido finalizado!')
+    // reset
+    setItens([])
+    setSaleType(null)
+    setFormaPagamento('')
+    setClienteId('')
+    setShowFinalModal(false)
+    await carregar()
   }
 
   // resumo de itens vendidos hoje (agregado)
@@ -273,7 +288,7 @@ export default function CaixaPage() {
                 <option value="outro">Outro</option>
               </select>
               <button
-                onClick={handleFinalizar}
+                onClick={handleShowFinalModal}
                 className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
               >
                 Finalizar Paga
@@ -309,7 +324,7 @@ export default function CaixaPage() {
                 </button>
               </div>
               <button
-                onClick={handleFinalizar}
+                onClick={handleShowFinalModal}
                 className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
               >
                 Finalizar Pendente
@@ -335,46 +350,30 @@ export default function CaixaPage() {
           <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm">
             <h2 className="text-lg font-semibold mb-4">Pedido registrado!</h2>
 
-            {saleType === 'paid' ? (
-              <div className="flex gap-4">
+            <div className="flex gap-4">
+              <button
+                onClick={() => confirmarRegistro('print')}
+                className="flex-1 bg-gray-800 text-white py-2 rounded hover:bg-gray-900"
+              >
+                Imprimir recibo
+              </button>
+
+              {saleType === 'pending' ? (
                 <button
-                  onClick={() => {
-                    handleImprimir()
-                    setShowFinalModal(false)
-                  }}
-                  className="flex-1 bg-gray-800 text-white py-2 rounded hover:bg-gray-900"
-                >
-                  Imprimir recibo
-                </button>
-                <button
-                  onClick={() => setShowFinalModal(false)}
-                  className="flex-1 bg-gray-300 text-gray-800 py-2 rounded hover:bg-gray-400"
-                >
-                  Não imprimir
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-4">
-                <button
-                  onClick={() => {
-                    handleImprimir()
-                    setShowFinalModal(false)
-                  }}
-                  className="flex-1 bg-gray-800 text-white py-2 rounded hover:bg-gray-900"
-                >
-                  Imprimir recibo
-                </button>
-                <button
-                  onClick={() => {
-                    abrirWhatsapp()
-                    setShowFinalModal(false)
-                  }}
+                  onClick={() => confirmarRegistro('whatsapp')}
                   className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700"
                 >
                   Enviar no WhatsApp
                 </button>
-              </div>
-            )}
+              ) : (
+                <button
+                  onClick={() => confirmarRegistro('skip')}
+                  className="flex-1 bg-gray-300 text-gray-800 py-2 rounded hover:bg-gray-400"
+                >
+                  Não imprimir
+                </button>
+              )}
+            </div>
 
             <button
               onClick={() => setShowFinalModal(false)}
