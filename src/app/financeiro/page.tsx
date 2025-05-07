@@ -16,6 +16,7 @@ import { Venda, Custo } from '@/types'
 
 type VendaFirestore = Omit<Venda, 'id'>
 type CustoFirestore = Omit<Custo, 'id'>
+type AgendamentoFirestore = Omit<Venda, 'id'>  // assume mesmos campos de Venda
 type CaixaFirestore = { valor: number; data: Timestamp }
 
 export default function FinanceiroPage() {
@@ -31,7 +32,7 @@ export default function FinanceiroPage() {
   const [dataFim, setDataFim] = useState<string>(isoHoje)
   const [filtroMetodo, setFiltroMetodo] = useState<string>('todos')
 
-  // Parse "YYYY-MM-DD" into local Date at midnight
+  // converte "YYYY-MM-DD" para Date local
   function parseLocalDate(str: string): Date {
     const [year, month, day] = str.split('-').map(Number)
     return new Date(year, month - 1, day)
@@ -61,10 +62,24 @@ export default function FinanceiroPage() {
         const data = d.data() as VendaFirestore
         return { id: d.id, ...data }
       })
-      if (filtroMetodo !== 'todos') {
-        listaV = listaV.filter(v => v.formaPagamento === filtroMetodo)
-      }
-      setVendas(listaV)
+
+      // AGENDAMENTOS (também considerados vendas)
+      const qA = query(
+        collection(db, 'agendamentos'),
+        where('data', '>=', Timestamp.fromDate(inicio)),
+        where('data', '<=', Timestamp.fromDate(fim))
+      )
+      const snapA = await getDocs(qA)
+      const listaA = snapA.docs.map(d => {
+        const data = d.data() as AgendamentoFirestore
+        return { id: d.id, ...data }
+      })
+
+      // filtra por método se necessário
+      const todasVendas = [...listaV, ...listaA].filter(v => {
+        return filtroMetodo === 'todos' || v.formaPagamento === filtroMetodo
+      })
+      setVendas(todasVendas)
 
       // CUSTOS
       const qC = query(
@@ -88,7 +103,7 @@ export default function FinanceiroPage() {
     carregar()
   }, [dataInicio, dataFim, filtroMetodo])
 
-  // CÁLCULOS DE TOTAIS
+  // calcula totais
   const totais = vendas.reduce(
     (acc, v) => {
       if (v.pago) acc.receita += v.total ?? 0
@@ -216,7 +231,7 @@ export default function FinanceiroPage() {
               </p>
             </div>
 
-            {/* cards por método */}
+            {/* cards por método de pagamento */}
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {tipos.map(({ key, label, Icon }) => (
                 <div
