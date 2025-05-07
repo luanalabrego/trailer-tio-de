@@ -124,12 +124,12 @@ export default function CustosPage() {
       <Header />
       <div className="pt-20 px-6 xl:px-0 max-w-4xl mx-auto">
 
-        {/* título e botão idêntico ao de Categorias */}
+        {/* título e botão padronizado */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-semibold text-gray-900">Custos</h1>
           <button
             onClick={() => abrirModal()}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-xl shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            className="flex items-center gap-2 bg-white border border-indigo-600 text-indigo-600 px-5 py-3 rounded-xl hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
           >
             <Plus size={20} />
             Registrar Custo
@@ -138,7 +138,6 @@ export default function CustosPage() {
 
         {/* busca e filtros */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          {/* campo de busca */}
           <div className="relative flex-1">
             <SearchIcon
               className="absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-600"
@@ -153,7 +152,6 @@ export default function CustosPage() {
             />
           </div>
 
-          {/* datas lado a lado */}
           <div className="flex gap-4">
             <input
               type="date"
@@ -266,7 +264,7 @@ export default function CustosPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center gap-1"
+                  className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition flex items-center gap-1"
                 >
                   <Plus size={16} /> Salvar
                 </button>
