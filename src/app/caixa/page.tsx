@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { Header } from '@/components/Header'
 import { registrarVenda, listarVendasDoDia } from '@/lib/firebase-caixa'
-import { listarClientes, salvarCliente } from '@/lib/firebase-clientes'
+import { listarClientes, cadastrarCliente } from '@/lib/firebase-clientes'
 import { listarProdutos } from '@/lib/firebase-produtos'
 import { Plus } from 'lucide-react'
 import { Cliente, Produto, PedidoItem, Venda } from '@/types'
@@ -149,7 +149,7 @@ export default function CaixaPage() {
     e.preventDefault()
     if (!novoCliente.nome || !novoCliente.telefone) return
 
-    const clienteCriado = await salvarCliente(novoCliente)
+    const clienteCriado = await cadastrarCliente(novoCliente)
     setNovoCliente({ nome: '', telefone: '', aniversario: '' })
     setMostrarModalCliente(false)
     await carregar()
