@@ -1,3 +1,4 @@
+// src/app/financeiro/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -30,6 +31,12 @@ export default function FinanceiroPage() {
   const [dataFim, setDataFim] = useState<string>(isoHoje)
   const [filtroMetodo, setFiltroMetodo] = useState<string>('todos')
 
+  // Parse "YYYY-MM-DD" into local Date at midnight
+  function parseLocalDate(str: string): Date {
+    const [year, month, day] = str.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+
   useEffect(() => {
     const perfil = localStorage.getItem('perfil')
     if (perfil !== 'ADM') {
@@ -37,13 +44,13 @@ export default function FinanceiroPage() {
       return
     }
 
-    async function fetchDados() {
-      const inicio = new Date(dataInicio)
+    async function carregar() {
+      const inicio = parseLocalDate(dataInicio)
       inicio.setHours(0, 0, 0, 0)
-      const fim = new Date(dataFim)
+      const fim = parseLocalDate(dataFim)
       fim.setHours(23, 59, 59, 999)
 
-      // vendas
+      // VENDAS
       const qV = query(
         collection(db, 'vendas'),
         where('data', '>=', Timestamp.fromDate(inicio)),
@@ -59,7 +66,7 @@ export default function FinanceiroPage() {
       }
       setVendas(listaV)
 
-      // custos
+      // CUSTOS
       const qC = query(
         collection(db, 'custos'),
         where('data', '>=', Timestamp.fromDate(inicio)),
@@ -72,16 +79,16 @@ export default function FinanceiroPage() {
       })
       setCustos(listaC)
 
-      // caixa
+      // CAIXA
       const snapCx = await getDocs(collection(db, 'caixa'))
       const listaCx = snapCx.docs.map(d => d.data() as CaixaFirestore)
       setCaixas(listaCx)
     }
 
-    fetchDados()
+    carregar()
   }, [dataInicio, dataFim, filtroMetodo])
 
-  // totais
+  // CÁLCULOS DE TOTAIS
   const totais = vendas.reduce(
     (acc, v) => {
       if (v.pago) acc.receita += v.total ?? 0
@@ -96,7 +103,6 @@ export default function FinanceiroPage() {
   const margem = totais.receita > 0 ? (lucro / totais.receita) * 100 : 0
   const pedidosPendentesCount = vendas.filter(v => !v.pago).length
 
-  // resumo por método
   const resumoPorMetodo = vendas.reduce<Record<string, number>>((acc, v) => {
     const m = v.formaPagamento || 'outro'
     acc[m] = (acc[m] || 0) + (v.total ?? 0)
@@ -166,8 +172,8 @@ export default function FinanceiroPage() {
               </div>
             </div>
 
-            {/* cards de totais: 2 por linha no mobile */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {/* cards de totais */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-white p-5 rounded-2xl shadow text-center">
                 <p className="text-sm text-gray-500">Recebido</p>
                 <p className="text-2xl font-bold text-green-600">
@@ -183,6 +189,9 @@ export default function FinanceiroPage() {
                   {pedidosPendentesCount} pedidos
                 </p>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-white p-5 rounded-2xl shadow text-center">
                 <p className="text-sm text-gray-500">Custos</p>
                 <p className="text-2xl font-bold text-orange-600">
@@ -195,18 +204,19 @@ export default function FinanceiroPage() {
                   R$ {totalCaixa.toFixed(2)}
                 </p>
               </div>
-              <div className="bg-white p-5 rounded-2xl shadow text-center col-span-2 lg:col-span-4">
-                <p className="text-sm text-gray-500">Lucro</p>
-                <p className="text-2xl font-bold text-indigo-600">
-                  R$ {lucro.toFixed(2)}
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  Margem: {margem.toFixed(1)}%
-                </p>
-              </div>
             </div>
 
-            {/* cards por método de pagamento */}
+            <div className="bg-white p-5 rounded-2xl shadow text-center mb-6">
+              <p className="text-sm text-gray-500">Lucro</p>
+              <p className="text-2xl font-bold text-indigo-600">
+                R$ {lucro.toFixed(2)}
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                Margem: {margem.toFixed(1)}%
+              </p>
+            </div>
+
+            {/* cards por método */}
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {tipos.map(({ key, label, Icon }) => (
                 <div
