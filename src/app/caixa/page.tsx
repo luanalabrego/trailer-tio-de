@@ -135,7 +135,6 @@ export default function CaixaPage() {
       itens.map(i => `- ${i.nome} × ${i.qtd}`).join('\n') +
       `\n\nTotal: R$ ${total.toFixed(2)}\nStatus: pendente de pagamento`
 
-    // abre diretamente o link do WhatsApp
     const url = `https://wa.me/55${cli.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(
       texto
     )}`
@@ -152,14 +151,21 @@ export default function CaixaPage() {
       return
     }
     if (saleType === 'pending' && !clienteId) {
-      alert('Por favor, insira o nome do cliente antes de continuar.')
+      alert('Por favor, selecione ou cadastre um cliente antes de continuar.')
       return
     }
     setShowFinalModal(true)
   }
 
   async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
-    // registra a venda
+    // 1. Abre o pop-up de impressão ou WhatsApp imediatamente
+    if (action === 'print') {
+      handleImprimir()
+    } else if (action === 'whatsapp') {
+      abrirWhatsapp()
+    }
+
+    // 2. Registra a venda no Firestore
     await registrarVenda({
       clienteId: saleType === 'pending' ? clienteId : '',
       itens,
@@ -168,11 +174,7 @@ export default function CaixaPage() {
       pago: saleType === 'paid',
     })
 
-    // executa ação escolhida
-    if (action === 'print') handleImprimir()
-    if (action === 'whatsapp') abrirWhatsapp()
-
-    // feedback e reset
+    // 3. Feedback e reset do estado
     alert('Venda finalizada!')
     setItens([])
     setSaleType(null)
@@ -201,9 +203,7 @@ export default function CaixaPage() {
         <div className="bg-white p-4 rounded-xl shadow space-y-6 mb-8">
           {/* busca */}
           <div>
-            <label className="block mb-1 text-sm">
-              Adicionar produto
-            </label>
+            <label className="block mb-1 text-sm">Adicionar produto</label>
             <input
               type="text"
               value={buscaProduto}
@@ -240,9 +240,7 @@ export default function CaixaPage() {
                   >
                     <div className="flex justify-between">
                       <span className="font-medium">{item.nome}</span>
-                      <span>
-                        R$ {(item.preco * item.qtd).toFixed(2)}
-                      </span>
+                      <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
@@ -316,7 +314,7 @@ export default function CaixaPage() {
                 onClick={handleShowFinalModal}
                 className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
               >
-                Finalizar Paga
+                Finalizar Pago
               </button>
             </div>
           )}
@@ -374,7 +372,6 @@ export default function CaixaPage() {
         <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm">
             <h2 className="text-lg font-semibold mb-4">Venda finalizada!</h2>
-
             <div className="flex gap-4">
               <button
                 onClick={() => confirmarRegistro('print')}
@@ -382,7 +379,6 @@ export default function CaixaPage() {
               >
                 Imprimir recibo
               </button>
-
               {saleType === 'pending' ? (
                 <button
                   onClick={() => confirmarRegistro('whatsapp')}
@@ -399,7 +395,6 @@ export default function CaixaPage() {
                 </button>
               )}
             </div>
-
             <button
               onClick={() => confirmarRegistro('skip')}
               className="mt-4 text-gray-600 hover:underline"
@@ -444,6 +439,15 @@ export default function CaixaPage() {
                 }
                 className="w-full p-2 border rounded"
                 required
+              />
+              <input
+                type="date"
+                placeholder="Aniversário"
+                value={novoCliente.aniversario}
+                onChange={e =>
+                  setNovoCliente({ ...novoCliente, aniversario: e.target.value })
+                }
+                className="w-full p-2 border rounded"
               />
               <div className="text-right">
                 <button
