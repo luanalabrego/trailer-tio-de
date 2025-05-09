@@ -10,6 +10,7 @@ export default function HistoricoVendasPage() {
   const [vendas, setVendas] = useState<Venda[]>([])
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
+  const [orderSearch, setOrderSearch] = useState<string>('')
 
   useEffect(() => {
     async function carregarTodasVendas() {
@@ -19,10 +20,16 @@ export default function HistoricoVendasPage() {
     carregarTodasVendas()
   }, [])
 
-  // filtra e ordena por criadoEm
+  // filtra por data e número do pedido, depois ordena
   const filtered = useMemo(() => {
     return vendas
       .filter(v => {
+        // filtro por número do pedido
+        if (orderSearch) {
+          const num = v.orderNumber?.toString() ?? ''
+          if (!num.includes(orderSearch)) return false
+        }
+        // filtro por data
         const dt =
           v.criadoEm instanceof Timestamp
             ? v.criadoEm.toDate()
@@ -49,7 +56,7 @@ export default function HistoricoVendasPage() {
             : new Date(b.criadoEm).getTime()
         return tb - ta
       })
-  }, [vendas, startDate, endDate])
+  }, [vendas, startDate, endDate, orderSearch])
 
   function formatarData(dt?: Timestamp | Date | string) {
     if (!dt) return '—'
@@ -69,8 +76,26 @@ export default function HistoricoVendasPage() {
       <div className="pt-20 px-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Histórico de Vendas</h1>
 
-        {/* filtros de período */}
-        <div className="bg-white p-4 rounded-xl shadow mb-6 flex flex-wrap gap-4 items-end">
+        {/* filtros: start, end e pedido */}
+        <div className="bg-white p-4 rounded-xl shadow mb-6 grid grid-cols-3 gap-4 items-end">
+          {/* Número do pedido */}
+          <div className="flex flex-col">
+            <label
+              htmlFor="orderSearch"
+              className="text-sm font-medium text-gray-700 mb-1"
+            >
+              Pedido Nº
+            </label>
+            <input
+              id="orderSearch"
+              type="text"
+              placeholder="Buscar nº pedido"
+              value={orderSearch}
+              onChange={e => setOrderSearch(e.target.value)}
+              className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          {/* Data início */}
           <div className="flex flex-col">
             <label
               htmlFor="startDate"
@@ -83,9 +108,10 @@ export default function HistoricoVendasPage() {
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
+          {/* Data fim */}
           <div className="flex flex-col">
             <label
               htmlFor="endDate"
@@ -98,15 +124,17 @@ export default function HistoricoVendasPage() {
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
-              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
+          {/* Limpar */}
           <button
             onClick={() => {
               setStartDate('')
               setEndDate('')
+              setOrderSearch('')
             }}
-            className="h-fit px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="col-span-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             Limpar filtros
           </button>
@@ -114,7 +142,7 @@ export default function HistoricoVendasPage() {
 
         {filtered.length === 0 ? (
           <p className="text-gray-600">
-            Nenhuma venda registrada neste período.
+            Nenhuma venda registrada com esses critérios.
           </p>
         ) : (
           <ul className="space-y-4">
