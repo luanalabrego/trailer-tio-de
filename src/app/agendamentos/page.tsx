@@ -75,7 +75,11 @@ export default function AgendamentosPage() {
   function toggle(id: string) {
     setExpanded(prev => {
       const s = new Set(prev)
-      s.has(id) ? s.delete(id) : s.add(id)
+      if (s.has(id)) {
+        s.delete(id)
+      } else {
+        s.add(id)
+      }
       return s
     })
   }
@@ -168,7 +172,9 @@ export default function AgendamentosPage() {
               const isOpen = expanded.has(ag.id)
               const tipo = ag.localEntrega ? 'Entrega' : 'Retirada'
               const borderClass =
-                ag.status === 'pendente' ? 'border-yellow-400' : 'border-green-400'
+                ag.status === 'pendente'
+                  ? 'border-yellow-400'
+                  : 'border-green-400'
 
               return (
                 <div
@@ -182,7 +188,9 @@ export default function AgendamentosPage() {
                     <div className="flex items-center gap-2">
                       <span
                         className={`px-2 py-1 rounded-full text-xs ${
-                          ag.pago ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          ag.pago
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
                         }`}
                       >
                         {ag.pago ? 'Pago' : 'Pendente'}
@@ -192,7 +200,8 @@ export default function AgendamentosPage() {
                           {ag.nome} — {tipo} — {formatarData(ag.dataHora)}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {ag.itens.length} item(s) • {ag.formaPagamento} • Total: R$ {Number(ag.total).toFixed(2)}
+                          {ag.itens.length} item(s) • {ag.formaPagamento} • Total: R${' '}
+                          {Number(ag.total).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -204,8 +213,12 @@ export default function AgendamentosPage() {
                       <p className="text-sm text-gray-500">
                         Registrado em: {formatarData(ag.dataCriacao)}
                       </p>
-                      {ag.localEntrega && <p><strong>Local:</strong> {ag.localEntrega}</p>}
-                      {ag.observacao && <p><strong>Obs:</strong> {ag.observacao}</p>}
+                      {ag.localEntrega && (
+                        <p><strong>Local:</strong> {ag.localEntrega}</p>
+                      )}
+                      {ag.observacao && (
+                        <p><strong>Obs:</strong> {ag.observacao}</p>
+                      )}
 
                       <ul className="space-y-2">
                         {ag.itens.map(i => (
