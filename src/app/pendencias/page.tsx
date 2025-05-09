@@ -12,7 +12,7 @@ import {
   Timestamp,
   DocumentData,
 } from 'firebase/firestore'
-import { Cliente, PedidoItem } from '@/types'
+import type { Cliente, PedidoItem } from '@/types'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 
 type VendaUnificada = {
@@ -23,6 +23,7 @@ type VendaUnificada = {
   pago: boolean
   data: Timestamp
   formaPagamento: string
+  cancelado?: boolean   // <-- inclui flag de cancelamento
 }
 
 // type guard para objetos Timestamp-like
@@ -60,6 +61,7 @@ export default function PagamentosPendentesPage() {
       {}
     )
 
+    // vendas normais pendentes
     const pendentesVendas: VendaUnificada[] = snapVendas.docs
       .map(d => {
         const data = d.data() as DocumentData
@@ -69,12 +71,14 @@ export default function PagamentosPendentesPage() {
           itens: (data.itens as PedidoItem[]) || [],
           total: Number(data.total),
           pago: Boolean(data.pago),
-          data: data.data as Timestamp,
+          data: data.criadoEm as Timestamp,
           formaPagamento: String(data.formaPagamento),
+          cancelado: false,
         }
       })
       .filter(v => !v.pago)
 
+    // agendamentos pendentes, excluindo cancelados
     const pendentesAgend: VendaUnificada[] = snapAgends.docs
       .map(d => {
         const raw = d.data() as DocumentData
@@ -89,9 +93,11 @@ export default function PagamentosPendentesPage() {
           pago: Boolean(raw.pago),
           data: raw.dataHora as Timestamp,
           formaPagamento: String(raw.formaPagamento),
+          cancelado: Boolean(raw.cancelado),  // <-- captura flag cancelado
         }
       })
-      .filter(a => !a.pago)
+      // só pendentes e não cancelados
+      .filter(a => !a.pago && !a.cancelado)
 
     setVendas([...pendentesVendas, ...pendentesAgend])
   }, [])
@@ -163,13 +169,9 @@ export default function PagamentosPendentesPage() {
     dt: Timestamp | { toDate(): Date } | string
   ): string => {
     let dateObj: Date
-    if (dt instanceof Timestamp) {
-      dateObj = dt.toDate()
-    } else if (hasToDate(dt)) {
-      dateObj = dt.toDate()
-    } else {
-      dateObj = new Date(dt)
-    }
+    if (dt instanceof Timestamp) dateObj = dt.toDate()
+    else if (hasToDate(dt)) dateObj = dt.toDate()
+    else dateObj = new Date(dt)
     if (isNaN(dateObj.getTime())) return 'Inválida'
     return dateObj.toLocaleDateString('pt-BR')
   }
@@ -201,11 +203,8 @@ export default function PagamentosPendentesPage() {
                     <button
                       onClick={() => {
                         const next = new Set(expanded)
-                        if (next.has(clienteId)) {
-                          next.delete(clienteId)
-                        } else {
-                          next.add(clienteId)
-                        }
+                        if (next.has(clienteId)) next.delete(clienteId)
+                        else next.add(clienteId)
                         setExpanded(next)
                       }}
                       className="w-full flex justify-between items-center p-4"
@@ -238,8 +237,7 @@ export default function PagamentosPendentesPage() {
                                 <ul className="ml-4 text-sm">
                                   {v.itens.map(i => (
                                     <li key={i.id}>
-                                      {i.nome} × {i.qtd} = R${' '}
-                                      {(i.preco * i.qtd).toFixed(2)}
+                                      {i.nome} × {i.qtd} = R$ {(i.preco * i.qtd).toFixed(2)}
                                     </li>
                                   ))}
                                 </ul>
