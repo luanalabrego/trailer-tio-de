@@ -49,19 +49,17 @@ export default function AgendamentosPage() {
         pago: Boolean(raw.pago),
         localEntrega: raw.localEntrega ? String(raw.localEntrega) : undefined,
         observacao: raw.observacao ? String(raw.observacao) : undefined,
-        // agora também pode ser 'finalizado'
-        status: (raw.status as
+        status: raw.status as
           | 'pendente'
           | 'confirmado'
           | 'cancelado'
-          | 'finalizado'),
+          | 'finalizado',
       } as Agendamento
     })
 
     setAgendamentos(dados)
   }
 
-  // Ordena por data de agendamento
   const sortedAgendamentos = useMemo(() => {
     return [...agendamentos].sort((a, b) => {
       const toMs = (dt: Timestamp | Date | string) =>
@@ -77,7 +75,8 @@ export default function AgendamentosPage() {
   function toggle(id: string) {
     setExpanded(prev => {
       const s = new Set(prev)
-      s.has(id) ? s.delete(id) : s.add(id)
+      if (s.has(id)) s.delete(id)
+      else s.add(id)
       return s
     })
   }
@@ -117,13 +116,9 @@ export default function AgendamentosPage() {
 
   async function handleRegistrarPagamento(ag: Agendamento) {
     if (!confirm('Deseja registrar o pagamento deste pedido?')) return
-    try {
-      await updateDoc(doc(db, 'agendamentos', ag.id), { pago: true })
-      await carregar()
-      alert('Pagamento registrado!')
-    } catch {
-      alert('Falha ao registrar pagamento. Veja o console.')
-    }
+    await updateDoc(doc(db, 'agendamentos', ag.id), { pago: true })
+    await carregar()
+    alert('Pagamento registrado!')
   }
 
   async function handleCancelarPedido(ag: Agendamento) {
@@ -144,9 +139,7 @@ export default function AgendamentosPage() {
       pago: Boolean(ag.pago),
     }
     await registrarVenda(venda)
-    // apenas marca como finalizado, não deleta
     await updateDoc(doc(db, 'agendamentos', ag.id), { status: 'finalizado' })
-
     if (!ag.pago) {
       enviarWhatsApp(
         `Olá ${ag.nome}, seu pedido de ${formatarData(
@@ -158,134 +151,123 @@ export default function AgendamentosPage() {
     await carregar()
   }
 
+  const ativos = sortedAgendamentos.filter(
+    ag => ag.status !== 'cancelado' && ag.status !== 'finalizado'
+  )
+
   return (
     <>
       <Header />
       <div className="pt-20 px-4 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">
-          Agendamentos
-        </h1>
+        <h1 className="text-2xl font-bold mb-6">Agendamentos</h1>
 
-        {sortedAgendamentos.filter(ag =>
-          ag.status !== 'cancelado' && ag.status !== 'finalizado'
-        ).length === 0 ? (
+        {ativos.length === 0 ? (
           <p className="text-gray-600">Nenhum agendamento ativo.</p>
         ) : (
           <div className="space-y-4">
-            {sortedAgendamentos
-              .filter(ag => ag.status !== 'cancelado' && ag.status !== 'finalizado')
-              .map(ag => {
-                const isOpen = expanded.has(ag.id)
-                const tipo = ag.localEntrega ? 'Entrega' : 'Retirada'
-                const borderClass =
-                  ag.status === 'pendente'
-                    ? 'border-yellow-400'
-                    : 'border-green-400'
+            {ativos.map(ag => {
+              const isOpen = expanded.has(ag.id)
+              const tipo = ag.localEntrega ? 'Entrega' : 'Retirada'
+              const borderClass =
+                ag.status === 'pendente'
+                  ? 'border-yellow-400'
+                  : 'border-green-400'
 
-                return (
-                  <div
-                    key={ag.id}
-                    className={`bg-white rounded-xl shadow border-l-4 ${borderClass}`}
+              return (
+                <div
+                  key={ag.id}
+                  className={`bg-white rounded-xl shadow border-l-4 ${borderClass}`}
+                >
+                  <button
+                    onClick={() => toggle(ag.id)}
+                    className="w-full flex justify-between items-center p-4"
                   >
-                    <button
-                      onClick={() => toggle(ag.id)}
-                      className="w-full flex justify-between items-center p-4"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            ag.pago
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          ag.pago
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {ag.pago ? 'Pago' : 'Pendente'}
+                      </span>
+                      <div>
+                        <p className="font-semibold">
+                          {ag.nome} — {tipo} — {formatarData(ag.dataHora)}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {ag.itens.length} item(s) • {ag.formaPagamento} • Total: R${' '}
+                          {Number(ag.total).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    {isOpen ? <ChevronUp /> : <ChevronDown />}
+                  </button>
+
+                  {isOpen && (
+                    <div className="px-4 pb-4 space-y-4">
+                      <p className="text-sm text-gray-500">
+                        Registrado em: {formatarData(ag.dataCriacao)}
+                      </p>
+                      {ag.localEntrega && (
+                        <p><strong>Local:</strong> {ag.localEntrega}</p>
+                      )}
+                      {ag.observacao && (
+                        <p><strong>Obs:</strong> {ag.observacao}</p>
+                      )}
+
+                      <ul className="space-y-2">
+                        {ag.itens.map(i => (
+                          <li key={i.id} className="flex justify-between">
+                            <span>
+                              {i.nome} × {i.qtd}
+                            </span>
+                            <span>R$ {(i.preco * i.qtd).toFixed(2)}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <p className="text-right font-medium">
+                        Total do Pedido: R$ {Number(ag.total).toFixed(2)}
+                      </p>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => confirmacaoPedido(ag)}
+                          disabled={ag.status !== 'pendente'}
+                          className="bg-blue-600 text-white px-3 py-1 rounded disabled:opacity-50"
                         >
-                          {ag.pago ? 'Pago' : 'Pendente'}
-                        </span>
-                        <div className="text-left">
-                          <p className="font-semibold text-gray-800">
-                            {ag.nome} — {tipo} — {formatarData(ag.dataHora)}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {ag.itens.length} item(s) • {ag.formaPagamento} • Total: R${' '}
-                            {Number(ag.total).toFixed(2)}
-                          </p>
-                        </div>
-                      </div>
-                      {isOpen ? <ChevronUp /> : <ChevronDown />}
-                    </button>
-
-                    {isOpen && (
-                      <div className="px-4 pb-4 space-y-4">
-                        <p className="text-sm text-gray-500">
-                          Pedido registrado em: {formatarData(ag.dataCriacao)}
-                        </p>
-
-                        {ag.localEntrega && (
-                          <p className="text-sm text-gray-700">
-                            <strong>Local de entrega:</strong> {ag.localEntrega}
-                          </p>
-                        )}
-
-                        {ag.observacao && (
-                          <p className="text-sm text-gray-700">
-                            <strong>Observação:</strong> {ag.observacao}
-                          </p>
-                        )}
-
-                        <ul className="space-y-2">
-                          {ag.itens.map(i => (
-                            <li
-                              key={i.id}
-                              className="flex justify-between"
-                            >
-                              <span>
-                                {i.nome} × {i.qtd}
-                              </span>
-                              <span>R$ {(i.preco * i.qtd).toFixed(2)}</span>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <p className="mt-2 font-medium text-right">
-                          Total do Pedido: R$ {Number(ag.total).toFixed(2)}
-                        </p>
-
-                        <div className="flex gap-2 pt-2">
+                          Confirmar
+                        </button>
+                        <button
+                          onClick={() => handleCancelarPedido(ag)}
+                          className="bg-red-600 text-white px-3 py-1 rounded"
+                        >
+                          Cancelar
+                        </button>
+                        {ag.status === 'confirmado' && !ag.pago && (
                           <button
-                            onClick={() => confirmacaoPedido(ag)}
-                            disabled={ag.status !== 'pendente'}
-                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+                            onClick={() => handleRegistrarPagamento(ag)}
+                            className="bg-purple-600 text-white px-3 py-1 rounded"
                           >
-                            Confirmar Pedido
+                            Registrar Pag.
                           </button>
+                        )}
+                        {ag.status === 'confirmado' && (
                           <button
-                            onClick={() => handleCancelarPedido(ag)}
-                            className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                            onClick={() => finalizarPedido(ag)}
+                            className="bg-green-600 text-white px-3 py-1 rounded"
                           >
-                            Cancelar Pedido
+                            Finalizar
                           </button>
-                          {ag.status === 'confirmado' && !ag.pago && (
-                            <button
-                              onClick={() => handleRegistrarPagamento(ag)}
-                              className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
-                            >
-                              Registrar Pagamento
-                            </button>
-                          )}
-                          {ag.status === 'confirmado' && (
-                            <button
-                              onClick={() => finalizarPedido(ag)}
-                              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-                            >
-                              Finalizar Pedido
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                )
-              })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

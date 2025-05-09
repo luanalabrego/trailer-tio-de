@@ -7,11 +7,9 @@ import {
   getDocs,
   DocumentData,
   Timestamp,
-  updateDoc,
-  doc,
 } from 'firebase/firestore'
 import { Header } from '@/components/Header'
-import { Agendamento } from '@/types'
+import { Agendamento, PedidoItem } from '@/types'
 
 export default function HistoricoAgendamentosPage() {
   const [historico, setHistorico] = useState<Agendamento[]>([])
@@ -24,26 +22,38 @@ export default function HistoricoAgendamentosPage() {
     const snap = await getDocs(collection(db, 'agendamentos'))
     const todos = snap.docs.map(d => {
       const raw = d.data() as DocumentData
+      const dataCriacaoTs: Timestamp = 
+        (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
+
       return {
         id: d.id,
         nome: String(raw.nome),
+        whatsapp: String(raw.whatsapp),
         dataHora: raw.dataHora as Timestamp | string | Date,
-        dataCriacao:
-          (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp),
+        dataCriacao: dataCriacaoTs,
         itens: raw.itens as PedidoItem[],
         formaPagamento: String(raw.formaPagamento),
         total: Number(raw.total),
         pago: Boolean(raw.pago),
-        status: raw.status as 'pendente' | 'confirmado' | 'cancelado' | 'finalizado',
+        status: raw.status as
+          | 'pendente'
+          | 'confirmado'
+          | 'cancelado'
+          | 'finalizado',
         localEntrega: raw.localEntrega ? String(raw.localEntrega) : undefined,
         observacao: raw.observacao ? String(raw.observacao) : undefined,
       } as Agendamento
     })
-    // só cancelados e finalizados
-    setHistorico(todos.filter(a => a.status === 'cancelado' || a.status === 'finalizado'))
+
+    // mantém só cancelados e finalizados
+    setHistorico(
+      todos.filter(
+        a => a.status === 'cancelado' || a.status === 'finalizado'
+      )
+    )
   }
 
-  function formatarData(dt?: Timestamp | string | Date) {
+  function formatarData(dt?: Timestamp | string | Date): string {
     if (!dt) return 'Inválida'
     const date =
       dt instanceof Timestamp
@@ -51,12 +61,11 @@ export default function HistoricoAgendamentosPage() {
         : dt instanceof Date
         ? dt
         : new Date(dt)
-    return isNaN(date.getTime())
-      ? 'Inválida'
-      : date.toLocaleString('pt-BR', {
-          dateStyle: 'short',
-          timeStyle: 'short',
-        })
+    if (isNaN(date.getTime())) return 'Inválida'
+    return date.toLocaleString('pt-BR', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    })
   }
 
   return (
@@ -69,25 +78,47 @@ export default function HistoricoAgendamentosPage() {
         ) : (
           <ul className="space-y-4">
             {historico.map(ag => (
-              <li key={ag.id} className="bg-white p-4 rounded-xl shadow">
-                <p className="font-semibold">
-                  {ag.nome} — {formatarData(ag.dataHora)}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Status:{' '}
+              <li
+                key={ag.id}
+                className="bg-white p-4 rounded-xl shadow flex flex-col gap-2"
+              >
+                <div className="flex justify-between items-center">
+                  <p className="font-semibold">
+                    {ag.nome} — {formatarData(ag.dataHora)}
+                  </p>
                   <span
-                    className={
+                    className={`px-2 py-1 rounded-full text-xs ${
                       ag.status === 'finalizado'
-                        ? 'text-green-600'
-                        : 'text-red-600'
-                    }
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
                   >
                     {ag.status.toUpperCase()}
                   </span>
-                </p>
-                <p className="mt-2">
+                </div>
+                <p className="text-sm text-gray-600">
                   Total: <strong>R$ {ag.total.toFixed(2)}</strong>
                 </p>
+                <p className="text-sm">
+                  Itens:
+                </p>
+                <ul className="ml-4 list-disc text-sm">
+                  {ag.itens.map(i => (
+                    <li key={i.id}>
+                      {i.nome} × {i.qtd} = R$ {(i.preco * i.qtd).toFixed(2)}
+                    </li>
+                  ))}
+                </ul>
+                {ag.localEntrega && (
+                  <p className="text-sm">
+                    <strong>Entrega em:</strong> {ag.localEntrega}
+                  </p>
+                )}
+                {ag.observacao && (
+                  <p className="text-sm">
+                    <strong>Obs:</strong> {ag.observacao}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
