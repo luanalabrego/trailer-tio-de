@@ -66,7 +66,7 @@ export default function HistoricoVendasPage() {
   return (
     <>
       <Header />
-      <main className="pt-20 px-4 max-w-4xl mx-auto">
+      <div className="pt-20 px-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Histórico de Vendas</h1>
 
         {/* filtros de período */}
@@ -80,7 +80,7 @@ export default function HistoricoVendasPage() {
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className="w-full sm:w-48 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div className="flex flex-col">
@@ -92,7 +92,7 @@ export default function HistoricoVendasPage() {
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
-              className="w-full sm:w-48 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <button
@@ -141,7 +141,7 @@ export default function HistoricoVendasPage() {
             ))}
           </ul>
         )}
-      </main>
+      </div>
     </>
   )
 }
