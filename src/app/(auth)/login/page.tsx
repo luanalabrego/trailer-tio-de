@@ -51,15 +51,17 @@ export default function LoginPage() {
         className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm"
       >
         {/* Logo */}
-        <div className="flex justify-center mb-6">
-          <Image
-            src="/logo.png"
-            alt="Trailer do Tio Dé"
-            width={64}
-            height={64}
-            unoptimized
-          />
-        </div>
+<div className="flex justify-center mb-6">
+  <Image
+    src="/logo.png"
+    alt="Trailer do Tio Dé"
+    width={128}
+    height={128}
+    unoptimized
+    className="w-32 h-32 sm:w-40 sm:h-40"
+  />
+</div>
+
 
         <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
 

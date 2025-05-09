@@ -28,7 +28,7 @@ export function middleware(req: NextRequest) {
   }
 
   // bloqueia rotas de ADM para quem não for ADM
-  const adminOnly = ['/financeiro', '/caixa', '/estoque', '/clientes']
+  const adminOnly = ['/financeiro']
   if (adminOnly.some(p => pathname.startsWith(p)) && perfil !== 'ADM') {
     const loginUrl = req.nextUrl.clone()
     loginUrl.pathname = '/login'
