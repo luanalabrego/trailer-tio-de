@@ -127,12 +127,23 @@ export default function ProdutosPage() {
     if (p.controlaEstoque) return
     try {
       await salvarProduto(
-        { ...p, disponivel: !p.disponivel },
+        {
+          id: p.id,
+          nome: p.nome,
+          categoria: p.categoria,
+          preco: p.preco,
+          unidade: p.unidade,
+          controlaEstoque: p.controlaEstoque ?? false,
+          estoque: p.estoque,            // pode ser undefined
+          disponivel: !p.disponivel,     // invertendo aqui
+          imagemUrl: p.imagemUrl || '',  // garante string
+        },
         undefined
       )
       carregarProdutos()
     } catch (err) {
-      console.error('❌ erro toggling disponivel', err)
+      console.error('❌ erro ao salvar toggle disponivel', err)
+      alert('Falha ao atualizar disponibilidade. Veja o console.')
     }
   }
 
