@@ -172,9 +172,7 @@ export default function AgendamentosPage() {
               const isOpen = expanded.has(ag.id)
               const tipo = ag.localEntrega ? 'Entrega' : 'Retirada'
               const borderClass =
-                ag.status === 'pendente'
-                  ? 'border-yellow-400'
-                  : 'border-green-400'
+                ag.status === 'pendente' ? 'border-yellow-400' : 'border-green-400'
 
               return (
                 <div
@@ -188,9 +186,7 @@ export default function AgendamentosPage() {
                     <div className="flex items-center gap-2">
                       <span
                         className={`px-2 py-1 rounded-full text-xs ${
-                          ag.pago
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                          ag.pago ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}
                       >
                         {ag.pago ? 'Pago' : 'Pendente'}
@@ -213,12 +209,8 @@ export default function AgendamentosPage() {
                       <p className="text-sm text-gray-500">
                         Registrado em: {formatarData(ag.dataCriacao)}
                       </p>
-                      {ag.localEntrega && (
-                        <p><strong>Local:</strong> {ag.localEntrega}</p>
-                      )}
-                      {ag.observacao && (
-                        <p><strong>Obs:</strong> {ag.observacao}</p>
-                      )}
+                      {ag.localEntrega && <p><strong>Local:</strong> {ag.localEntrega}</p>}
+                      {ag.observacao && <p><strong>Obs:</strong> {ag.observacao}</p>}
 
                       <ul className="space-y-2">
                         {ag.itens.map(i => (
@@ -234,13 +226,14 @@ export default function AgendamentosPage() {
                       </p>
 
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => confirmacaoPedido(ag)}
-                          disabled={ag.status !== 'pendente'}
-                          className="bg-blue-600 text-white px-3 py-1 rounded disabled:opacity-50"
-                        >
-                          Confirmar
-                        </button>
+                        {ag.status === 'pendente' && (
+                          <button
+                            onClick={() => confirmacaoPedido(ag)}
+                            className="bg-blue-600 text-white px-3 py-1 rounded"
+                          >
+                            Confirmar
+                          </button>
+                        )}
                         <button
                           onClick={() => handleCancelarPedido(ag)}
                           className="bg-red-600 text-white px-3 py-1 rounded"
