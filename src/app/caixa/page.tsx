@@ -274,8 +274,9 @@ export default function CaixaPage() {
                       className="bg-gray-50 p-3 rounded flex flex-col gap-2"
                     >
                       <div className="flex justify-between">
-                        <span className="font-medium">{item.nome}</span>
-                        <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
+                      <span className="font-medium">
+                       {item.nome} {item.unidade ? `(${item.unidade})` : ''}
+                      <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
