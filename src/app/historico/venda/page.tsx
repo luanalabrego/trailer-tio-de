@@ -123,34 +123,37 @@ export default function HistoricoVendasPage() {
                 key={v.id}
                 className="bg-white p-4 rounded-xl shadow flex flex-col gap-2"
               >
+                {/* Cabeçalho com número e data do pedido */}
                 <div className="flex justify-between items-center">
-                  {/* Exibe orderNumber se existir, caso contrário exibe ID */}
-                  <span className="font-semibold">
-                    Pedido Nº:{' '}
-                    {v.orderNumber !== undefined ? v.orderNumber : v.id}
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    {formatarData(v.criadoEm)}
-                  </span>
+                  <div>
+                    <span className="font-semibold">
+                      Pedido Nº: {v.orderNumber ?? v.id}
+                    </span>
+                    <p className="text-sm text-gray-600">
+                      Data do pedido:{' '}
+                      <strong>{formatarData(v.criadoEm)}</strong>
+                    </p>
+                  </div>
                 </div>
 
+                {/* Itens da venda */}
                 <ul className="ml-4 list-disc text-sm">
                   {v.itens.map((i: PedidoItem) => (
                     <li key={i.id}>
-                      {i.nome} × {i.qtd} = R${' '}
-                      {(i.preco * i.qtd).toFixed(2)}
+                      {i.nome} × {i.qtd} = R$ {(i.preco * i.qtd).toFixed(2)}
                     </li>
                   ))}
                 </ul>
 
+                {/* Total e status */}
                 <p className="text-sm text-gray-600">
                   Total: <strong>R$ {v.total.toFixed(2)}</strong>
                 </p>
-
                 <p className="text-sm text-gray-600">
                   Status: <strong>{v.pago ? 'Pago' : 'Pendente'}</strong>
                 </p>
 
+                {/* Forma de pagamento, se houver */}
                 {v.pago && v.formaPagamento && (
                   <p className="text-sm text-gray-600">
                     Forma de pagamento:{' '}
