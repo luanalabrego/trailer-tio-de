@@ -5,7 +5,7 @@ export interface Produto {
   nome: string
   preco: number
   // agora opcional e restringido às unidades controladas
-  unidade?: 'ml' | 'kg' | 'porcao' | 'un'
+  unidade: string
   categoria: string
   // marca se esse produto deve ser controlado no estoque
   controlaEstoque?: boolean
