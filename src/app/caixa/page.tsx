@@ -270,14 +270,14 @@ export default function CaixaPage() {
                 <ul className="space-y-2">
                   {itens.map(item => (
                     <li
-                      key={item.id}
-                      className="bg-gray-50 p-3 rounded flex flex-col gap-2"
-                    >
-                      <div className="flex justify-between">
+                    key={item.id} className="bg-gray-50 p-3 rounded flex flex-col gap-2">
+                    <div className="flex justify-between">
+                      {/* aqui fechamos o span do nome antes de abrir o do preço */}
                       <span className="font-medium">
-                       {item.nome} {item.unidade ? `(${item.unidade})` : ''}
+                        {item.nome} {item.unidade && `(${item.unidade})`}
+                      </span>
                       <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
-                      </div>
+                    </div>
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
                           <button
