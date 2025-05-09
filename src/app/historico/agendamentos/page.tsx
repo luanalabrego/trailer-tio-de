@@ -62,25 +62,36 @@ export default function HistoricoAgendamentosPage() {
   const filtered = useMemo(() => {
     return historico
       .filter(ag => {
-        const fin = ag.finishedAt.toDate()
+        const fin =
+          ag.finishedAt instanceof Timestamp
+            ? ag.finishedAt.toDate()
+            : new Date(ag.finishedAt)
         if (startDate) {
-          const start = new Date(startDate)
+          const [y, m, d] = startDate.split('-').map(Number)
+          const start = new Date(y, m - 1, d, 0, 0, 0, 0)
           if (fin < start) return false
         }
         if (endDate) {
-          const end = new Date(endDate)
-          end.setHours(23, 59, 59, 999)
+          const [y, m, d] = endDate.split('-').map(Number)
+          const end = new Date(y, m - 1, d, 23, 59, 59, 999)
           if (fin > end) return false
         }
         return true
       })
-      .sort((a, b) => b.finishedAt.toMillis() - a.finishedAt.toMillis())
+      .sort(
+        (a, b) =>
+          b.finishedAt.toMillis() - a.finishedAt.toMillis()
+      )
   }, [historico, startDate, endDate])
 
   function formatarData(dt?: Timestamp | string | Date): string {
     if (!dt) return 'Inválida'
     const date =
-      dt instanceof Timestamp ? dt.toDate() : dt instanceof Date ? dt : new Date(dt)
+      dt instanceof Timestamp
+        ? dt.toDate()
+        : dt instanceof Date
+        ? dt
+        : new Date(dt)
     return date.toLocaleString('pt-BR', {
       dateStyle: 'short',
       timeStyle: 'short',
@@ -94,10 +105,13 @@ export default function HistoricoAgendamentosPage() {
       <main className="pt-20 px-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Histórico de Agendamentos</h1>
 
-        {/* filtros de período */}
-        <div className="bg-white p-4 rounded-xl shadow mb-6 flex flex-wrap gap-4 items-end">
-          <div className="flex flex-col">
-            <label htmlFor="startDate" className="text-sm font-medium text-gray-700 mb-1">
+        {/* filtros de período lado a lado */}
+        <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4 items-end overflow-x-auto">
+          <div className="flex-1 min-w-[140px]">
+            <label
+              htmlFor="startDate"
+              className="text-sm font-medium text-gray-700 mb-1 block"
+            >
               Data início
             </label>
             <input
@@ -105,11 +119,14 @@ export default function HistoricoAgendamentosPage() {
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <div className="flex flex-col">
-            <label htmlFor="endDate" className="text-sm font-medium text-gray-700 mb-1">
+          <div className="flex-1 min-w-[140px]">
+            <label
+              htmlFor="endDate"
+              className="text-sm font-medium text-gray-700 mb-1 block"
+            >
               Data fim
             </label>
             <input
@@ -117,19 +134,15 @@ export default function HistoricoAgendamentosPage() {
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
-              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <button
-            onClick={() => { setStartDate(''); setEndDate('') }}
-            className="h-fit px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            Limpar filtros
-          </button>
         </div>
 
         {filtered.length === 0 ? (
-          <p className="text-gray-600">Nenhum agendamento no período selecionado.</p>
+          <p className="text-gray-600">
+            Nenhum agendamento no período selecionado.
+          </p>
         ) : (
           <ul className="space-y-4">
             {filtered.map(ag => (
@@ -153,7 +166,9 @@ export default function HistoricoAgendamentosPage() {
                 </div>
 
                 <p className="text-sm text-gray-600">
-                  {ag.status === 'finalizado' ? 'Finalizado em:' : 'Cancelado em:'}{' '}
+                  {ag.status === 'finalizado'
+                    ? 'Finalizado em:'
+                    : 'Cancelado em:'}{' '}
                   <strong>{formatarData(ag.finishedAt)}</strong>
                 </p>
 
