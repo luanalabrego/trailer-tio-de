@@ -30,15 +30,14 @@ export default function ProdutosPage() {
   const [categoria, setCategoria] = useState('')
   const [preco, setPreco] = useState('')
   const [unidade, setUnidade] = useState('')
-  const [mlVolume, setMlVolume] = useState('')      // para produtos em ml
-  const [controlaEstoque, setControlaEstoque] = useState(false) // novo campo
-  const [disponivel, setDisponivel] = useState(true) // novo campo
+  const [mlVolume, setMlVolume] = useState('')
+  const [controlaEstoque, setControlaEstoque] = useState(false)
+  const [disponivel, setDisponivel] = useState(true)
   const [imagem, setImagem] = useState<File | null>(null)
 
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
 
-  // busca e filtro
   const [busca, setBusca] = useState('')
   const [filtroCat, setFiltroCat] = useState<string | null>(null)
 
@@ -48,8 +47,7 @@ export default function ProdutosPage() {
   }, [])
 
   async function carregarProdutos() {
-    const todos = await listarProdutos()
-    setProdutos(todos)
+    setProdutos(await listarProdutos())
   }
 
   async function carregarCategorias() {
@@ -126,19 +124,15 @@ export default function ProdutosPage() {
   }
 
   const handleToggleDisponivel = async (p: Produto) => {
-    // só para itens sem controle de estoque
     if (p.controlaEstoque) return
     try {
       await salvarProduto(
-        {
-          ...p,
-          disponivel: !p.disponivel,
-        },
+        { ...p, disponivel: !p.disponivel },
         undefined
       )
       carregarProdutos()
-    } catch (erro) {
-      console.error('❌ erro toggling disponivel', erro)
+    } catch (err) {
+      console.error('❌ erro toggling disponivel', err)
     }
   }
 
@@ -146,8 +140,8 @@ export default function ProdutosPage() {
     return produtos.filter(p => {
       const matchBusca = p.nome.toLowerCase().includes(busca.toLowerCase())
       const matchCat = filtroCat ? p.categoria === filtroCat : true
-      const isVisible = p.controlaEstoque || (p.disponivel ?? true)
-      return matchBusca && matchCat && isVisible
+      const visivel = p.controlaEstoque || p.disponivel
+      return matchBusca && matchCat && visivel
     })
   }, [produtos, busca, filtroCat])
 
@@ -161,15 +155,13 @@ export default function ProdutosPage() {
     <>
       <Header />
       <div className="pt-20 px-4 max-w-6xl mx-auto">
-
-        {/* título e ações */}
+        {/* cabeçalho */}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">Produtos</h1>
           <div className="flex gap-2">
             <button
               onClick={() => setModoLista(!modoLista)}
               className="bg-gray-100 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-200"
-              title="Alternar lista/grade"
             >
               {modoLista ? <LayoutGrid size={18} /> : <Table size={18} />}
             </button>
@@ -177,16 +169,18 @@ export default function ProdutosPage() {
               onClick={abrirModalNovo}
               className="flex items-center gap-2 bg-white border border-indigo-600 text-indigo-600 px-4 py-2 rounded-md hover:bg-indigo-50 transition"
             >
-              <Plus size={18} />
-              Novo Produto
+              <Plus size={18} /> Novo Produto
             </button>
           </div>
         </div>
 
-        {/* busca + filtro */}
+        {/* busca e filtro */}
         <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600" size={18} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600"
+              size={18}
+            />
             <input
               type="text"
               placeholder="Buscar por nome..."
@@ -209,10 +203,12 @@ export default function ProdutosPage() {
           </select>
         </div>
 
-        {/* agrupado por categoria */}
+        {/* lista por categoria */}
         {categoriasVisiveis.map(cat => (
           <section key={cat} className="mb-8">
-            <h2 className="text-xl font-semibold text-indigo-600 mb-4">{cat}</h2>
+            <h2 className="text-xl font-semibold text-indigo-600 mb-4">
+              {cat}
+            </h2>
 
             {modoLista ? (
               <table className="w-full text-left border rounded-xl overflow-hidden shadow-md mb-4">
@@ -231,22 +227,30 @@ export default function ProdutosPage() {
                     .filter(p => p.categoria === cat)
                     .map(p => (
                       <tr key={p.id} className="border-t">
-                        <td className="p-3 font-medium text-gray-800">{p.nome}</td>
+                        <td className="p-3 font-medium text-gray-800">
+                          {p.nome}
+                        </td>
                         <td className="p-3">{p.unidade}</td>
-                        <td className="p-3">{p.controlaEstoque ? '✔️' : '–'}</td>
+                        <td className="p-3">
+                          {p.controlaEstoque ? '✔️' : '–'}
+                        </td>
                         <td className="p-3">
                           {!p.controlaEstoque && (
                             <button
                               onClick={() => handleToggleDisponivel(p)}
                               className={`px-2 py-1 rounded ${
-                                p.disponivel ? 'bg-green-200' : 'bg-gray-200'
+                                p.disponivel
+                                  ? 'bg-green-200'
+                                  : 'bg-gray-200'
                               }`}
                             >
                               {p.disponivel ? 'Sim' : 'Não'}
                             </button>
                           )}
                         </td>
-                        <td className="p-3">R$ {p.preco.toFixed(2)}</td>
+                        <td className="p-3">
+                          R$ {p.preco.toFixed(2)}
+                        </td>
                         <td className="p-3 text-right flex justify-end gap-2">
                           <button
                             onClick={() => abrirModalEdicao(p)}
@@ -277,9 +281,13 @@ export default function ProdutosPage() {
                       <div className="absolute top-2 right-2 flex gap-2">
                         {!produto.controlaEstoque && (
                           <button
-                            onClick={() => handleToggleDisponivel(produto)}
-                            className={`w-6 h-6 rounded-full ${
-                              produto.disponivel ? 'bg-green-500' : 'bg-gray-400'
+                            onClick={() =>
+                              handleToggleDisponivel(produto)
+                            }
+                            className={`w-4 h-4 rounded-full ${
+                              produto.disponivel
+                                ? 'bg-green-500'
+                                : 'bg-gray-400'
                             }`}
                           />
                         )}
@@ -305,7 +313,9 @@ export default function ProdutosPage() {
                           className="w-full h-32 object-cover mb-2 rounded"
                         />
                       )}
-                      <h2 className="font-bold text-lg text-gray-800">{produto.nome}</h2>
+                      <h2 className="font-bold text-lg text-gray-800">
+                        {produto.nome}
+                      </h2>
                       <p className="text-sm text-gray-800 mt-2">
                         {produto.unidade} — R$ {produto.preco.toFixed(2)}
                       </p>
@@ -321,7 +331,7 @@ export default function ProdutosPage() {
           </section>
         ))}
 
-        {/* Modal de cadastro/edição */}
+        {/* modal cadastro/edição */}
         {mostrarModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
             <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl relative">
@@ -337,7 +347,6 @@ export default function ProdutosPage() {
                   className="w-full p-2 border border-gray-200 rounded-md"
                   required
                 />
-
                 <select
                   value={categoria}
                   onChange={e => setCategoria(e.target.value)}
@@ -351,7 +360,6 @@ export default function ProdutosPage() {
                     </option>
                   ))}
                 </select>
-
                 <input
                   type="number"
                   placeholder="Preço"
@@ -360,7 +368,6 @@ export default function ProdutosPage() {
                   className="w-full p-2 border border-gray-200 rounded-md"
                   required
                 />
-
                 <select
                   value={unidade}
                   onChange={e => setUnidade(e.target.value)}
@@ -373,7 +380,6 @@ export default function ProdutosPage() {
                   <option value="kg">Kg</option>
                   <option value="ml">ml</option>
                 </select>
-
                 {unidade === 'ml' && (
                   <input
                     type="number"
@@ -384,8 +390,6 @@ export default function ProdutosPage() {
                     required
                   />
                 )}
-
-                {/* checkbox para controlar estoque */}
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -393,25 +397,28 @@ export default function ProdutosPage() {
                     onChange={e => setControlaEstoque(e.target.checked)}
                     className="form-checkbox h-4 w-4 text-indigo-600"
                   />
-                  <span className="text-sm text-gray-700">Controlar estoque</span>
+                  <span className="text-sm text-gray-700">
+                    Controlar estoque
+                  </span>
                 </label>
-
-                {/* só aparece quando NÃO controla estoque */}
                 {!controlaEstoque && (
                   <label className="flex items-center gap-2">
-                    <span className="text-sm text-gray-700">Disponível</span>
+                    <span className="text-sm text-gray-700">
+                      Disponível
+                    </span>
                     <button
                       type="button"
                       onClick={() => setDisponivel(v => !v)}
                       className={`px-2 py-1 rounded ${
-                        disponivel ? 'bg-green-200' : 'bg-gray-200'
+                        disponivel
+                          ? 'bg-green-200'
+                          : 'bg-gray-200'
                       }`}
                     >
                       {disponivel ? 'Sim' : 'Não'}
                     </button>
                   </label>
                 )}
-
                 <div>
                   <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200">
                     <Upload size={18} />
@@ -423,10 +430,11 @@ export default function ProdutosPage() {
                     />
                   </label>
                   {imagem && (
-                    <p className="text-sm text-gray-600 mt-1">Imagem: {imagem.name}</p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Imagem: {imagem.name}
+                    </p>
                   )}
                 </div>
-
                 <div className="text-right">
                   <button
                     type="submit"
