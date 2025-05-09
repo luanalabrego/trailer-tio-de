@@ -20,21 +20,18 @@ import { Custo } from '@/types'
 import { Plus, Pencil, Trash2, X as Close, Search as SearchIcon } from 'lucide-react'
 
 export default function CustosPage() {
-  // para desabilitar o botão enquanto salva
-  const [saving, setSaving] = useState(false)
-
-  // estado do modal
+  const [custos, setCustos] = useState<Custo[]>([])
   const [showModal, setShowModal] = useState(false)
   const [tipo, setTipo] = useState('Mercado')
   const [descricaoLivre, setDescricaoLivre] = useState('')
   const [valor, setValor] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
-  // dados carregados
-  const [custos, setCustos] = useState<Custo[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [startDate, setStartDate] = useState<string>(() => {
     const now = new Date()
+    // primeiro dia do mês (local)
     return new Date(now.getFullYear(), now.getMonth(), 1)
       .toISOString()
       .slice(0, 10)
@@ -43,45 +40,47 @@ export default function CustosPage() {
     new Date().toISOString().slice(0, 10)
   )
 
-  // carrega em tempo real
+  // realtime listener
   useEffect(() => {
     const q = query(collection(db, 'custos'), orderBy('data', 'desc'))
     const unsub = onSnapshot(
       q,
-      (snapshot) => {
-        const lista = snapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+      snap => {
+        const lista = snap.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
           const data = docSnap.data()
           return {
             id: docSnap.id,
-            descricao: String(data.descricao),
+            descricao: data.descricao as string,
             valor: Number(data.valor),
             data: data.data as Timestamp,
           }
         })
-        console.log('✏️ custos atualizados:', lista)
         setCustos(lista)
       },
-      (error) => {
-        console.error('❌ erro ao ouvir coleção custos:', error)
-        alert('Falha ao receber atualizações de custos. Veja o console.')
+      err => {
+        console.error('Erro no realtime de custos:', err)
+        alert('Não foi possível sincronizar os custos.')
       }
     )
     return () => unsub()
   }, [])
 
-  function formatarData(data: Timestamp) {
-    return data.toDate().toLocaleDateString('pt-BR')
+  function formatarData(ts: Timestamp) {
+    return ts.toDate().toLocaleDateString('pt-BR')
   }
 
   const custosFiltrados = useMemo(() => {
-    const inicio = new Date(startDate)
-    const fim = new Date(endDate)
-    fim.setHours(23, 59, 59)
-    return custos.filter((c) => {
-      const d = c.data.toDate()
+    // parsing local das datas
+    const [y1, m1, d1] = startDate.split('-').map(Number)
+    const inicio = new Date(y1, m1 - 1, d1, 0, 0, 0, 0)
+    const [y2, m2, d2] = endDate.split('-').map(Number)
+    const fim = new Date(y2, m2 - 1, d2, 23, 59, 59, 999)
+
+    return custos.filter(c => {
+      const dt = c.data.toDate()
       return (
-        d >= inicio &&
-        d <= fim &&
+        dt >= inicio &&
+        dt <= fim &&
         c.descricao.toLowerCase().includes(searchTerm.toLowerCase())
       )
     })
@@ -105,20 +104,12 @@ export default function CustosPage() {
   async function handleSalvar(e: React.FormEvent) {
     e.preventDefault()
     const desc = tipo === 'Outro' ? descricaoLivre.trim() : tipo
-    if (!desc) {
-      alert('Por favor, informe a descrição do custo.')
-      return
-    }
-    if (!valor) {
-      alert('Por favor, informe o valor do custo.')
-      return
-    }
+    if (!desc) return alert('Informe a descrição.')
+    if (!valor) return alert('Informe o valor.')
 
     const valorNum = parseFloat(valor.replace(',', '.'))
-    if (isNaN(valorNum) || valorNum <= 0) {
-      alert('Informe um valor numérico válido maior que zero.')
-      return
-    }
+    if (isNaN(valorNum) || valorNum <= 0)
+      return alert('Valor inválido.')
 
     setSaving(true)
     try {
@@ -137,25 +128,23 @@ export default function CustosPage() {
         })
         alert('Custo registrado com sucesso!')
       }
-
-      // garantir que a lista já veio atualizada antes de fechar
-      setSaving(false)
       setShowModal(false)
-    } catch (error) {
-      console.error('Erro ao salvar custo:', error)
-      alert('Falha ao salvar o custo. Veja o console.')
+    } catch (err) {
+      console.error('Erro ao salvar custo:', err)
+      alert('Falha ao salvar custo.')
+    } finally {
       setSaving(false)
     }
   }
 
   async function handleExcluir(id: string) {
-    if (!confirm('Deseja realmente excluir este custo?')) return
+    if (!confirm('Excluir este custo?')) return
     try {
       await deleteDoc(doc(db, 'custos', id))
-      alert('Custo excluído.')
+      alert('Custo excluído!')
     } catch (err) {
       console.error('Erro ao excluir custo:', err)
-      alert('Falha ao excluir o custo. Veja o console.')
+      alert('Falha ao excluir custo.')
     }
   }
 
@@ -164,52 +153,48 @@ export default function CustosPage() {
       <Header />
       <div className="pt-20 px-6 xl:px-0 max-w-4xl mx-auto">
 
-        {/* título e botão */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-semibold text-gray-900">Custos</h1>
           <button
             onClick={() => abrirModal()}
-            className="flex items-center gap-2 bg-white border border-indigo-600 text-indigo-600 px-5 py-3 rounded-xl hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            className="flex items-center gap-2 bg-white border border-indigo-600 text-indigo-600 px-5 py-3 rounded-xl hover:bg-indigo-50 transition"
           >
-            <Plus size={20} />
-            Registrar Custo
+            <Plus size={20} /> Registrar Custo
           </button>
         </div>
 
-        {/* busca e filtro de datas */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <SearchIcon
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-600"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-600"
               size={20}
             />
             <input
               type="text"
               placeholder="Buscar custos..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition"
             />
           </div>
           <div className="flex gap-4">
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+              onChange={e => setStartDate(e.target.value)}
+              className="p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition"
             />
             <input
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+              onChange={e => setEndDate(e.target.value)}
+              className="p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition"
             />
           </div>
         </div>
 
-        {/* lista */}
         <ul className="space-y-4">
-          {custosFiltrados.map((c) => (
+          {custosFiltrados.map(c => (
             <li
               key={c.id}
               className="bg-white p-5 rounded-2xl shadow flex justify-between items-center"
@@ -222,18 +207,10 @@ export default function CustosPage() {
                 <p className="text-xl font-semibold text-red-600">
                   R$ {c.valor.toFixed(2)}
                 </p>
-                <button
-                  onClick={() => abrirModal(c)}
-                  className="text-indigo-600 hover:text-indigo-800 transition"
-                  title="Editar"
-                >
+                <button onClick={() => abrirModal(c)} className="text-indigo-600 hover:text-indigo-800">
                   <Pencil size={20} />
                 </button>
-                <button
-                  onClick={() => handleExcluir(c.id)}
-                  className="text-red-500 hover:text-red-700 transition"
-                  title="Excluir"
-                >
+                <button onClick={() => handleExcluir(c.id)} className="text-red-500 hover:text-red-700">
                   <Trash2 size={20} />
                 </button>
               </div>
@@ -242,7 +219,6 @@ export default function CustosPage() {
         </ul>
       </div>
 
-      {/* modal */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-90 z-50">
           <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
@@ -251,7 +227,7 @@ export default function CustosPage() {
                 {editingId ? 'Editar Custo' : 'Novo Custo'}
               </h2>
               <button onClick={() => setShowModal(false)}>
-                <Close size={24} className="text-gray-600 hover:text-gray-800 transition" />
+                <Close size={24} className="text-gray-600 hover:text-gray-800" />
               </button>
             </div>
             <form onSubmit={handleSalvar} className="space-y-5">
@@ -259,8 +235,8 @@ export default function CustosPage() {
                 <label className="block mb-1 text-gray-700">Tipo de Custo</label>
                 <select
                   value={tipo}
-                  onChange={(e) => setTipo(e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                  onChange={e => setTipo(e.target.value)}
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition"
                 >
                   <option>Mercado</option>
                   <option>Gás</option>
@@ -269,44 +245,41 @@ export default function CustosPage() {
                   <option>Outro</option>
                 </select>
               </div>
-
               {tipo === 'Outro' && (
                 <div>
                   <label className="block mb-1 text-gray-700">Descrição</label>
                   <input
                     type="text"
                     value={descricaoLivre}
-                    onChange={(e) => setDescricaoLivre(e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                    onChange={e => setDescricaoLivre(e.target.value)}
+                    className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition"
                     required
                   />
                 </div>
               )}
-
               <div>
                 <label className="block mb-1 text-gray-700">Valor (R$)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={valor}
-                  onChange={(e) => setValor(e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                  onChange={e => setValor(e.target.value)}
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition"
                   required
                 />
               </div>
-
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded-xl hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition flex items-center gap-1"
+                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded-xl hover:bg-gray-400 transition flex items-center gap-1"
                 >
                   <Close size={16} /> Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition flex items-center gap-1 disabled:opacity-50"
+                  className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition flex items-center gap-1 disabled:opacity-50"
                 >
                   <Plus size={16} /> {saving ? 'Salvando...' : 'Salvar'}
                 </button>
