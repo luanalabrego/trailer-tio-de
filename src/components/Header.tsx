@@ -20,8 +20,10 @@ export default function Header() {
 
   if (!perfil) return null
 
-  const groupedLinks = {
+  const groupedLinks: Record<string, { name: string; href: string }[]> = {
     Dashboard: [{ name: 'Dashboard', href: '/dashboard' }],
+    Caixa: [{ name: 'Caixa', href: '/caixa' }],
+    Agendamentos: [{ name: 'Agendamentos', href: '/agendamentos' }],
     Produtos: [
       { name: 'Cadastrar Produtos', href: '/produtos' },
       { name: 'Categorias', href: '/categorias' },
@@ -32,9 +34,7 @@ export default function Header() {
       { name: 'Pagamentos Pendentes', href: '/pendencias' },
       { name: 'Custos', href: '/custos' },
     ],
-    Caixa: [{ name: 'Caixa', href: '/caixa' }],
     Clientes: perfil === 'ADM' ? [{ name: 'Clientes', href: '/clientes' }] : [],
-    Agendamentos: [{ name: 'Agendamentos', href: '/agendamentos' }],
     Histórico: [
       { name: 'Agendamentos', href: '/historico/agendamentos' },
       { name: 'Vendas', href: '/historico/venda' },
@@ -42,6 +42,19 @@ export default function Header() {
     ],
     Cardápio: [{ name: 'Cardápio', href: '/cardapio' }],
   }
+
+  // Define a ordem exata dos grupos no menu
+  const menuOrder = [
+    'Dashboard',
+    'Caixa',
+    'Agendamentos',
+    'Produtos',
+    'Financeiro',
+    'Estoque',
+    'Clientes',
+    'Histórico',
+    'Cardápio',
+  ]
 
   const handleLogout = () => {
     localStorage.removeItem('perfil')
@@ -68,20 +81,28 @@ export default function Header() {
 
         {/* Desktop */}
         <nav className="hidden md:flex space-x-6">
-          {Object.entries(groupedLinks).map(([grupo, links]) =>
-            links.length === 1 ? (
-              <Link
-                key={links[0].href}
-                href={links[0].href}
-                className={`text-sm font-medium ${
-                  pathname === links[0].href
-                    ? 'text-indigo-600 underline'
-                    : 'text-gray-700 hover:text-indigo-600'
-                }`}
-              >
-                {grupo}
-              </Link>
-            ) : (
+          {menuOrder.map(grupo => {
+            const links = groupedLinks[grupo] || []
+            if (links.length === 0) return null
+
+            if (links.length === 1) {
+              const link = links[0]
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`text-sm font-medium ${
+                    pathname === link.href
+                      ? 'text-indigo-600 underline'
+                      : 'text-gray-700 hover:text-indigo-600'
+                  }`}
+                >
+                  {grupo}
+                </Link>
+              )
+            }
+
+            return (
               <div key={grupo} className="relative">
                 <button
                   onClick={() =>
@@ -118,7 +139,7 @@ export default function Header() {
                 )}
               </div>
             )
-          )}
+          })}
           <button
             onClick={handleLogout}
             className="text-sm text-red-500 hover:underline"
@@ -138,42 +159,51 @@ export default function Header() {
       {/* Mobile dropdown */}
       {menuAberto && (
         <div className="md:hidden bg-white shadow-lg px-4 pb-4">
-          {Object.entries(groupedLinks).map(([grupo, links]) => (
-            <div key={grupo} className="mb-2">
-              {links.length === 1 ? (
-                <Link
-                  href={links[0].href}
-                  onClick={() => setMenuAberto(false)}
-                  className={`block py-2 text-sm ${
-                    pathname === links[0].href ? 'text-indigo-600' : 'text-gray-700'
-                  }`}
-                >
-                  {grupo}
-                </Link>
-              ) : (
-                <details>
-                  <summary className="cursor-pointer py-2 text-sm font-semibold">
+          {menuOrder.map(grupo => {
+            const links = groupedLinks[grupo] || []
+            if (links.length === 0) return null
+
+            return (
+              <div key={grupo} className="mb-2">
+                {links.length === 1 ? (
+                  <Link
+                    href={links[0].href}
+                    onClick={() => setMenuAberto(false)}
+                    className={`block py-2 text-sm ${
+                      pathname === links[0].href
+                        ? 'text-indigo-600'
+                        : 'text-gray-700'
+                    }`}
+                  >
                     {grupo}
-                  </summary>
-                  <ul className="pl-4">
-                    {links.map(link => (
-                      <li key={link.href}>
-                        <Link
-                          href={link.href}
-                          onClick={() => setMenuAberto(false)}
-                          className={`block py-1 text-sm ${
-                            pathname === link.href ? 'text-indigo-600' : 'text-gray-700'
-                          }`}
-                        >
-                          {link.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-            </div>
-          ))}
+                  </Link>
+                ) : (
+                  <details>
+                    <summary className="cursor-pointer py-2 text-sm font-semibold">
+                      {grupo}
+                    </summary>
+                    <ul className="pl-4">
+                      {links.map(link => (
+                        <li key={link.href}>
+                          <Link
+                            href={link.href}
+                            onClick={() => setMenuAberto(false)}
+                            className={`block py-1 text-sm ${
+                              pathname === link.href
+                                ? 'text-indigo-600'
+                                : 'text-gray-700'
+                            }`}
+                          >
+                            {link.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            )
+          })}
           <button
             onClick={handleLogout}
             className="block w-full text-left py-2 text-sm text-red-500"
