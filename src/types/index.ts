@@ -4,12 +4,15 @@ export interface Produto {
   id: string
   nome: string
   preco: number
-  // agora opcional e restringido às unidades controladas
-  unidade: string
+  // restringe só às unidades válidas
+  unidade: 'ml' | 'kg' | 'porcao' | 'un'
   categoria: string
   // marca se esse produto deve ser controlado no estoque
-  controlaEstoque?: boolean
+  controlaEstoque: boolean
+  // só usado se controlaEstoque for true
   estoque?: number
+  // novo flag para itens sem controle de estoque
+  disponivel: boolean
   imagemUrl?: string
   criadoEm?: Timestamp | Date
   atualizadoEm?: Timestamp | Date

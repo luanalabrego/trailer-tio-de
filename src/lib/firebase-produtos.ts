@@ -8,7 +8,7 @@ import {
   doc,
   QueryDocumentSnapshot,
   DocumentData,
-  Timestamp,            // ← adicionado aqui
+  Timestamp,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { Produto } from '@/types'
@@ -29,10 +29,10 @@ export async function listarProdutos(): Promise<Produto[]> {
         nome: data.nome as string,
         categoria: data.categoria as string,
         preco: data.preco as number,
-        // já mapeia como string — o componente que consome deve converter/validar
         unidade: data.unidade as 'ml' | 'kg' | 'porcao' | 'un',
         controlaEstoque: Boolean(data.controlaEstoque),
         estoque: data.estoque as number | undefined,
+        disponivel: (data.disponivel as boolean) ?? true,
         imagemUrl: (data.imagemUrl as string) || '',
         criadoEm: data.criadoEm as Timestamp | undefined,
         atualizadoEm: data.atualizadoEm as Timestamp | undefined,
@@ -62,15 +62,17 @@ export async function salvarProduto(
       imagemUrl = await getDownloadURL(fileRef)
     }
 
-    // 2) Prepara o payload, incluindo as novas props
+    // 2) Prepara o payload, incluindo estoque e disponivel
     const dados: Partial<Produto> = {
       nome: p.nome,
       categoria: p.categoria,
       preco: p.preco,
       unidade: p.unidade,              // 'ml' | 'kg' | 'porcao' | 'un'
       controlaEstoque: p.controlaEstoque ?? false,
+      estoque: p.estoque,
+      disponivel: p.disponivel ?? true,
       imagemUrl,
-      atualizadoEm: Timestamp.now(),   // ← agora válido
+      atualizadoEm: Timestamp.now(),
     }
 
     // 3) Update ou create
@@ -81,7 +83,7 @@ export async function salvarProduto(
       // se for novo produto, inclui criadoEm
       await addDoc(colecao, {
         ...dados,
-        criadoEm: Timestamp.now(),     // ← idem
+        criadoEm: Timestamp.now(),
       })
     }
   } catch (err) {
