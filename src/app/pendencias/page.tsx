@@ -73,7 +73,7 @@ export default function PagamentosPendentesPage() {
           pago: Boolean(data.pago),
           data: data.criadoEm as Timestamp,
           formaPagamento: String(data.formaPagamento),
-          cancelado: Boolean(data.cancelado),
+          cancelado: data.status === 'cancelado',
         }
       })
       .filter(v => !v.pago && !v.cancelado)
