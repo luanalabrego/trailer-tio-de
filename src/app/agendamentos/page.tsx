@@ -5,7 +5,6 @@ import { db } from '@/firebase/firebase'
 import {
   collection,
   getDocs,
-  deleteDoc,
   updateDoc,
   doc,
   Timestamp,
@@ -34,9 +33,7 @@ export default function AgendamentosPage() {
     setClientes(listaClientes)
 
     const dados = snap.docs.map(d => {
-      // pega os dados crus como DocumentData (sem usar any)
       const raw = d.data() as DocumentData
-      // Timestamp pode vir em 'dataCriacao' ou 'criadoEm'
       const dataCriacaoTs: Timestamp =
         (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
 
@@ -48,35 +45,39 @@ export default function AgendamentosPage() {
         dataCriacao: dataCriacaoTs,
         itens: raw.itens as PedidoItem[],
         formaPagamento: String(raw.formaPagamento),
-        total: raw.total as number | string,
+        total: Number(raw.total),
         pago: Boolean(raw.pago),
         localEntrega: raw.localEntrega ? String(raw.localEntrega) : undefined,
         observacao: raw.observacao ? String(raw.observacao) : undefined,
-        status: raw.status as 'pendente' | 'confirmado' | 'cancelado',
+        // agora também pode ser 'finalizado'
+        status: (raw.status as
+          | 'pendente'
+          | 'confirmado'
+          | 'cancelado'
+          | 'finalizado'),
       } as Agendamento
     })
 
     setAgendamentos(dados)
   }
 
-  // Ordena agendamentos por dataHora ascendente
+  // Ordena por data de agendamento
   const sortedAgendamentos = useMemo(() => {
     return [...agendamentos].sort((a, b) => {
-      const getTime = (dt: Timestamp | Date | string): number => {
-        if (dt instanceof Timestamp) return dt.toDate().getTime()
-        if (dt instanceof Date) return dt.getTime()
-        // string
-        return new Date(dt).getTime()
-      }
-      return getTime(a.dataHora) - getTime(b.dataHora)
+      const toMs = (dt: Timestamp | Date | string) =>
+        dt instanceof Timestamp
+          ? dt.toDate().getTime()
+          : dt instanceof Date
+          ? dt.getTime()
+          : new Date(dt).getTime()
+      return toMs(a.dataHora) - toMs(b.dataHora)
     })
   }, [agendamentos])
 
   function toggle(id: string) {
     setExpanded(prev => {
       const s = new Set(prev)
-      if (s.has(id)) s.delete(id)
-      else s.add(id)
+      s.has(id) ? s.delete(id) : s.add(id)
       return s
     })
   }
@@ -143,14 +144,14 @@ export default function AgendamentosPage() {
       pago: Boolean(ag.pago),
     }
     await registrarVenda(venda)
-    await deleteDoc(doc(db, 'agendamentos', ag.id))
+    // apenas marca como finalizado, não deleta
+    await updateDoc(doc(db, 'agendamentos', ag.id), { status: 'finalizado' })
+
     if (!ag.pago) {
       enviarWhatsApp(
         `Olá ${ag.nome}, seu pedido de ${formatarData(
           ag.dataHora
-        )} foi entregue, mas ainda consta pendente de R$ ${Number(
-          ag.total
-        ).toFixed(2)}.`,
+        )} foi entregue e finalizado!`,
         ag.whatsapp
       )
     }
@@ -161,121 +162,130 @@ export default function AgendamentosPage() {
     <>
       <Header />
       <div className="pt-20 px-4 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Agendamentos</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">
+          Agendamentos
+        </h1>
 
-        {sortedAgendamentos.length === 0 ? (
-          <p className="text-gray-600">Nenhum agendamento.</p>
+        {sortedAgendamentos.filter(ag =>
+          ag.status !== 'cancelado' && ag.status !== 'finalizado'
+        ).length === 0 ? (
+          <p className="text-gray-600">Nenhum agendamento ativo.</p>
         ) : (
           <div className="space-y-4">
-            {sortedAgendamentos.map(ag => {
-              const isOpen = expanded.has(ag.id)
-              const tipo = ag.localEntrega ? 'Entrega' : 'Retirada'
-              const borderClass =
-                ag.status === 'pendente'
-                  ? 'border-yellow-400'
-                  : ag.status === 'confirmado'
-                  ? 'border-green-400'
-                  : 'border-red-400'
+            {sortedAgendamentos
+              .filter(ag => ag.status !== 'cancelado' && ag.status !== 'finalizado')
+              .map(ag => {
+                const isOpen = expanded.has(ag.id)
+                const tipo = ag.localEntrega ? 'Entrega' : 'Retirada'
+                const borderClass =
+                  ag.status === 'pendente'
+                    ? 'border-yellow-400'
+                    : 'border-green-400'
 
-              return (
-                <div
-                  key={ag.id}
-                  className={`bg-white rounded-xl shadow border-l-4 ${borderClass}`}
-                >
-                  <button
-                    onClick={() => toggle(ag.id)}
-                    className="w-full flex justify-between items-center p-4"
+                return (
+                  <div
+                    key={ag.id}
+                    className={`bg-white rounded-xl shadow border-l-4 ${borderClass}`}
                   >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          ag.pago
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {ag.pago ? 'Pago' : 'Pendente'}
-                      </span>
-                      <div className="text-left">
-                        <p className="font-semibold text-gray-800">
-                          {ag.nome} — {tipo} — {formatarData(ag.dataHora)}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {ag.itens.length} item(s) • {ag.formaPagamento}
-                        </p>
+                    <button
+                      onClick={() => toggle(ag.id)}
+                      className="w-full flex justify-between items-center p-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            ag.pago
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {ag.pago ? 'Pago' : 'Pendente'}
+                        </span>
+                        <div className="text-left">
+                          <p className="font-semibold text-gray-800">
+                            {ag.nome} — {tipo} — {formatarData(ag.dataHora)}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {ag.itens.length} item(s) • {ag.formaPagamento} • Total: R${' '}
+                            {Number(ag.total).toFixed(2)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    {isOpen ? <ChevronUp /> : <ChevronDown />}
-                  </button>
+                      {isOpen ? <ChevronUp /> : <ChevronDown />}
+                    </button>
 
-                  {isOpen && (
-                    <div className="px-4 pb-4 space-y-4">
-                      <p className="text-sm text-gray-500">
-                        Pedido registrado em: {formatarData(ag.dataCriacao)}
-                      </p>
-
-                      {ag.localEntrega && (
-                        <p className="text-sm text-gray-700">
-                          <strong>Local de entrega:</strong> {ag.localEntrega}
+                    {isOpen && (
+                      <div className="px-4 pb-4 space-y-4">
+                        <p className="text-sm text-gray-500">
+                          Pedido registrado em: {formatarData(ag.dataCriacao)}
                         </p>
-                      )}
 
-                      {ag.observacao && (
-                        <p className="text-sm text-gray-700">
-                          <strong>Observação:</strong> {ag.observacao}
+                        {ag.localEntrega && (
+                          <p className="text-sm text-gray-700">
+                            <strong>Local de entrega:</strong> {ag.localEntrega}
+                          </p>
+                        )}
+
+                        {ag.observacao && (
+                          <p className="text-sm text-gray-700">
+                            <strong>Observação:</strong> {ag.observacao}
+                          </p>
+                        )}
+
+                        <ul className="space-y-2">
+                          {ag.itens.map(i => (
+                            <li
+                              key={i.id}
+                              className="flex justify-between"
+                            >
+                              <span>
+                                {i.nome} × {i.qtd}
+                              </span>
+                              <span>R$ {(i.preco * i.qtd).toFixed(2)}</span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <p className="mt-2 font-medium text-right">
+                          Total do Pedido: R$ {Number(ag.total).toFixed(2)}
                         </p>
-                      )}
 
-                      <ul className="space-y-2">
-                        {ag.itens.map(i => (
-                          <li key={i.id} className="flex justify-between">
-                            <span>
-                              {i.nome} × {i.qtd}
-                            </span>
-                            <span>R$ {(i.preco * i.qtd).toFixed(2)}</span>
-                          </li>
-                        ))}
-                      </ul>
-
-                      <div className="flex gap-2 pt-2">
-                        {ag.status !== 'confirmado' && (
+                        <div className="flex gap-2 pt-2">
                           <button
                             onClick={() => confirmacaoPedido(ag)}
-                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                            disabled={ag.status !== 'pendente'}
+                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
                           >
                             Confirmar Pedido
                           </button>
-                        )}
-                        {ag.status !== 'cancelado' && (
                           <button
                             onClick={() => handleCancelarPedido(ag)}
-                            className="bg-red-600 text-white px-3 py-1 rounded text-sm"
+                            className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
                           >
                             Cancelar Pedido
                           </button>
-                        )}
-                        {ag.status === 'confirmado' && !ag.pago && (
-                          <button
-                            onClick={() => handleRegistrarPagamento(ag)}
-                            className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
-                          >
-                            Registrar Pagamento
-                          </button>
-                        )}
-                        {ag.status === 'confirmado' && (
-                          <button
-                            onClick={() => finalizarPedido(ag)}
-                            className="bg-green-600 text-white px-3 py-1 rounded text-sm"
-                          >
-                            Finalizar Pedido
-                          </button>
-                        )}
+                          {ag.status === 'confirmado' && !ag.pago && (
+                            <button
+                              onClick={() => handleRegistrarPagamento(ag)}
+                              className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
+                            >
+                              Registrar Pagamento
+                            </button>
+                          )}
+                          {ag.status === 'confirmado' && (
+                            <button
+                              onClick={() => finalizarPedido(ag)}
+                              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                            >
+                              Finalizar Pedido
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+                    )}
+                  </div>
+                )
+              })}
           </div>
         )}
       </div>
