@@ -59,16 +59,22 @@ export default function EstoquePage() {
     )
     return Array.from(mapa.entries()).map(([produtoId, total]) => {
       const p = produtos.find(x => x.id === produtoId)
+      const unidade = p?.unidade ?? ''
       const label = p
-        ? `${p.nome} ${total}${p.unidade ?? ''}`
-        : produtoId
+        ? `${p.nome} — ${total}${unidade}`
+        : `${produtoId} — ${total}`
       return { produtoId, label, total }
     })
   }, [itens, produtos])
 
+  // filtro seguro contra undefined
+  const termoBusca = busca.toLowerCase()
   const resumoFiltrado = useMemo(
-    () => resumo.filter(r => r.label.toLowerCase().includes(busca.toLowerCase())),
-    [resumo, busca]
+    () =>
+      resumo.filter(r =>
+        (r.label ?? '').toLowerCase().includes(termoBusca)
+      ),
+    [resumo, termoBusca]
   )
 
   function toggleDetalhes(id: string) {
