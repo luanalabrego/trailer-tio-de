@@ -11,6 +11,8 @@ import {
   ajustarQuantidade,
   registrarHistoricoEstoque,
 } from '@/lib/firebase-estoque'
+import { Timestamp } from 'firebase/firestore'
+
 
 
 import type { Cliente, Produto, PedidoItem, Venda as VendaType } from '@/types'
@@ -227,17 +229,14 @@ export default function CaixaPage() {
         // 3a) atualiza ou remove o lote
         await ajustarQuantidade(lote.id, novaQtd)
   
-        // 3b) registra no histórico com ajuste negativo
-        await registrarHistoricoEstoque({
-          produtoId: lote.produtoId,
-          nome: item.nome,
-          ajuste: -deduzir,
-          motivo: 'Venda',
-        })
-  
-        remaining -= deduzir
-      }
-    }
+        // 3b) registra no histórico com ajuste negativo (incluindo criadoEm)
+await registrarHistoricoEstoque({
+  produtoId: lote.produtoId,
+  nome: item.nome,
+  ajuste: -deduzir,
+  motivo: 'Venda',
+  criadoEm: Timestamp.now(),   // ← aqui
+})
   
     // 4) limpa estado e recarrega
     setOrderNumber(prev => prev + 1)
