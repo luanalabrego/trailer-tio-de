@@ -1,26 +1,24 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Header } from '@/components/Header'
+import Header from '@/components/Header'
 import { Plus, Minus, X as Close, Search } from 'lucide-react'
 import {
   listarEstoque,
   criarOuAtualizarItemEstoque,
   ajustarQuantidade,
-  EstoqueItem,
 } from '@/lib/firebase-estoque'
+import { registrarHistoricoEstoque } from '@/lib/firebase-estoque'
+import { EstoqueItem, RegistroEstoque } from '@/types'
 
 export default function EstoquePage() {
   const [itens, setItens] = useState<EstoqueItem[]>([])
   const [showAddModal, setShowAddModal] = useState(false)
   const [showRemoveModal, setShowRemoveModal] = useState(false)
 
-  // quais nomes estão com detalhes abertos
   const [detalhesVisiveis, setDetalhesVisiveis] = useState<string[]>([])
-  // busca por nome
   const [busca, setBusca] = useState('')
 
-  // adicionar/atualizar
   const [isNewItem, setIsNewItem] = useState(false)
   const [nome, setNome] = useState('')
   const [quantidade, setQuantidade] = useState(0)
@@ -29,6 +27,7 @@ export default function EstoquePage() {
   // remoção
   const [nomeRemover, setNomeRemover] = useState('')
   const [quantidadeRemover, setQuantidadeRemover] = useState(1)
+  const [motivoRemocao, setMotivoRemocao] = useState('')  // novo estado para motivo
 
   useEffect(() => {
     carregar()
@@ -71,7 +70,18 @@ export default function EstoquePage() {
       if (remaining <= 0) break
       const disponivel = lote.quantidade
       const deduzir = Math.min(disponivel, remaining)
+
+      // 1) ajusta o estoque
       await ajustarQuantidade(lote.id, disponivel - deduzir)
+      // 2) registra no histórico
+      await registrarHistoricoEstoque({
+        produtoId: lote.id,
+        nome: lote.nome,
+        ajuste: -deduzir,
+        motivo: motivoRemocao,
+        // criadoEm será Timestamp.now() dentro da função
+      } as Omit<RegistroEstoque, 'id'>)
+
       remaining -= deduzir
     }
     resetRemoveForm()
@@ -89,10 +99,10 @@ export default function EstoquePage() {
   function resetRemoveForm() {
     setNomeRemover('')
     setQuantidadeRemover(1)
+    setMotivoRemocao('')
     setShowRemoveModal(false)
   }
 
-  // resumo por nome: só total
   const resumo = useMemo(() => {
     const map = new Map<string, number>()
     itens.forEach(item => {
@@ -101,7 +111,6 @@ export default function EstoquePage() {
     return Array.from(map.entries()).map(([nome, total]) => ({ nome, total }))
   }, [itens])
 
-  // aplica filtro de busca ao resumo
   const resumoFiltrado = useMemo(
     () => resumo.filter(r =>
       r.nome.toLowerCase().includes(busca.toLowerCase())
@@ -315,6 +324,16 @@ export default function EstoquePage() {
               min={1}
               required
             />
+            <label className="flex flex-col">
+              Motivo da remoção
+              <textarea
+                value={motivoRemocao}
+                onChange={e => setMotivoRemocao(e.target.value)}
+                className="w-full p-2 border rounded"
+                placeholder="Descreva o motivo"
+                required
+              />
+            </label>
             <div className="flex justify-end gap-2">
               <button
                 type="button"

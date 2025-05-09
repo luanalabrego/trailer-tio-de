@@ -37,7 +37,7 @@ export interface Venda {
   formaPagamento: string
   total: number
   pago: boolean
-  criadoEm: Timestamp        // <-- alterado de `data` para `criadoEm`
+  criadoEm: Timestamp
 }
 
 export interface Agendamento {
@@ -64,6 +64,16 @@ export type NovoAgendamento = Omit<Agendamento, 'id' | 'status'>
 export interface Categoria {
   id: string
   nome: string
+}
+
+// registra cada ajuste de estoque (remoções aparecerão com ajuste negativo)
+export interface RegistroEstoque {
+  id: string
+  produtoId: string
+  nome: string
+  ajuste: number       // negativo para remoções
+  motivo: string       // motivo informado na remoção
+  criadoEm: Timestamp  // data/hora da remoção
 }
 
 export interface Custo {
