@@ -251,16 +251,18 @@ export default function CaixaPage() {
             />
             {sugeridos.length > 0 && (
               <ul className="border rounded-md bg-white mt-1 max-h-40 overflow-auto">
-                {sugeridos.map(p => (
-                  <li
-                    key={p.id}
-                    onClick={() => adicionarProduto(p)}
-                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    {p.nome} — R$ {p.preco.toFixed(2)}
-                  </li>
-                ))}
-              </ul>
+              {sugeridos.map(p => (
+                <li
+                  key={p.id}
+                  onClick={() => adicionarProduto(p)}
+                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                >
+                  {p.nome}
+                  {p.unidade && ` (${p.unidade})`}   {/* <-- unidade aqui */}
+                  {' — '}R$ {p.preco.toFixed(2)}
+                </li>
+              ))}
+            </ul>
             )}
           </div>
 
