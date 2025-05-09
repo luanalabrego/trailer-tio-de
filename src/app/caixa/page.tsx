@@ -87,7 +87,7 @@ export default function CaixaPage() {
           i.id === prod.id ? { ...i, qtd: i.qtd + 1 } : i
         )
       }
-      return [...prev, { id: prod.id, nome: prod.nome, preco: prod.preco, qtd: 1 }]
+      return [...prev, { id: prod.id, nome: prod.nome, preco: prod.preco,unidade: prod.unidade, qtd: 1 }]
     })
     setBuscaProduto('')
   }
