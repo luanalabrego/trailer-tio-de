@@ -9,6 +9,7 @@ import {
   updateDoc,
   doc,
   Timestamp,
+  DocumentData,
 } from 'firebase/firestore'
 import { Header } from '@/components/Header'
 import { Agendamento, Cliente, PedidoItem, Venda } from '@/types'
@@ -33,13 +34,25 @@ export default function AgendamentosPage() {
     setClientes(listaClientes)
 
     const dados = snap.docs.map(d => {
-      const raw = d.data() as Record<string, any>
+      // pega os dados crus como DocumentData (sem usar any)
+      const raw = d.data() as DocumentData
+      // Timestamp pode vir em 'dataCriacao' ou 'criadoEm'
       const dataCriacaoTs: Timestamp =
         (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
+
       return {
         id: d.id,
-        ...raw,
+        nome: String(raw.nome),
+        whatsapp: String(raw.whatsapp),
+        dataHora: raw.dataHora as Timestamp | string | Date,
         dataCriacao: dataCriacaoTs,
+        itens: raw.itens as PedidoItem[],
+        formaPagamento: String(raw.formaPagamento),
+        total: raw.total as number | string,
+        pago: Boolean(raw.pago),
+        localEntrega: raw.localEntrega ? String(raw.localEntrega) : undefined,
+        observacao: raw.observacao ? String(raw.observacao) : undefined,
+        status: raw.status as 'pendente' | 'confirmado' | 'cancelado',
       } as Agendamento
     })
 
@@ -49,12 +62,11 @@ export default function AgendamentosPage() {
   // Ordena agendamentos por dataHora ascendente
   const sortedAgendamentos = useMemo(() => {
     return [...agendamentos].sort((a, b) => {
-      const getTime = (dt: any) => {
+      const getTime = (dt: Timestamp | Date | string): number => {
         if (dt instanceof Timestamp) return dt.toDate().getTime()
-        if (typeof dt === 'string' || dt instanceof String)
-          return new Date(dt as string).getTime()
         if (dt instanceof Date) return dt.getTime()
-        return 0
+        // string
+        return new Date(dt).getTime()
       }
       return getTime(a.dataHora) - getTime(b.dataHora)
     })
@@ -71,12 +83,12 @@ export default function AgendamentosPage() {
 
   function formatarData(dt?: Timestamp | Date | string): string {
     if (!dt) return 'Inválida'
-    if (dt instanceof Timestamp) return formatDateObj(dt.toDate())
-    if (dt instanceof Date) return formatDateObj(dt)
-    return formatDateObj(new Date(dt))
-  }
-
-  function formatDateObj(date: Date): string {
+    const date =
+      dt instanceof Timestamp
+        ? dt.toDate()
+        : dt instanceof Date
+        ? dt
+        : new Date(dt)
     if (isNaN(date.getTime())) return 'Inválida'
     return date.toLocaleString('pt-BR', {
       dateStyle: 'short',
@@ -125,10 +137,10 @@ export default function AgendamentosPage() {
     )
     const venda: Omit<Venda, 'id' | 'data'> = {
       clienteId: cli?.id || '',
-      itens: ag.itens as PedidoItem[],
+      itens: ag.itens,
       formaPagamento: ag.formaPagamento,
       total: Number(ag.total),
-      pago: Boolean(ag.pago),
+      pago: ag.pago,
     }
     await registrarVenda(venda)
     await deleteDoc(doc(db, 'agendamentos', ag.id))
@@ -189,8 +201,7 @@ export default function AgendamentosPage() {
                           {ag.nome} — {tipo} — {formatarData(ag.dataHora)}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {(ag.itens as PedidoItem[]).length} item(s) •{' '}
-                          {ag.formaPagamento}
+                          {ag.itens.length} item(s) • {ag.formaPagamento}
                         </p>
                       </div>
                     </div>
@@ -216,7 +227,7 @@ export default function AgendamentosPage() {
                       )}
 
                       <ul className="space-y-2">
-                        {(ag.itens as PedidoItem[]).map(i => (
+                        {ag.itens.map(i => (
                           <li key={i.id} className="flex justify-between">
                             <span>
                               {i.nome} × {i.qtd}
