@@ -32,23 +32,23 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, emailNormalizado, senha)
-    
+
       // Define o perfil com base no e-mail
       const perfil = emailNormalizado === 'adm@trailertiode.com' ? 'ADM' : 'FUNC'
-    
-      // Salva no localStorage (se necessário)
+
+      // Salva no localStorage
       localStorage.setItem('perfil', perfil)
-    
+
       // Grava um cookie para o middleware ler
       document.cookie = `perfil=${perfil}; path=/; max-age=${60 * 60}; SameSite=Lax`
-    
+
       router.push('/dashboard')
     } catch {
       setErro('E-mail ou senha inválidos.')
     } finally {
       setCarregando(false)
     }
-    
+  }  // ← Aqui fechamos handleLogin corretamente
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -57,17 +57,16 @@ export default function LoginPage() {
         className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm"
       >
         {/* Logo */}
-<div className="flex justify-center mb-6">
-  <Image
-    src="/logo.png"
-    alt="Trailer do Tio Dé"
-    width={128}
-    height={128}
-    unoptimized
-    className="w-32 h-32 sm:w-40 sm:h-40"
-  />
-</div>
-
+        <div className="flex justify-center mb-6">
+          <Image
+            src="/logo.png"
+            alt="Trailer do Tio Dé"
+            width={128}
+            height={128}
+            unoptimized
+            className="w-32 h-32 sm:w-40 sm:h-40"
+          />
+        </div>
 
         <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
 
