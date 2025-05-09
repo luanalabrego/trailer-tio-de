@@ -36,9 +36,9 @@ export default function Header() {
     Clientes: perfil === 'ADM' ? [{ name: 'Clientes', href: '/clientes' }] : [],
     Agendamentos: [{ name: 'Agendamentos', href: '/agendamentos' }],
     Histórico: [
-      { name: 'Agendamentos', href: '/historicos/agendamentos' },
-      { name: 'Vendas', href: '/historicos/vendas' },
-      { name: 'Estoque', href: '/historicos/estoque' },
+      { name: 'Agendamentos', href: '/historico/agendamentos' },
+      { name: 'Vendas', href: '/historico/vendas' },
+      { name: 'Estoque', href: '/historico/estoque' },
     ],
     Cardápio: [{ name: 'Cardápio', href: '/cardapio' }],
   }
