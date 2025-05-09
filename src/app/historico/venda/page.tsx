@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import Header from '@/components/Header'
 import { listarHistoricoVendas } from '@/lib/firebase-caixa'
-import { Venda, PedidoItem } from '@/types'
+import type { Venda, PedidoItem } from '@/types'
 import { Timestamp } from 'firebase/firestore'
 
 export default function HistoricoVendasPage() {
@@ -72,7 +72,10 @@ export default function HistoricoVendasPage() {
         {/* filtros de período */}
         <div className="bg-white p-4 rounded-xl shadow mb-6 flex flex-wrap gap-4 items-end">
           <div className="flex flex-col">
-            <label htmlFor="startDate" className="text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="startDate"
+              className="text-sm font-medium text-gray-700 mb-1"
+            >
               Data início
             </label>
             <input
@@ -84,7 +87,10 @@ export default function HistoricoVendasPage() {
             />
           </div>
           <div className="flex flex-col">
-            <label htmlFor="endDate" className="text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="endDate"
+              className="text-sm font-medium text-gray-700 mb-1"
+            >
               Data fim
             </label>
             <input
@@ -96,7 +102,10 @@ export default function HistoricoVendasPage() {
             />
           </div>
           <button
-            onClick={() => { setStartDate(''); setEndDate('') }}
+            onClick={() => {
+              setStartDate('')
+              setEndDate('')
+            }}
             className="h-fit px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             Limpar filtros
@@ -104,13 +113,22 @@ export default function HistoricoVendasPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <p className="text-gray-600">Nenhuma venda registrada neste período.</p>
+          <p className="text-gray-600">
+            Nenhuma venda registrada neste período.
+          </p>
         ) : (
           <ul className="space-y-4">
             {filtered.map(v => (
-              <li key={v.id} className="bg-white p-4 rounded-xl shadow flex flex-col gap-2">
+              <li
+                key={v.id}
+                className="bg-white p-4 rounded-xl shadow flex flex-col gap-2"
+              >
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold">Venda: {v.id}</span>
+                  {/* Exibe orderNumber se existir, caso contrário exibe ID */}
+                  <span className="font-semibold">
+                    Pedido Nº:{' '}
+                    {v.orderNumber !== undefined ? v.orderNumber : v.id}
+                  </span>
                   <span className="text-sm text-gray-600">
                     {formatarData(v.criadoEm)}
                   </span>
@@ -119,7 +137,8 @@ export default function HistoricoVendasPage() {
                 <ul className="ml-4 list-disc text-sm">
                   {v.itens.map((i: PedidoItem) => (
                     <li key={i.id}>
-                      {i.nome} × {i.qtd} = R$ {(i.preco * i.qtd).toFixed(2)}
+                      {i.nome} × {i.qtd} = R${' '}
+                      {(i.preco * i.qtd).toFixed(2)}
                     </li>
                   ))}
                 </ul>
@@ -134,7 +153,8 @@ export default function HistoricoVendasPage() {
 
                 {v.pago && v.formaPagamento && (
                   <p className="text-sm text-gray-600">
-                    Forma de pagamento: <strong>{v.formaPagamento}</strong>
+                    Forma de pagamento:{' '}
+                    <strong>{v.formaPagamento}</strong>
                   </p>
                 )}
               </li>
