@@ -128,21 +128,21 @@ export default function CustosPage() {
           valor: valorNum,
           data: Timestamp.now(),
         })
-        alert('💾 Custo atualizado com sucesso!')
+        alert('Custo atualizado com sucesso!')
       } else {
         await addDoc(collection(db, 'custos'), {
           descricao: desc,
           valor: valorNum,
           data: Timestamp.now(),
         })
-        alert('💾 Custo registrado com sucesso!')
+        alert('Custo registrado com sucesso!')
       }
 
       // garantir que a lista já veio atualizada antes de fechar
       setSaving(false)
       setShowModal(false)
     } catch (error) {
-      console.error('❌ erro ao salvar custo:', error)
+      console.error('Erro ao salvar custo:', error)
       alert('Falha ao salvar o custo. Veja o console.')
       setSaving(false)
     }
@@ -152,9 +152,9 @@ export default function CustosPage() {
     if (!confirm('Deseja realmente excluir este custo?')) return
     try {
       await deleteDoc(doc(db, 'custos', id))
-      alert('🗑️ Custo excluído.')
+      alert('Custo excluído.')
     } catch (err) {
-      console.error('❌ erro ao excluir custo:', err)
+      console.error('Erro ao excluir custo:', err)
       alert('Falha ao excluir o custo. Veja o console.')
     }
   }
