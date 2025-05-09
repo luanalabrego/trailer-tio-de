@@ -35,7 +35,7 @@ export function Header() {
     Caixa: [{ name: 'Caixa', href: '/caixa' }],
     Clientes: perfil === 'ADM' ? [{ name: 'Clientes', href: '/clientes' }] : [],
     Agendamentos: [{ name: 'Agendamentos', href: '/agendamentos' }],
-+   Histórico: [{ name: 'Histórico', href: '/historico' }],
+    'Histórico': [{ name: 'Histórico', href: '/historico' }],
     Cardápio: [{ name: 'Cardápio', href: '/cardapio' }],
   }
 
@@ -143,9 +143,7 @@ export function Header() {
                   href={links[0].href}
                   onClick={() => setMenuAberto(false)}
                   className={`block py-2 text-sm ${
-                    pathname === links[0].href
-                      ? 'text-indigo-600'
-                      : 'text-gray-700'
+                    pathname === links[0].href ? 'text-indigo-600' : 'text-gray-700'
                   }`}
                 >
                   {grupo}
@@ -162,9 +160,7 @@ export function Header() {
                           href={link.href}
                           onClick={() => setMenuAberto(false)}
                           className={`block py-1 text-sm ${
-                            pathname === link.href
-                              ? 'text-indigo-600'
-                              : 'text-gray-700'
+                            pathname === link.href ? 'text-indigo-600' : 'text-gray-700'
                           }`}
                         >
                           {link.name}
