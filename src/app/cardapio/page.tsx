@@ -6,6 +6,8 @@ import { listarProdutos } from '@/lib/firebase-produtos'
 import { listarClientes, cadastrarCliente } from '@/lib/firebase-clientes'
 import { salvarAgendamento } from '@/lib/firebase-agendamentos'
 import { Produto, PedidoItem, NovoAgendamento, Cliente } from '@/types'
+import { Timestamp } from 'firebase/firestore'
+
 
 type AgendamentoPayload = NovoAgendamento & {
   tipoEntrega: 'retirada' | 'entrega'
@@ -176,17 +178,23 @@ export default function CardapioPage() {
       const linhas = payload.itens
         .map(i => `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`)
         .join('\n')
+    
+      // converte Timestamp ou string/data para string formatada
+      const when =
+        payload.dataHora instanceof Timestamp
+          ? payload.dataHora.toDate().toLocaleString('pt-BR')
+          : new Date(payload.dataHora).toLocaleString('pt-BR')
+    
       window.open(
         `https://wa.me/55${telefone}?text=${encodeURIComponent(
           `Olá ${payload.nome},\n${linhas}\nTotal: R$ ${payload.total.toFixed(
             2
-          )}\nAgendado para: ${new Date(
-            payload.dataHora
-          ).toLocaleString('pt-BR')}`
+          )}\nAgendado para: ${when}`
         )}`,
         '_blank'
       )
     }
+    
     setCarrinho([])
     setDataHoraAgendada('')
     setFormaPagamento('')
