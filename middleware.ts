@@ -2,30 +2,36 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Executa em todas as rotas, exceto as públicas
+// Regex para arquivos estáticos (fonts, imagens, etc)
+const PUBLIC_FILE = /\.(.*)$/
+
 export const config = {
   matcher: [
-    // regex que exclui /login, /api, /_next e favicon
-    '/((?!login|api|_next|favicon.ico).*)',
+    // tudo que NÃO comece com api, login, _next/static, _next/image ou favicon.ico
+    '/((?!api|login|_next/static|_next/image|favicon.ico).*)',
   ],
 }
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // rota de login — libera sempre
+  // 1) permite arquivos estáticos pelo regex
+  if (PUBLIC_FILE.test(pathname)) {
+    return NextResponse.next()
+  }
+
+  // 2) rota de login — sempre livre
   if (pathname === '/login') {
     return NextResponse.next()
   }
 
-  // verifica cookie de sessão
+  // 3) verifica cookie de sessão “perfil”
   const perfil = req.cookies.get('perfil')?.value
   if (!perfil) {
-    // redireciona para /login
-    const loginUrl = req.nextUrl.clone()
-    loginUrl.pathname = '/login'
+    const loginUrl = new URL('/login', req.url)
     return NextResponse.redirect(loginUrl)
   }
 
+  // 4) tudo OK
   return NextResponse.next()
 }
