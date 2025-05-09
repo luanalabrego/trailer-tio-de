@@ -26,6 +26,12 @@ export default function CaixaPage() {
     [buscaProduto, produtos]
   )
 
+  // soma dos valores do carrinho
+  const total = useMemo(
+    () => itens.reduce((acc, cur) => acc + cur.preco * cur.qtd, 0),
+    [itens]
+  )
+
   // estado da venda
   const [saleType, setSaleType] = useState<'paid' | 'pending' | null>(null)
   const [formaPagamento, setFormaPagamento] = useState('')
@@ -39,8 +45,6 @@ export default function CaixaPage() {
 
   // modal final
   const [showFinalModal, setShowFinalModal] = useState(false)
-
-  const total = itens.reduce((acc, cur) => acc + cur.preco * cur.qtd, 0)
 
   useEffect(() => {
     carregar()
@@ -175,7 +179,7 @@ export default function CaixaPage() {
     })
 
     // 3. Feedback e reset do estado
-    alert('Venda finalizada!')
+    alert('Pedido finalizado!')
     setItens([])
     setSaleType(null)
     setFormaPagamento('')
@@ -232,43 +236,52 @@ export default function CaixaPage() {
             {itens.length === 0 ? (
               <p className="text-gray-600">Carrinho vazio</p>
             ) : (
-              <ul className="space-y-2">
-                {itens.map(item => (
-                  <li
-                    key={item.id}
-                    className="bg-gray-50 p-3 rounded flex flex-col gap-2"
-                  >
-                    <div className="flex justify-between">
-                      <span className="font-medium">{item.nome}</span>
-                      <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
+              <>
+                <ul className="space-y-2">
+                  {itens.map(item => (
+                    <li
+                      key={item.id}
+                      className="bg-gray-50 p-3 rounded flex flex-col gap-2"
+                    >
+                      <div className="flex justify-between">
+                        <span className="font-medium">{item.nome}</span>
+                        <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => alterarQtd(item.id, -1)}
+                            disabled={item.qtd <= 1}
+                            className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50"
+                          >
+                            –
+                          </button>
+                          <span>{item.qtd}</span>
+                          <button
+                            onClick={() => alterarQtd(item.id, +1)}
+                            className="px-2 py-1 bg-gray-200 rounded"
+                          >
+                            +
+                          </button>
+                        </div>
                         <button
-                          onClick={() => alterarQtd(item.id, -1)}
-                          disabled={item.qtd <= 1}
-                          className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50"
+                          onClick={() => removerProduto(item.id)}
+                          className="text-red-500 text-xs hover:underline"
                         >
-                          –
-                        </button>
-                        <span>{item.qtd}</span>
-                        <button
-                          onClick={() => alterarQtd(item.id, +1)}
-                          className="px-2 py-1 bg-gray-200 rounded"
-                        >
-                          +
+                          Remover
                         </button>
                       </div>
-                      <button
-                        onClick={() => removerProduto(item.id)}
-                        className="text-red-500 text-xs hover:underline"
-                      >
-                        Remover
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+                {/* total */}
+                <div className="mt-4 flex justify-end items-center">
+                  <span className="font-semibold mr-2">Total:</span>
+                  <span className="text-lg font-bold">
+                    R$ {total.toFixed(2)}
+                  </span>
+                </div>
+              </>
             )}
           </div>
 
@@ -371,7 +384,7 @@ export default function CaixaPage() {
       {showFinalModal && (
         <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm">
-            <h2 className="text-lg font-semibold mb-4">Venda finalizada!</h2>
+            <h2 className="text-lg font-semibold mb-4">Pedido finalizado!</h2>
             <div className="flex gap-4">
               <button
                 onClick={() => confirmarRegistro('print')}
