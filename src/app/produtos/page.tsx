@@ -147,14 +147,15 @@ export default function ProdutosPage() {
     }
   }
 
-  const produtosFiltrados = useMemo(() => {
-    return produtos.filter(p => {
-      const matchBusca = p.nome.toLowerCase().includes(busca.toLowerCase())
-      const matchCat = filtroCat ? p.categoria === filtroCat : true
-      const visivel = p.controlaEstoque || p.disponivel
-      return matchBusca && matchCat && visivel
-    })
-  }, [produtos, busca, filtroCat])
+  // agora: ignora o flag disponivel aqui, mantendo tudo na listagem
+const produtosFiltrados = useMemo(() => {
+  return produtos.filter(p => {
+    const matchBusca = p.nome.toLowerCase().includes(busca.toLowerCase())
+    const matchCat   = filtroCat ? p.categoria === filtroCat : true
+    return matchBusca && matchCat
+  })
+}, [produtos, busca, filtroCat])
+
 
   const categoriasVisiveis = useMemo(() => {
     return Array.from(new Set(
