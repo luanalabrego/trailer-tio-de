@@ -9,6 +9,8 @@ import { Plus } from 'lucide-react'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
 
+import { writeBatch, doc, getDoc, updateDoc } from 'firebase/firestore'
+
 import type { Cliente, Produto, PedidoItem, Venda as VendaType } from '@/types'
 
 // ← Aqui criamos o alias para poder guardar também a 'unidade'
@@ -187,40 +189,50 @@ export default function CaixaPage() {
     setShowFinalModal(true)
   }
 
-  async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
-    if (action === 'print') handleImprimir()
-    if (action === 'whatsapp') abrirWhatsapp()
 
-    await registrarVenda({
-      orderNumber,
-      clienteId: saleType === 'pending' ? clienteId : '',
-      itens,
-      formaPagamento: saleType === 'paid' ? formaPagamento : '',
-      total,
-      pago: saleType === 'paid',
-    })
+async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
+  if (action === 'print') handleImprimir()
+  if (action === 'whatsapp') abrirWhatsapp()
 
-    for (const item of itens) {
-      const prodRef = doc(db, 'produtos', item.id)
-      const prodSnap = await getDoc(prodRef)
-      if (prodSnap.exists()) {
-        const data = prodSnap.data()
-        if (data.controlaEstoque) {
-          const novoEstoque = (data.estoque ?? 0) - item.qtd
-          await updateDoc(prodRef, { estoque: novoEstoque })
-        }
+  // 1) registra a venda
+  await registrarVenda({
+    orderNumber,
+    clienteId: saleType === 'pending' ? clienteId : '',
+    itens,
+    formaPagamento: saleType === 'paid' ? formaPagamento : '',
+    total,
+    pago: saleType === 'paid',
+  })
+
+  // 2) prepara batch para atualizar estoques
+  const batch = writeBatch(db)
+
+  for (const item of itens) {
+    const prodRef = doc(db, 'produtos', item.id)
+    const prodSnap = await getDoc(prodRef)
+    if (prodSnap.exists()) {
+      const data = prodSnap.data()
+      if (data.controlaEstoque) {
+        const novoEstoque = (data.estoque ?? 0) - item.qtd
+        batch.update(prodRef, { estoque: novoEstoque })
       }
     }
-
-    setOrderNumber(prev => prev + 1)
-    alert('Pedido finalizado!')
-    setItens([])
-    setSaleType(null)
-    setFormaPagamento('')
-    setClienteId('')
-    setShowFinalModal(false)
-    await carregar()
   }
+
+  // 3) envia todas as atualizações de uma vez
+  await batch.commit()
+
+  // 4) limpa estado e recarrega
+  setOrderNumber(prev => prev + 1)
+  alert('Pedido finalizado!')
+  setItens([])
+  setSaleType(null)
+  setFormaPagamento('')
+  setClienteId('')
+  setShowFinalModal(false)
+  await carregar()
+}
+
 
   const resumoVendasHoje = useMemo(() => {
     const m = new Map<string, number>()
