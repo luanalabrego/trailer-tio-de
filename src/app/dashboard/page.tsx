@@ -137,8 +137,7 @@ export default function Dashboard() {
       title: 'Pendências de Pagamento >10 dias',
       value: `${agingPendList.length} pedido${agingPendList.length !== 1 ? 's' : ''}`,
       bg: 'bg-red-100',
-      route: '/pagamentos-pendentes',
-    },
+      route: '/pendencias',    },
   ]
 
   return (
