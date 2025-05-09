@@ -3,43 +3,79 @@ import {
   collection,
   addDoc,
   getDocs,
+  query,
+  where,
+  orderBy,
   Timestamp,
-  DocumentData,
-  QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { Venda } from '@/types'
 
 const colecao = collection(db, 'vendas')
 
-export async function registrarVenda(venda: Omit<Venda, 'id' | 'data'>) {
+/**
+ * Registra uma nova venda, gravando também o timestamp de criação.
+ */
+export async function registrarVenda(venda: Omit<Venda, 'id' | 'criadoEm'>) {
   const vendaCompleta = {
     ...venda,
-    data: Timestamp.now(),
+    criadoEm: Timestamp.now(),      // timestamp mais semântico
     pago: venda.pago ?? false,
   }
 
   await addDoc(colecao, vendaCompleta)
 }
 
+/**
+ * Lista apenas as vendas do dia atual, ordenadas da mais recente para a mais antiga.
+ */
 export async function listarVendasDoDia(): Promise<Venda[]> {
-  const snapshot = await getDocs(colecao)
-  const hoje = new Date().toISOString().split('T')[0]
+  const hoje = new Date()
+  const inicio = Timestamp.fromDate(
+    new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 0, 0, 0, 0)
+  )
+  const fim = Timestamp.fromDate(
+    new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59, 999)
+  )
 
-  return snapshot.docs
-    .map((doc: QueryDocumentSnapshot<DocumentData>) => {
-      const data = doc.data()
-      return {
-        id: doc.id,
-        clienteId: data.clienteId,
-        itens: data.itens,
-        formaPagamento: data.formaPagamento,
-        total: Number(data.total),
-        pago: data.pago,
-        data: data.data,
-      } as Venda
-    })
-    .filter((v) => {
-      const data = v.data?.toDate?.()
-      return data?.toISOString().startsWith(hoje)
-    })
+  const q = query(
+    colecao,
+    where('criadoEm', '>=', inicio),
+    where('criadoEm', '<=', fim),
+    orderBy('criadoEm', 'desc')
+  )
+  const snapshot = await getDocs(q)
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data()
+    return {
+      id: doc.id,
+      clienteId: data.clienteId,
+      itens: data.itens,
+      formaPagamento: data.formaPagamento || '',
+      total: Number(data.total),
+      pago: Boolean(data.pago),
+      criadoEm: data.criadoEm as Timestamp,
+    } as Venda
+  })
+}
+
+/**
+ * Lista todo o histórico de vendas, sem filtro de data, da mais recente para a mais antiga.
+ */
+export async function listarHistoricoVendas(): Promise<Venda[]> {
+  const q = query(colecao, orderBy('criadoEm', 'desc'))
+  const snapshot = await getDocs(q)
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data()
+    return {
+      id: doc.id,
+      clienteId: data.clienteId,
+      itens: data.itens,
+      formaPagamento: data.formaPagamento || '',
+      total: Number(data.total),
+      pago: Boolean(data.pago),
+      criadoEm: data.criadoEm as Timestamp,
+    } as Venda
+  })
 }

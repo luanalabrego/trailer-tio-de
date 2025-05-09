@@ -1,21 +1,52 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Header } from '@/components/Header'
-import { listarVendasDoDia } from '@/lib/firebase-caixa'
+import { listarHistoricoVendas } from '@/lib/firebase-caixa'
 import { Venda, PedidoItem } from '@/types'
 import { Timestamp } from 'firebase/firestore'
 
 export default function HistoricoVendasPage() {
   const [vendas, setVendas] = useState<Venda[]>([])
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
 
   useEffect(() => {
-    async function carregarVendas() {
-      const v = await listarVendasDoDia()
-      setVendas(v)
+    async function carregarTodasVendas() {
+      const todas = await listarHistoricoVendas()
+      setVendas(todas)
     }
-    carregarVendas()
+    carregarTodasVendas()
   }, [])
+
+  // filtra e ordena por data de venda (criadoEm)
+  const filtered = useMemo(() => {
+    return vendas
+      .filter(v => {
+        const dt = v.criadoEm instanceof Timestamp
+          ? v.criadoEm.toDate()
+          : new Date(v.criadoEm as any)
+        if (startDate) {
+          const start = new Date(startDate)
+          if (dt < start) return false
+        }
+        if (endDate) {
+          const end = new Date(endDate)
+          end.setHours(23, 59, 59, 999)
+          if (dt > end) return false
+        }
+        return true
+      })
+      .sort((a, b) => {
+        const da = a.criadoEm instanceof Timestamp
+          ? a.criadoEm.toMillis()
+          : new Date(a.criadoEm as any).getTime()
+        const db = b.criadoEm instanceof Timestamp
+          ? b.criadoEm.toMillis()
+          : new Date(b.criadoEm as any).getTime()
+        return db - da
+      })
+  }, [vendas, startDate, endDate])
 
   function formatarData(dt?: Date | string | Timestamp) {
     if (!dt) return '—'
@@ -35,11 +66,45 @@ export default function HistoricoVendasPage() {
       <main className="pt-20 px-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Histórico de Vendas</h1>
 
-        {vendas.length === 0 ? (
-          <p className="text-gray-600">Nenhuma venda registrada hoje.</p>
+        {/* filtros de período */}
+        <div className="bg-white p-4 rounded-xl shadow mb-6 flex flex-wrap gap-4 items-end">
+          <div className="flex flex-col">
+            <label htmlFor="startDate" className="text-sm font-medium text-gray-700 mb-1">
+              Data início
+            </label>
+            <input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div className="flex flex-col">
+            <label htmlFor="endDate" className="text-sm font-medium text-gray-700 mb-1">
+              Data fim
+            </label>
+            <input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <button
+            onClick={() => { setStartDate(''); setEndDate('') }}
+            className="h-fit px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            Limpar filtros
+          </button>
+        </div>
+
+        {filtered.length === 0 ? (
+          <p className="text-gray-600">Nenhuma venda registrada neste período.</p>
         ) : (
           <ul className="space-y-4">
-            {vendas.map(v => (
+            {filtered.map(v => (
               <li
                 key={v.id}
                 className="bg-white p-4 rounded-xl shadow flex flex-col gap-2"
@@ -47,10 +112,7 @@ export default function HistoricoVendasPage() {
                 <div className="flex justify-between items-center">
                   <span className="font-semibold">Venda: {v.id}</span>
                   <span className="text-sm text-gray-600">
-                    {formatarData(
-                      // ajuste conforme seu campo de criação
-                      (v as any).criadoEm || (v as any).createdAt
-                    )}
+                    {formatarData(v.criadoEm)}
                   </span>
                 </div>
 

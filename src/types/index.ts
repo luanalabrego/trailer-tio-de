@@ -29,6 +29,7 @@ export interface PedidoItem {
   qtd: number
 }
 
+// Aqui renomeamos a propriedade `data` para `criadoEm`
 export interface Venda {
   id: string
   clienteId: string
@@ -36,7 +37,7 @@ export interface Venda {
   formaPagamento: string
   total: number
   pago: boolean
-  data: Timestamp
+  criadoEm: Timestamp        // <-- alterado de `data` para `criadoEm`
 }
 
 export interface Agendamento {
@@ -48,8 +49,8 @@ export interface Agendamento {
   itens: PedidoItem[]
   total: number
   status: 'pendente' | 'confirmado' | 'cancelado' | 'finalizado'
-  pago?: boolean               // adiciona propriedade `pago`
-  localEntrega?: string        // adiciona propriedade `localEntrega`
+  pago?: boolean
+  localEntrega?: string
   confirmado?: boolean
   dataCriacao?: Timestamp
   observacao?: string
