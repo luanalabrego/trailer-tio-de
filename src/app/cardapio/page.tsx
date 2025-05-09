@@ -270,12 +270,20 @@ export default function CardapioPage() {
           <section key={cat} className="mb-8">
             <h2 className="text-xl font-semibold text-indigo-600 mb-2">{cat}</h2>
             <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
-              {produtos
-                .filter(p => p.categoria === cat)
-                .map(p => (
-                  <div
-                    key={p.id}
-                    className="bg-white p-2 rounded shadow flex flex-col"
+            {produtos
+  .filter(p =>
+    p.categoria === cat &&
+    (p.controlaEstoque
+      ? (p.estoque ?? 0) > 0
+      : p.disponivel
+    )
+  )
+  .map(p => (
+    <div key={p.id} className="bg-white p-2 rounded shadow flex flex-col">
+      {/* … */}
+    </div>
+  ))}
+
                   >
                     {p.imagemUrl && (
                       <Image
