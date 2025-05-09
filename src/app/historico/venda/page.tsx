@@ -77,38 +77,30 @@ export default function HistoricoVendasPage() {
         <h1 className="text-2xl font-bold mb-6">Histórico de Vendas</h1>
 
         {/* busca por número do pedido */}
-        <div className="bg-white p-4 rounded-xl shadow mb-4 flex flex-col sm:flex-row sm:items-end sm:gap-4">
-          <div className="flex-1 relative">
-            <label
-              htmlFor="orderSearch"
-              className="text-sm font-medium text-gray-700 mb-1 block"
-            >
-              Pedido Nº
-            </label>
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              id="orderSearch"
-              type="text"
-              placeholder="Buscar nº do pedido"
-              value={orderSearch}
-              onChange={e => setOrderSearch(e.target.value)}
-              className="w-full pl-10 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-          <button
-            onClick={() => setOrderSearch('')}
-            className="mt-2 sm:mt-6 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        <div className="bg-white p-4 rounded-xl shadow mb-4 relative">
+          <label
+            htmlFor="orderSearch"
+            className="text-sm font-medium text-gray-700 mb-1 block"
           >
-            Limpar busca
-          </button>
+            Pedido Nº
+          </label>
+          <Search
+            size={16}
+            className="absolute left-6 top-12 text-gray-400"
+          />
+          <input
+            id="orderSearch"
+            type="text"
+            placeholder="Buscar nº do pedido"
+            value={orderSearch}
+            onChange={e => setOrderSearch(e.target.value)}
+            className="w-full pl-10 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
         </div>
 
         {/* filtros de período sempre lado a lado */}
-        <div className="bg-white p-4 rounded-xl shadow mb-6 flex flex-nowrap gap-4 items-end overflow-x-auto">
-          <div className="min-w-[140px] flex-1">
+        <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4 items-end overflow-x-auto">
+          <div className="flex-1 min-w-[140px]">
             <label
               htmlFor="startDate"
               className="text-sm font-medium text-gray-700 mb-1 block"
@@ -123,7 +115,7 @@ export default function HistoricoVendasPage() {
               className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <div className="min-w-[140px] flex-1">
+          <div className="flex-1 min-w-[140px]">
             <label
               htmlFor="endDate"
               className="text-sm font-medium text-gray-700 mb-1 block"
@@ -138,15 +130,6 @@ export default function HistoricoVendasPage() {
               className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <button
-            onClick={() => {
-              setStartDate('')
-              setEndDate('')
-            }}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            Limpar datas
-          </button>
         </div>
 
         {filtered.length === 0 ? (
