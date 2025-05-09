@@ -5,13 +5,14 @@ import Header from '@/components/Header'
 import { listarHistoricoVendas } from '@/lib/firebase-caixa'
 import type { Venda, PedidoItem } from '@/types'
 import { Timestamp } from 'firebase/firestore'
-import { Search } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function HistoricoVendasPage() {
   const [vendas, setVendas] = useState<Venda[]>([])
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
   const [orderSearch, setOrderSearch] = useState<string>('')
+  const [showFilters, setShowFilters] = useState<boolean>(false)
 
   useEffect(() => {
     async function carregarTodasVendas() {
@@ -24,12 +25,10 @@ export default function HistoricoVendasPage() {
   const filtered = useMemo(() => {
     return vendas
       .filter(v => {
-        // filtro por número do pedido
         if (orderSearch) {
           const num = v.orderNumber?.toString() ?? ''
           if (!num.includes(orderSearch)) return false
         }
-        // filtro por data
         const dt =
           v.criadoEm instanceof Timestamp
             ? v.criadoEm.toDate()
@@ -75,54 +74,75 @@ export default function HistoricoVendasPage() {
     <>
       <Header />
       <div className="pt-20 px-4 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Histórico de Vendas</h1>
-
-        {/* busca por número do pedido */}
-        <div className="bg-white p-4 rounded-xl shadow mb-4 relative">
-          <label htmlFor="orderSearch" className="text-sm font-medium text-gray-700 mb-1 block">
-            Pedido Nº
-          </label>
-          <div className="relative">
-            <Search className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400" size={20} />
-            <input
-              id="orderSearch"
-              type="text"
-              placeholder="Buscar nº do pedido"
-              value={orderSearch}
-              onChange={e => setOrderSearch(e.target.value)}
-              className="w-full pl-10 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
+        {/* título e toggle de filtros */}
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">Histórico de Vendas</h1>
+          <button
+            onClick={() => setShowFilters(f => !f)}
+            className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+          >
+            {showFilters ? <ChevronUp /> : <ChevronDown />}
+          </button>
         </div>
 
-        {/* filtros de período lado a lado */}
-        <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4 items-end overflow-x-auto">
-          <div className="flex-1 min-w-[140px]">
-            <label htmlFor="startDate" className="text-sm font-medium text-gray-700 mb-1 block">
-              Data início
-            </label>
-            <input
-              id="startDate"
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-          <div className="flex-1 min-w-[140px]">
-            <label htmlFor="endDate" className="text-sm font-medium text-gray-700 mb-1 block">
-              Data fim
-            </label>
-            <input
-              id="endDate"
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-        </div>
+        {/* filtros colapsáveis */}
+        {showFilters && (
+          <div className="bg-white p-4 rounded-xl shadow mb-6 space-y-4">
+            {/* busca por número do pedido */}
+            <div className="flex flex-col">
+              <label
+                htmlFor="orderSearch"
+                className="text-sm font-medium text-gray-700 mb-1"
+              >
+                Pedido Nº
+              </label>
+              <input
+                id="orderSearch"
+                type="text"
+                placeholder="Buscar número do pedido"
+                value={orderSearch}
+                onChange={e => setOrderSearch(e.target.value)}
+                className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
 
+            {/* filtros de período lado a lado */}
+            <div className="flex gap-4 overflow-x-auto">
+              <div className="flex-1 min-w-[140px]">
+                <label
+                  htmlFor="startDate"
+                  className="text-sm font-medium text-gray-700 mb-1 block"
+                >
+                  Data início
+                </label>
+                <input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <label
+                  htmlFor="endDate"
+                  className="text-sm font-medium text-gray-700 mb-1 block"
+                >
+                  Data fim
+                </label>
+                <input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* lista de vendas */}
         {filtered.length === 0 ? (
           <p className="text-gray-600">
             Nenhuma venda registrada com esses critérios.
@@ -130,7 +150,10 @@ export default function HistoricoVendasPage() {
         ) : (
           <ul className="space-y-4">
             {filtered.map(v => (
-              <li key={v.id} className="bg-white p-4 rounded-xl shadow flex flex-col gap-2">
+              <li
+                key={v.id}
+                className="bg-white p-4 rounded-xl shadow flex flex-col gap-2"
+              >
                 <div className="flex justify-between items-center">
                   <div>
                     <span className="font-semibold">
@@ -157,6 +180,7 @@ export default function HistoricoVendasPage() {
                 <p className="text-sm text-gray-600">
                   Status: <strong>{v.pago ? 'Pago' : 'Pendente'}</strong>
                 </p>
+
                 {v.pago && v.formaPagamento && (
                   <p className="text-sm text-gray-600">
                     Forma de pagamento:{' '}
