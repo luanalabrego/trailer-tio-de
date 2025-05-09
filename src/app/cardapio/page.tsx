@@ -134,56 +134,55 @@ export default function CardapioPage() {
 
   const incrementarItem = (id: string) =>
     setCarrinho(prev =>
-      prev.map(i => (i.id === id ? { ...i, qtd: i.qtd + 1 } : i))
-    )
-  const decrementarItem = (id: string) =>
-    setCarrinho(prev =>
-      prev.flatMap(i => {
-        if (i.id === id) {
-          if (i.qtd > 1) return { ...i, qtd: i.qtd - 1 }
-          return []
+      prev.map(item => {
+        if (item.id !== id) return item;
+  
+        const disponivel = stockCounts[id] ?? 0;
+        if (item.qtd < disponivel) {
+          return { ...item, qtd: item.qtd + 1 };
+        } else {
+          alert(`Só há ${disponivel} em estoque para este produto.`);
+          return item;
         }
-        return i
       })
-    )
-
-    const adicionarAoCarrinho = (p: Produto) => {
-      const qtd = quantidades[p.id] || 1
-      const disponivel = stockCounts[p.id] ?? 0
-    
-      // 1️⃣ bloqueia se pedir mais que o disponível
-      if (qtd > disponivel) {
-        alert(`Só temos ${disponivel} unidade(s) de ${p.nome} em estoque.`)
-        return
-      }
-    
-      setCarrinho(prev => {
-        const exists = prev.find(i => i.id === p.id)
-        if (exists) {
-          const novoTotal = exists.qtd + qtd
-          // 2️⃣ bloqueia se somar ultrapassar estoque
-          if (novoTotal > disponivel) {
-            alert(`Você já tem ${exists.qtd} no carrinho e só temos ${disponivel} disponíveis.`)
-            return prev
+    );
+    const decrementarItem = (id: string) =>
+      setCarrinho(prev =>
+        prev.flatMap(i => {
+          if (i.id === id) {
+            if (i.qtd > 1) return { ...i, qtd: i.qtd - 1 };
+            return [];
           }
-          return prev.map(i =>
-            i.id === p.id ? { ...i, qtd: novoTotal } : i
-          )
+          return i;
+        })
+      );
+    
+
+      const adicionarAoCarrinho = (p: Produto) => {
+        const qtdDesejada = quantidades[p.id] || 1;
+        const jaNoCarrinho = carrinho.find(i => i.id === p.id)?.qtd ?? 0;
+        const disponivel = stockCounts[p.id] ?? 0;
+        const restante = disponivel - jaNoCarrinho;
+      
+        if (qtdDesejada > restante) {
+          alert(`Você só pode adicionar mais ${restante} unidade(s) deste produto.`);
+          return;
         }
-        return [...prev, { id: p.id, nome: p.nome, preco: p.preco, qtd }]
-      })
+      
+        setCarrinho(prev => {
+          const exists = prev.find(i => i.id === p.id);
+          if (exists) {
+            return prev.map(i =>
+              i.id === p.id ? { ...i, qtd: i.qtd + qtdDesejada } : i
+            );
+          }
+          return [...prev, { id: p.id, nome: p.nome, preco: p.preco, qtd: qtdDesejada }];
+        });
+      
+        setQuantidades(q => ({ ...q, [p.id]: 1 }));
+        alert('Item adicionado ao carrinho');
+      };
     
-      // 3️⃣ atualiza estoque local para refletir no menu
-      setStockCounts(prev => ({
-        ...prev,
-        [p.id]: disponivel - qtd
-      }))
-    
-      // reset do contador de input
-      setQuantidades(q => ({ ...q, [p.id]: 1 }))
-    
-      alert('Item adicionado ao carrinho')
-    }
     
 
   const total = carrinho.reduce((sum, i) => sum + i.preco * i.qtd, 0)
