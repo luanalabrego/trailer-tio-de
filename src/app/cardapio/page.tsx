@@ -7,7 +7,11 @@ import { listarClientes, cadastrarCliente } from '@/lib/firebase-clientes'
 import { salvarAgendamento } from '@/lib/firebase-agendamentos'
 import { Produto, PedidoItem, NovoAgendamento, Cliente } from '@/types'
 import { Timestamp } from 'firebase/firestore'
-import { listarEstoque } from '@/lib/firebase-estoque'      // ← novo
+import {
+  listarEstoque,
+  ajustarQuantidade,
+  registrarHistoricoEstoque,
+} from '@/lib/firebase-estoque'
 
 
 
