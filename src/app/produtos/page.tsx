@@ -31,6 +31,7 @@ export default function ProdutosPage() {
   const [preco, setPreco] = useState('')
   const [unidade, setUnidade] = useState('')
   const [mlVolume, setMlVolume] = useState('')      // para produtos em ml
+  const [controlaEstoque, setControlaEstoque] = useState(false) // Novo
   const [imagem, setImagem] = useState<File | null>(null)
 
   const [produtos, setProdutos] = useState<Produto[]>([])
@@ -61,6 +62,7 @@ export default function ProdutosPage() {
     setPreco('')
     setUnidade('')
     setMlVolume('')
+    setControlaEstoque(false)  // reset
     setImagem(null)
     setMostrarModal(true)
   }
@@ -72,13 +74,14 @@ export default function ProdutosPage() {
     setCategoria(p.categoria)
     setPreco(String(p.preco))
     // separa ml se unidade terminar com " ml"
-    if (p.unidade?.endsWith(' ml')) {
+    if (p.unidade.endsWith(' ml')) {
       setUnidade('ml')
       setMlVolume(p.unidade.replace(' ml', ''))
     } else {
-      setUnidade(p.unidade || '')
+      setUnidade(p.unidade)
       setMlVolume('')
     }
+    setControlaEstoque(p.controlaEstoque ?? false) // carregar valor existente
     setImagem(null)
     setMostrarModal(true)
   }
@@ -98,6 +101,7 @@ export default function ProdutosPage() {
           categoria,
           preco: parseFloat(preco),
           unidade: unidadeFinal,
+          controlaEstoque,         // inclui aqui
           imagemUrl: produtoSelecionado?.imagemUrl || '',
         },
         imagem ?? undefined
@@ -194,8 +198,8 @@ export default function ProdutosPage() {
                   <tr>
                     <th className="p-3">Nome</th>
                     <th className="p-3">Unidade</th>
+                    <th className="p-3">Estoque?</th>
                     <th className="p-3">Preço</th>
-                    <th className="p-3">Imagem</th>
                     <th className="p-3 text-right">Ações</th>
                   </tr>
                 </thead>
@@ -206,18 +210,8 @@ export default function ProdutosPage() {
                       <tr key={p.id} className="border-t">
                         <td className="p-3 font-medium text-gray-800">{p.nome}</td>
                         <td className="p-3">{p.unidade}</td>
+                        <td className="p-3">{p.controlaEstoque ? '✔️' : '–'}</td>
                         <td className="p-3">R$ {p.preco.toFixed(2)}</td>
-                        <td className="p-3">
-                          {p.imagemUrl && (
-                            <Image
-                              src={p.imagemUrl}
-                              alt={p.nome}
-                              width={40}
-                              height={40}
-                              className="object-cover rounded"
-                            />
-                          )}
-                        </td>
                         <td className="p-3 text-right flex justify-end gap-2">
                           <button
                             onClick={() => abrirModalEdicao(p)}
@@ -272,6 +266,11 @@ export default function ProdutosPage() {
                       <p className="text-sm text-gray-800 mt-2">
                         {produto.unidade} — R$ {produto.preco.toFixed(2)}
                       </p>
+                      {produto.controlaEstoque && (
+                        <span className="mt-1 inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                          controla estoque
+                        </span>
+                      )}
                     </div>
                   ))}
               </div>
@@ -295,6 +294,7 @@ export default function ProdutosPage() {
                   className="w-full p-2 border border-gray-200 rounded-md"
                   required
                 />
+
                 <select
                   value={categoria}
                   onChange={e => setCategoria(e.target.value)}
@@ -308,6 +308,7 @@ export default function ProdutosPage() {
                     </option>
                   ))}
                 </select>
+
                 <input
                   type="number"
                   placeholder="Preço"
@@ -316,6 +317,7 @@ export default function ProdutosPage() {
                   className="w-full p-2 border border-gray-200 rounded-md"
                   required
                 />
+
                 <select
                   value={unidade}
                   onChange={e => setUnidade(e.target.value)}
@@ -328,6 +330,7 @@ export default function ProdutosPage() {
                   <option value="kg">Kg</option>
                   <option value="ml">ml</option>
                 </select>
+
                 {unidade === 'ml' && (
                   <input
                     type="number"
@@ -338,6 +341,18 @@ export default function ProdutosPage() {
                     required
                   />
                 )}
+
+                {/* checkbox para controlar estoque */}
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={controlaEstoque}
+                    onChange={e => setControlaEstoque(e.target.checked)}
+                    className="form-checkbox h-4 w-4 text-indigo-600"
+                  />
+                  <span className="text-sm text-gray-700">Controlar estoque</span>
+                </label>
+
                 <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200">
                   <Upload size={18} />
                   <span>Selecionar Imagem</span>
@@ -350,6 +365,7 @@ export default function ProdutosPage() {
                 {imagem && (
                   <p className="text-sm text-gray-600">Imagem: {imagem.name}</p>
                 )}
+
                 <div className="text-right">
                   <button
                     type="submit"
