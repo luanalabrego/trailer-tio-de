@@ -5,6 +5,8 @@ import type { NextRequest } from 'next/server'
 const PUBLIC_PATHS = [
   '/login',
   '/_next/',
+  '/_next/static/',
+  '/_next/image/',
   '/api/',
   '/favicon.ico',
 ]
@@ -12,12 +14,12 @@ const PUBLIC_PATHS = [
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // 1) libera rotas públicas sem precisar de cookie
+  // 1) libera rotas públicas (login, assets, api, favicon)
   if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
     return NextResponse.next()
   }
 
-  // 2) para TODO o resto, exige cookie 'perfil'
+  // 2) exige login: cookie 'perfil' deve existir
   const perfil = req.cookies.get('perfil')?.value
   if (!perfil) {
     const loginUrl = req.nextUrl.clone()
@@ -25,11 +27,11 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // 3) se tiver perfil (ADM ou FUNC), deixa passar
+  // 3) tudo OK: deixa seguir
   return NextResponse.next()
 }
 
 export const config = {
-  // roda em todas as rotas
+  // pega **todas** as rotas
   matcher: ['/:path*'],
 }
