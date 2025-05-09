@@ -6,10 +6,12 @@ import { registrarVenda, listarVendasDoDia } from '@/lib/firebase-caixa'
 import { listarClientes, cadastrarCliente } from '@/lib/firebase-clientes'
 import { listarProdutos } from '@/lib/firebase-produtos'
 import { Plus } from 'lucide-react'
+import {
+  listarEstoque,
+  ajustarQuantidade,
+  registrarHistoricoEstoque,
+} from '@/lib/firebase-estoque'
 
-// substitua ambos estes imports duplicados por um só:
-import { writeBatch, doc, increment } from 'firebase/firestore'
-import { db } from '@/firebase/firebase'
 
 import type { Cliente, Produto, PedidoItem, Venda as VendaType } from '@/types'
 
@@ -189,46 +191,64 @@ export default function CaixaPage() {
   }
 
 
-async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
-  if (action === 'print') handleImprimir()
-  if (action === 'whatsapp') abrirWhatsapp()
-
-  // 1) registra a venda
-  await registrarVenda({
-    orderNumber,
-    clienteId: saleType === 'pending' ? clienteId : '',
-    itens,
-    formaPagamento: saleType === 'paid' ? formaPagamento : '',
-    total,
-    pago: saleType === 'paid',
-  })
-
-// 2) prepara batch para atualizar estoques
-const batch = writeBatch(db)
-
-for (const item of itens) {
-  const prodRef = doc(db, 'produtos', item.id)
-  // só atualiza se controlaEstoque for true
-  batch.update(prodRef, {
-    estoque: increment(-item.qtd)
-  })
-}
-
-await batch.commit()
-
-  // 3) envia todas as atualizações de uma vez
-  await batch.commit()
-
-  // 4) limpa estado e recarrega
-  setOrderNumber(prev => prev + 1)
-  alert('Pedido finalizado!')
-  setItens([])
-  setSaleType(null)
-  setFormaPagamento('')
-  setClienteId('')
-  setShowFinalModal(false)
-  await carregar()
-}
+  async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
+    if (action === 'print') handleImprimir()
+    if (action === 'whatsapp') abrirWhatsapp()
+  
+    // 1) registra a venda
+    await registrarVenda({
+      orderNumber,
+      clienteId: saleType === 'pending' ? clienteId : '',
+      itens,
+      formaPagamento: saleType === 'paid' ? formaPagamento : '',
+      total,
+      pago: saleType === 'paid',
+    })
+  
+    // 2) lê todos os lotes de estoque (FIFO)
+    const todosLotes = await listarEstoque()
+  
+    // 3) distribui a dedução entre os lotes de cada item
+    for (const item of itens as (PedidoItem & { unidade?: string })[]) {
+      let remaining = item.qtd
+  
+      const lotesProduto = todosLotes
+        .filter(l => l.produtoId === item.id)
+        .sort((a, b) =>
+          a.inseridoEm.toDate().getTime() - b.inseridoEm.toDate().getTime()
+        )
+  
+      for (const lote of lotesProduto) {
+        if (remaining <= 0) break
+  
+        const deduzir = Math.min(lote.quantidade, remaining)
+        const novaQtd = lote.quantidade - deduzir
+  
+        // 3a) atualiza ou remove o lote
+        await ajustarQuantidade(lote.id, novaQtd)
+  
+        // 3b) registra no histórico com ajuste negativo
+        await registrarHistoricoEstoque({
+          produtoId: lote.produtoId,
+          nome: item.nome,
+          ajuste: -deduzir,
+          motivo: 'Venda',
+        })
+  
+        remaining -= deduzir
+      }
+    }
+  
+    // 4) limpa estado e recarrega
+    setOrderNumber(prev => prev + 1)
+    alert('Pedido finalizado!')
+    setItens([])
+    setSaleType(null)
+    setFormaPagamento('')
+    setClienteId('')
+    setShowFinalModal(false)
+    await carregar()
+  }
 
 
   const resumoVendasHoje = useMemo(() => {
