@@ -47,7 +47,7 @@ export interface Agendamento {
   formaPagamento: string
   itens: PedidoItem[]
   total: number
-  status: 'pendente' | 'confirmado' | 'cancelado'
+  status: 'pendente' | 'confirmado' | 'cancelado' | 'finalizado'
   pago?: boolean               // adiciona propriedade `pago`
   localEntrega?: string        // adiciona propriedade `localEntrega`
   confirmado?: boolean
