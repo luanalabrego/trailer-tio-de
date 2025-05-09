@@ -28,8 +28,11 @@ export default function HistoricoAgendamentosPage() {
       const raw = d.data() as DocumentData
       const dataCriacaoTs: Timestamp =
         (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
-      // use `d.updateTime` as momento de cancelamento/finalização
-      const finishedAt = (d.updateTime as Timestamp) ?? dataCriacaoTs
+      // determina timestamp de finalização ou cancelamento
+      const finishedAt: Timestamp =
+        (raw.finalizadoEm as Timestamp) ??
+        (raw.canceladoEm as Timestamp) ??
+        dataCriacaoTs
 
       return {
         id: d.id,
@@ -67,7 +70,6 @@ export default function HistoricoAgendamentosPage() {
       }
       if (endDate) {
         const end = new Date(endDate)
-        // inclui todo o dia
         end.setHours(23, 59, 59, 999)
         if (fin > end) return false
       }

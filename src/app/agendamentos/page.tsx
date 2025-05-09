@@ -7,6 +7,7 @@ import {
   getDocs,
   updateDoc,
   doc,
+  serverTimestamp,
   Timestamp,
   DocumentData,
 } from 'firebase/firestore'
@@ -75,11 +76,8 @@ export default function AgendamentosPage() {
   function toggle(id: string) {
     setExpanded(prev => {
       const s = new Set(prev)
-      if (s.has(id)) {
-        s.delete(id)
-      } else {
-        s.add(id)
-      }
+      if (s.has(id)) s.delete(id)
+      else s.add(id)
       return s
     })
   }
@@ -87,11 +85,7 @@ export default function AgendamentosPage() {
   function formatarData(dt?: Timestamp | Date | string): string {
     if (!dt) return 'Inválida'
     const date =
-      dt instanceof Timestamp
-        ? dt.toDate()
-        : dt instanceof Date
-        ? dt
-        : new Date(dt)
+      dt instanceof Timestamp ? dt.toDate() : dt instanceof Date ? dt : new Date(dt)
     if (isNaN(date.getTime())) return 'Inválida'
     return date.toLocaleString('pt-BR', {
       dateStyle: 'short',
@@ -126,7 +120,10 @@ export default function AgendamentosPage() {
 
   async function handleCancelarPedido(ag: Agendamento) {
     if (!confirm('Tem certeza que deseja cancelar este pedido?')) return
-    await updateDoc(doc(db, 'agendamentos', ag.id), { status: 'cancelado' })
+    await updateDoc(doc(db, 'agendamentos', ag.id), {
+      status: 'cancelado',
+      canceladoEm: serverTimestamp(),
+    })
     await carregar()
   }
 
@@ -142,7 +139,10 @@ export default function AgendamentosPage() {
       pago: Boolean(ag.pago),
     }
     await registrarVenda(venda)
-    await updateDoc(doc(db, 'agendamentos', ag.id), { status: 'finalizado' })
+    await updateDoc(doc(db, 'agendamentos', ag.id), {
+      status: 'finalizado',
+      finalizadoEm: serverTimestamp(),
+    })
     if (!ag.pago) {
       enviarWhatsApp(
         `Olá ${ag.nome}, seu pedido de ${formatarData(
@@ -154,7 +154,7 @@ export default function AgendamentosPage() {
     await carregar()
   }
 
-  // exibir só os agendamentos que não estão cancelados nem finalizados
+  // somente agendamentos ativos
   const ativos = sortedAgendamentos.filter(
     ag => !['cancelado', 'finalizado'].includes(ag.status)
   )
@@ -186,7 +186,9 @@ export default function AgendamentosPage() {
                     <div className="flex items-center gap-2">
                       <span
                         className={`px-2 py-1 rounded-full text-xs ${
-                          ag.pago ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          ag.pago
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
                         }`}
                       >
                         {ag.pago ? 'Pago' : 'Pendente'}
@@ -209,13 +211,23 @@ export default function AgendamentosPage() {
                       <p className="text-sm text-gray-500">
                         Registrado em: {formatarData(ag.dataCriacao)}
                       </p>
-                      {ag.localEntrega && <p><strong>Local:</strong> {ag.localEntrega}</p>}
-                      {ag.observacao && <p><strong>Obs:</strong> {ag.observacao}</p>}
+                      {ag.localEntrega && (
+                        <p>
+                          <strong>Local:</strong> {ag.localEntrega}
+                        </p>
+                      )}
+                      {ag.observacao && (
+                        <p>
+                          <strong>Obs:</strong> {ag.observacao}
+                        </p>
+                      )}
 
                       <ul className="space-y-2">
                         {ag.itens.map(i => (
                           <li key={i.id} className="flex justify-between">
-                            <span>{i.nome} × {i.qtd}</span>
+                            <span>
+                              {i.nome} × {i.qtd}
+                            </span>
                             <span>R$ {(i.preco * i.qtd).toFixed(2)}</span>
                           </li>
                         ))}
