@@ -43,7 +43,7 @@ export default function Header() {
     Cardápio: [{ name: 'Cardápio', href: '/cardapio' }],
   }
 
-  // Define a ordem exata dos grupos no menu
+  // ordem fixa dos grupos
   const menuOrder = [
     'Dashboard',
     'Caixa',
@@ -63,8 +63,14 @@ export default function Header() {
 
   return (
     <header className="bg-white shadow fixed top-0 w-full z-50">
-      <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4">
-        {/* Logo */}
+      <div
+        className="
+          max-w-7xl mx-auto 
+          flex items-center justify-between h-16 
+          px-4 md:px-0
+        "
+      >
+        {/* Logo e nome mais à esquerda em desktop */}
         <Link href="/" className="flex items-center">
           <Image
             src="/logo.png"
@@ -79,11 +85,11 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Desktop */}
+        {/* Menu Desktop */}
         <nav className="hidden md:flex space-x-6">
           {menuOrder.map(grupo => {
             const links = groupedLinks[grupo] || []
-            if (links.length === 0) return null
+            if (!links.length) return null
 
             if (links.length === 1) {
               const link = links[0]
@@ -148,7 +154,7 @@ export default function Header() {
           </button>
         </nav>
 
-        {/* Mobile toggle */}
+        {/* Toggle Mobile */}
         <div className="md:hidden">
           <button onClick={() => setMenuAberto(prev => !prev)}>
             {menuAberto ? <X size={24} /> : <Menu size={24} />}
@@ -156,12 +162,12 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile dropdown */}
+      {/* Dropdown Mobile */}
       {menuAberto && (
         <div className="md:hidden bg-white shadow-lg px-4 pb-4">
           {menuOrder.map(grupo => {
             const links = groupedLinks[grupo] || []
-            if (links.length === 0) return null
+            if (!links.length) return null
 
             return (
               <div key={grupo} className="mb-2">
