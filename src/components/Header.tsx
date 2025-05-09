@@ -62,7 +62,7 @@ export default function Header() {
             className="w-12 h-12 sm:w-16 sm:h-16"
           />
           <span className="ml-2 text-xl sm:text-2xl font-bold text-gray-800">
-            Trailer Tio Dê
+            Trailer do Tio Dé
           </span>
         </Link>
 

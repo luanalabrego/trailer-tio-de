@@ -32,6 +32,7 @@ export default function ProdutosPage() {
   const [unidade, setUnidade] = useState('')
   const [mlVolume, setMlVolume] = useState('')      // para produtos em ml
   const [controlaEstoque, setControlaEstoque] = useState(false) // novo campo
+  const [disponivel, setDisponivel] = useState(true) // novo campo
   const [imagem, setImagem] = useState<File | null>(null)
 
   const [produtos, setProdutos] = useState<Produto[]>([])
@@ -47,7 +48,8 @@ export default function ProdutosPage() {
   }, [])
 
   async function carregarProdutos() {
-    setProdutos(await listarProdutos())
+    const todos = await listarProdutos()
+    setProdutos(todos)
   }
 
   async function carregarCategorias() {
@@ -63,6 +65,7 @@ export default function ProdutosPage() {
     setUnidade('')
     setMlVolume('')
     setControlaEstoque(false)
+    setDisponivel(true)
     setImagem(null)
     setMostrarModal(true)
   }
@@ -81,6 +84,7 @@ export default function ProdutosPage() {
       setMlVolume('')
     }
     setControlaEstoque(p.controlaEstoque ?? false)
+    setDisponivel(p.disponivel ?? true)
     setImagem(null)
     setMostrarModal(true)
   }
@@ -101,6 +105,7 @@ export default function ProdutosPage() {
           preco: parseFloat(preco),
           unidade: unidadeFinal,
           controlaEstoque,
+          disponivel,
           imagemUrl: produtoSelecionado?.imagemUrl || '',
         },
         imagem ?? undefined
@@ -120,11 +125,29 @@ export default function ProdutosPage() {
     }
   }
 
+  const handleToggleDisponivel = async (p: Produto) => {
+    // só para itens sem controle de estoque
+    if (p.controlaEstoque) return
+    try {
+      await salvarProduto(
+        {
+          ...p,
+          disponivel: !p.disponivel,
+        },
+        undefined
+      )
+      carregarProdutos()
+    } catch (erro) {
+      console.error('❌ erro toggling disponivel', erro)
+    }
+  }
+
   const produtosFiltrados = useMemo(() => {
     return produtos.filter(p => {
       const matchBusca = p.nome.toLowerCase().includes(busca.toLowerCase())
       const matchCat = filtroCat ? p.categoria === filtroCat : true
-      return matchBusca && matchCat
+      const isVisible = p.controlaEstoque || (p.disponivel ?? true)
+      return matchBusca && matchCat && isVisible
     })
   }, [produtos, busca, filtroCat])
 
@@ -198,6 +221,7 @@ export default function ProdutosPage() {
                     <th className="p-3">Nome</th>
                     <th className="p-3">Unidade</th>
                     <th className="p-3">Estoque?</th>
+                    <th className="p-3">Disponível?</th>
                     <th className="p-3">Preço</th>
                     <th className="p-3 text-right">Ações</th>
                   </tr>
@@ -210,6 +234,18 @@ export default function ProdutosPage() {
                         <td className="p-3 font-medium text-gray-800">{p.nome}</td>
                         <td className="p-3">{p.unidade}</td>
                         <td className="p-3">{p.controlaEstoque ? '✔️' : '–'}</td>
+                        <td className="p-3">
+                          {!p.controlaEstoque && (
+                            <button
+                              onClick={() => handleToggleDisponivel(p)}
+                              className={`px-2 py-1 rounded ${
+                                p.disponivel ? 'bg-green-200' : 'bg-gray-200'
+                              }`}
+                            >
+                              {p.disponivel ? 'Sim' : 'Não'}
+                            </button>
+                          )}
+                        </td>
                         <td className="p-3">R$ {p.preco.toFixed(2)}</td>
                         <td className="p-3 text-right flex justify-end gap-2">
                           <button
@@ -239,6 +275,14 @@ export default function ProdutosPage() {
                       className="bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition relative"
                     >
                       <div className="absolute top-2 right-2 flex gap-2">
+                        {!produto.controlaEstoque && (
+                          <button
+                            onClick={() => handleToggleDisponivel(produto)}
+                            className={`w-6 h-6 rounded-full ${
+                              produto.disponivel ? 'bg-green-500' : 'bg-gray-400'
+                            }`}
+                          />
+                        )}
                         <button
                           onClick={() => abrirModalEdicao(produto)}
                           className="text-indigo-600 hover:text-indigo-800"
@@ -352,7 +396,22 @@ export default function ProdutosPage() {
                   <span className="text-sm text-gray-700">Controlar estoque</span>
                 </label>
 
-                {/* botão de selecionar imagem agora em linha separada */}
+                {/* só aparece quando NÃO controla estoque */}
+                {!controlaEstoque && (
+                  <label className="flex items-center gap-2">
+                    <span className="text-sm text-gray-700">Disponível</span>
+                    <button
+                      type="button"
+                      onClick={() => setDisponivel(v => !v)}
+                      className={`px-2 py-1 rounded ${
+                        disponivel ? 'bg-green-200' : 'bg-gray-200'
+                      }`}
+                    >
+                      {disponivel ? 'Sim' : 'Não'}
+                    </button>
+                  </label>
+                )}
+
                 <div>
                   <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200">
                     <Upload size={18} />
