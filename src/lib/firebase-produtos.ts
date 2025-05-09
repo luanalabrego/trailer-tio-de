@@ -8,6 +8,7 @@ import {
   doc,
   QueryDocumentSnapshot,
   DocumentData,
+  Timestamp,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { Produto } from '@/types'
