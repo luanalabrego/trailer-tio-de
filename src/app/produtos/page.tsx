@@ -30,7 +30,7 @@ export default function ProdutosPage() {
   const [categoria, setCategoria] = useState('')
   const [preco, setPreco] = useState('')
   const [unidade, setUnidade] = useState('')
-  const [mlVolume, setMlVolume] = useState('')      // para produtos em ml
+  const [mlVolume, setMlVolume] = useState('')           // para produtos em ml
   const [controlaEstoque, setControlaEstoque] = useState(false) // Novo
   const [imagem, setImagem] = useState<File | null>(null)
 
