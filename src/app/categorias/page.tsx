@@ -48,7 +48,6 @@ export default function CategoriasPage() {
     const nomeTrim = nome.trim()
     if (!nomeTrim) return
 
-    // não permitir duplicatas
     const existe = categorias.some(
       c =>
         c.nome.toLowerCase() === nomeTrim.toLowerCase() &&
@@ -80,7 +79,6 @@ export default function CategoriasPage() {
     }
   }
 
-  // categorias filtradas pela busca
   const categoriasFiltradas = useMemo(
     () =>
       categorias.filter(c =>
@@ -105,7 +103,6 @@ export default function CategoriasPage() {
           </button>
         </div>
 
-        {/* campo de busca */}
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600" size={18} />
           <input
@@ -117,7 +114,6 @@ export default function CategoriasPage() {
           />
         </div>
 
-        {/* Lista de categorias */}
         <ul className="space-y-2">
           {categoriasFiltradas.map(cat => (
             <li
@@ -145,9 +141,8 @@ export default function CategoriasPage() {
           ))}
         </ul>
 
-        {/* Modal de cadastro/edição */}
         {showModal && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
             <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
               <h2 className="text-xl font-bold text-gray-800 mb-4">
                 {editarId ? 'Editar Categoria' : 'Nova Categoria'}
