@@ -17,6 +17,8 @@ import type { Venda, Custo } from '@/types'
 type VendaFirestore = Omit<Venda, 'id'> & { status?: string }
 type CustoFirestore = Omit<Custo, 'id'>
 type CaixaFirestore = { valor: number; data: Timestamp }
+type Metodo = 'todos' | 'pix' | 'cartao' | 'dinheiro' | 'outro'
+
 
 export default function FinanceiroPage() {
   const [vendas, setVendas] = useState<(Venda & { status?: string })[]>([])
@@ -194,7 +196,10 @@ export default function FinanceiroPage() {
               <select
                 className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={filtroMetodo}
-                onChange={e => setFiltroMetodo(e.target.value as any)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  setFiltroMetodo(e.target.value as Metodo)
+                }
+                
               >
                 <option value="todos">Todos</option>
                 <option value="pix">Pix</option>
