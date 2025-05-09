@@ -18,14 +18,17 @@ import { Custo } from '@/types'
 import { Plus, Pencil, Trash2, X as Close, Search as SearchIcon } from 'lucide-react'
 
 export default function CustosPage() {
-  // modal state
+  // para desabilitar o botão enquanto salva
+  const [saving, setSaving] = useState(false)
+
+  // estado do modal
   const [showModal, setShowModal] = useState(false)
   const [tipo, setTipo] = useState('Mercado')
   const [descricaoLivre, setDescricaoLivre] = useState('')
   const [valor, setValor] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  // data state
+  // dados carregados
   const [custos, setCustos] = useState<Custo[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [startDate, setStartDate] = useState<string>(() => {
@@ -43,17 +46,22 @@ export default function CustosPage() {
   }, [])
 
   async function carregar() {
-    const snap = await getDocs(collection(db, 'custos'))
-    const lista = snap.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
-      const data = docSnap.data()
-      return {
-        id: docSnap.id,
-        descricao: data.descricao as string,
-        valor: Number(data.valor),
-        data: data.data as Timestamp,
-      }
-    })
-    setCustos(lista)
+    try {
+      const snap = await getDocs(collection(db, 'custos'))
+      const lista = snap.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+        const data = docSnap.data()
+        return {
+          id: docSnap.id,
+          descricao: data.descricao as string,
+          valor: Number(data.valor),
+          data: data.data as Timestamp,
+        }
+      })
+      setCustos(lista)
+    } catch (err) {
+      console.error('Erro ao carregar custos:', err)
+      alert('Não foi possível carregar os custos. Veja o console.')
+    }
   }
 
   function formatarData(data: Timestamp) {
@@ -92,31 +100,58 @@ export default function CustosPage() {
   async function handleSalvar(e: React.FormEvent) {
     e.preventDefault()
     const desc = tipo === 'Outro' ? descricaoLivre.trim() : tipo
-    if (!desc || !valor) return
-
-    const valorNum = parseFloat(valor)
-    if (editingId) {
-      await updateDoc(doc(db, 'custos', editingId), {
-        descricao: desc,
-        valor: valorNum,
-        data: Timestamp.now(),
-      })
-    } else {
-      await addDoc(collection(db, 'custos'), {
-        descricao: desc,
-        valor: valorNum,
-        data: Timestamp.now(),
-      })
+    if (!desc) {
+      alert('Por favor, informe a descrição do custo.')
+      return
+    }
+    if (!valor) {
+      alert('Por favor, informe o valor do custo.')
+      return
     }
 
-    setShowModal(false)
-    await carregar()
+    const valorNum = parseFloat(valor.replace(',', '.'))
+    if (isNaN(valorNum) || valorNum <= 0) {
+      alert('Informe um valor numérico válido maior que zero.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, 'custos', editingId), {
+          descricao: desc,
+          valor: valorNum,
+          data: Timestamp.now(),
+        })
+        alert('💾 Custo atualizado com sucesso!')
+      } else {
+        await addDoc(collection(db, 'custos'), {
+          descricao: desc,
+          valor: valorNum,
+          data: Timestamp.now(),
+        })
+        alert('💾 Custo registrado com sucesso!')
+      }
+      setShowModal(false)
+      await carregar()
+    } catch (error) {
+      console.error('Erro ao salvar custo:', error)
+      alert('❌ Falha ao salvar o custo. Veja o console para mais detalhes.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleExcluir(id: string) {
     if (!confirm('Deseja realmente excluir este custo?')) return
-    await deleteDoc(doc(db, 'custos', id))
-    await carregar()
+    try {
+      await deleteDoc(doc(db, 'custos', id))
+      alert('🗑️ Custo excluído.')
+      await carregar()
+    } catch (err) {
+      console.error('Erro ao excluir custo:', err)
+      alert('❌ Falha ao excluir o custo. Veja o console.')
+    }
   }
 
   return (
@@ -124,7 +159,7 @@ export default function CustosPage() {
       <Header />
       <div className="pt-20 px-6 xl:px-0 max-w-4xl mx-auto">
 
-        {/* título e botão padronizado */}
+        {/* título e botão */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-semibold text-gray-900">Custos</h1>
           <button
@@ -136,7 +171,7 @@ export default function CustosPage() {
           </button>
         </div>
 
-        {/* busca e filtros */}
+        {/* busca e filtro de datas */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <SearchIcon
@@ -151,7 +186,6 @@ export default function CustosPage() {
               className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
             />
           </div>
-
           <div className="flex gap-4">
             <input
               type="date"
@@ -168,7 +202,7 @@ export default function CustosPage() {
           </div>
         </div>
 
-        {/* lista de custos */}
+        {/* lista */}
         <ul className="space-y-4">
           {custosFiltrados.map((c) => (
             <li
@@ -186,12 +220,14 @@ export default function CustosPage() {
                 <button
                   onClick={() => abrirModal(c)}
                   className="text-indigo-600 hover:text-indigo-800 transition"
+                  title="Editar"
                 >
                   <Pencil size={20} />
                 </button>
                 <button
                   onClick={() => handleExcluir(c.id)}
                   className="text-red-500 hover:text-red-700 transition"
+                  title="Excluir"
                 >
                   <Trash2 size={20} />
                 </button>
@@ -264,9 +300,10 @@ export default function CustosPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition flex items-center gap-1"
+                  disabled={saving}
+                  className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition flex items-center gap-1 disabled:opacity-50"
                 >
-                  <Plus size={16} /> Salvar
+                  <Plus size={16} /> {saving ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>
             </form>
