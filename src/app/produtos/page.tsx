@@ -76,7 +76,7 @@ export default function ProdutosPage() {
       setUnidade('ml')
       setMlVolume(p.unidade.replace(' ml', ''))
     } else {
-      setUnidade(p.unidade)
+      setUnidade(p.unidade || '')
       setMlVolume('')
     }
     setImagem(null)
