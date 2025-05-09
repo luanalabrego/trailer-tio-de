@@ -226,21 +226,24 @@ export default function CardapioPage() {
           a.inseridoEm.toDate().getTime() - b.inseridoEm.toDate().getTime()
         )
   
-      for (const lot of productLots) {
-        if (remaining <= 0) break
-        const toDeduct = Math.min(lot.quantidade, remaining)
-        // ajusta lote
-        await ajustarQuantidade(lot.id, lot.quantidade - toDeduct)
-        // registra no histórico
-        await registrarHistoricoEstoque({
-          produtoId: lot.produtoId,
-          nome: item.nome,
-          ajuste: -toDeduct,
-          motivo: 'Venda',
-        })
-        remaining -= toDeduct
-      }
-    }
+        for (const lot of productLots) {
+          if (remaining <= 0) break
+          const toDeduct = Math.min(lot.quantidade, remaining)
+        
+          // 1) ajusta o lote
+          await ajustarQuantidade(lot.id, lot.quantidade - toDeduct)
+        
+          // 2) registra no histórico (precisa do criadoEm!)
+          await registrarHistoricoEstoque({
+            produtoId: lot.produtoId,
+            nome: item.nome,
+            ajuste: -toDeduct,
+            motivo: 'Venda',
+            criadoEm: Timestamp.now(),    // ← adicionado
+          })
+        
+          remaining -= toDeduct
+        }
   
     // 4) re-calcula o stockCounts local para UI
     const updatedLots = await listarEstoque()
