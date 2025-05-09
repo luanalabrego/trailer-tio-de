@@ -6,6 +6,9 @@ import { registrarVenda, listarVendasDoDia } from '@/lib/firebase-caixa'
 import { listarClientes, cadastrarCliente } from '@/lib/firebase-clientes'
 import { listarProdutos } from '@/lib/firebase-produtos'
 import { Plus } from 'lucide-react'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { db } from '@/firebase/firebase'
+
 import type { Cliente, Produto, PedidoItem, Venda as VendaType } from '@/types'
 
 // estende VendaType para incluir orderNumber
@@ -192,6 +195,18 @@ export default function CaixaPage() {
       total,
       pago: saleType === 'paid',
     })
+
+    for (const item of itens) {
+      const prodRef = doc(db, 'produtos', item.id)
+      const prodSnap = await getDoc(prodRef)
+      if (prodSnap.exists()) {
+        const data = prodSnap.data()
+        if (data.controlaEstoque) {
+          const novoEstoque = (data.estoque ?? 0) - item.qtd
+          await updateDoc(prodRef, { estoque: novoEstoque })
+        }
+      }
+    }
 
     setOrderNumber(prev => prev + 1)
     alert('Pedido finalizado!')
