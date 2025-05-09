@@ -11,7 +11,7 @@ import {
   Timestamp,
   DocumentData,
 } from 'firebase/firestore'
-import { Header } from '@/components/Header'
+import Header from '@/components/Header'
 import { Agendamento, Cliente, PedidoItem, Venda } from '@/types'
 import { listarClientes } from '@/lib/firebase-clientes'
 import { registrarVenda } from '@/lib/firebase-caixa'

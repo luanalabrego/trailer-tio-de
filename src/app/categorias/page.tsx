@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { Header } from '@/components/Header'
+import Header from '@/components/Header'
 import {
   listarCategorias,
   salvarCategoria,

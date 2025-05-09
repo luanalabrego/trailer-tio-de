@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { Header } from '@/components/Header'
+import Header from '@/components/Header'
 import { registrarVenda, listarVendasDoDia } from '@/lib/firebase-caixa'
 import { listarClientes, cadastrarCliente } from '@/lib/firebase-clientes'
 import { listarProdutos } from '@/lib/firebase-produtos'
