@@ -7,6 +7,7 @@ import { listarVendasDoDia, listarHistoricoVendas } from '@/lib/firebase-caixa'
 import { listarEstoque } from '@/lib/firebase-estoque'
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
+import { listarProdutos } from '@/lib/firebase-produtos'
 import type { Agendamento, Venda } from '@/types'
 
 export default function Dashboard() {
@@ -65,15 +66,22 @@ export default function Dashboard() {
     })
 
     // --- Estoque crítico ---
-    const estoque = await listarEstoque()
-    const baixo = estoque.filter(p => p.quantidade < 5)
-    setEstoqueBaixoList(
-      baixo.map(p => ({
-        id: p.id,
-        nome: p.nome,
-        quantidade: p.quantidade,
-      }))
-    )
+const estoque = await listarEstoque()
+const produtos = await listarProdutos()        // ← busco TODOS os produtos
+const baixo = estoque.filter(p => p.quantidade < 5)
+
+setEstoqueBaixoList(
+  baixo.map(p => {
+    // tento achar o produto correspondente
+    const prod = produtos.find(prod => prod.id === p.produtoId)
+    return {
+      id: p.id,
+      nome: prod?.nome ?? `ID:${p.produtoId}`,  // se não achar, exibe o próprio ID
+      quantidade: p.quantidade,
+    }
+  })
+)
+
 
     // --- Agendamentos de hoje ---
     const snapA = await getDocs(collection(db, 'agendamentos'))
