@@ -72,7 +72,7 @@ export default function ProdutosPage() {
     setCategoria(p.categoria)
     setPreco(String(p.preco))
     // separa ml se unidade terminar com " ml"
-    if (p.unidade.endsWith(' ml')) {
+    if (p.unidade?.endsWith(' ml')) {
       setUnidade('ml')
       setMlVolume(p.unidade.replace(' ml', ''))
     } else {
