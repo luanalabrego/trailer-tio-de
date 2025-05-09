@@ -43,7 +43,7 @@ export interface Agendamento {
   id: string
   nome: string
   whatsapp: string
-  dataHora: string
+  dataHora: Timestamp | string | Date
   formaPagamento: string
   itens: PedidoItem[]
   total: number
