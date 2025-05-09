@@ -28,7 +28,6 @@ export default function HistoricoAgendamentosPage() {
       const raw = d.data() as DocumentData
       const dataCriacaoTs: Timestamp =
         (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
-      // determina timestamp de finalização ou cancelamento
       const finishedAt: Timestamp =
         (raw.finalizadoEm as Timestamp) ??
         (raw.canceladoEm as Timestamp) ??
@@ -60,7 +59,6 @@ export default function HistoricoAgendamentosPage() {
     )
   }
 
-  // filtra por período de finishedAt
   const filtered = useMemo(() => {
     return historico.filter(ag => {
       const fin = ag.finishedAt.toDate()
@@ -99,31 +97,34 @@ export default function HistoricoAgendamentosPage() {
         <h1 className="text-2xl font-bold mb-6">Histórico de Agendamentos</h1>
 
         {/* filtros de período */}
-        <div className="mb-6 flex flex-wrap gap-4 items-end">
-          <div>
-            <label className="block text-sm">Data início</label>
+        <div className="bg-white p-4 rounded-xl shadow mb-6 flex flex-wrap gap-4 items-end">
+          <div className="flex flex-col">
+            <label htmlFor="startDate" className="text-sm font-medium text-gray-700 mb-1">
+              Data início
+            </label>
             <input
+              id="startDate"
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className="mt-1 p-2 border rounded"
+              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <div>
-            <label className="block text-sm">Data fim</label>
+          <div className="flex flex-col">
+            <label htmlFor="endDate" className="text-sm font-medium text-gray-700 mb-1">
+              Data fim
+            </label>
             <input
+              id="endDate"
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
-              className="mt-1 p-2 border rounded"
+              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <button
-            onClick={() => {
-              setStartDate('')
-              setEndDate('')
-            }}
-            className="h-fit mt-6 text-sm text-indigo-600 hover:underline"
+            onClick={() => { setStartDate(''); setEndDate('') }}
+            className="h-fit px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             Limpar filtros
           </button>
