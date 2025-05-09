@@ -8,7 +8,7 @@ import { listarProdutos } from '@/lib/firebase-produtos'
 import { Plus } from 'lucide-react'
 
 // substitua ambos estes imports duplicados por um só:
-import { writeBatch, doc, getDoc } from 'firebase/firestore'
+import { writeBatch, doc, increment } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
 
 import type { Cliente, Produto, PedidoItem, Venda as VendaType } from '@/types'
