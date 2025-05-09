@@ -7,10 +7,14 @@ const agendamentosRef = collection(db, 'agendamentos')
 
 export async function salvarAgendamento(dados: NovoAgendamento) {
   // Usa typeof para distinguir string de Date
-  const dataHoraDate: Date =
+    // Depois:
+    const dataHoraDate: Date =
     typeof dados.dataHora === 'string'
       ? new Date(dados.dataHora)
+      : dados.dataHora instanceof Timestamp
+      ? dados.dataHora.toDate()
       : dados.dataHora
+
 
   if (isNaN(dataHoraDate.getTime())) {
     throw new Error(`Data de agendamento inválida: ${dados.dataHora}`)
