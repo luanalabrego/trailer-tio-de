@@ -12,33 +12,24 @@ const PUBLIC_PATHS = [
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // libera qualquer rota pública
+  // 1) libera rotas públicas
   if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
     return NextResponse.next()
   }
 
-  // lê o cookie 'perfil'
+  // 2) exige cookie 'perfil' (login) para todo o resto
   const perfil = req.cookies.get('perfil')?.value
-
-  // se não estiver logado (não houver perfil) redireciona pro login
   if (!perfil) {
     const loginUrl = req.nextUrl.clone()
     loginUrl.pathname = '/login'
     return NextResponse.redirect(loginUrl)
   }
 
-  // bloqueia rotas de ADM para quem não for ADM
-  const adminOnly = ['/financeiro']
-  if (adminOnly.some(p => pathname.startsWith(p)) && perfil !== 'ADM') {
-    const loginUrl = req.nextUrl.clone()
-    loginUrl.pathname = '/login'
-    return NextResponse.redirect(loginUrl)
-  }
-
+  // 3) caso haja perfil, deixa seguir para qualquer página
   return NextResponse.next()
 }
 
 export const config = {
-  // aplica a todas as rotas, exceto _next, api e arquivos estáticos
+  // aplica a todas as rotas, exceto as públicas (_next, api, favicon)
   matcher: ['/((?!_next|api|favicon.ico).*)'],
 }
