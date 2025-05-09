@@ -23,7 +23,7 @@ type VendaUnificada = {
   pago: boolean
   data: Timestamp
   formaPagamento: string
-  cancelado?: boolean   // <-- inclui flag de cancelamento
+  cancelado?: boolean
 }
 
 // type guard para objetos Timestamp-like
@@ -61,7 +61,7 @@ export default function PagamentosPendentesPage() {
       {}
     )
 
-    // vendas normais pendentes
+    // vendas normais pendentes, excluindo cancelados
     const pendentesVendas: VendaUnificada[] = snapVendas.docs
       .map(d => {
         const data = d.data() as DocumentData
@@ -73,10 +73,10 @@ export default function PagamentosPendentesPage() {
           pago: Boolean(data.pago),
           data: data.criadoEm as Timestamp,
           formaPagamento: String(data.formaPagamento),
-          cancelado: false,
+          cancelado: Boolean(data.cancelado),
         }
       })
-      .filter(v => !v.pago)
+      .filter(v => !v.pago && !v.cancelado)
 
     // agendamentos pendentes, excluindo cancelados
     const pendentesAgend: VendaUnificada[] = snapAgends.docs
@@ -93,10 +93,9 @@ export default function PagamentosPendentesPage() {
           pago: Boolean(raw.pago),
           data: raw.dataHora as Timestamp,
           formaPagamento: String(raw.formaPagamento),
-          cancelado: Boolean(raw.cancelado),  // <-- captura flag cancelado
+          cancelado: Boolean(raw.cancelado),
         }
       })
-      // só pendentes e não cancelados
       .filter(a => !a.pago && !a.cancelado)
 
     setVendas([...pendentesVendas, ...pendentesAgend])
@@ -237,7 +236,8 @@ export default function PagamentosPendentesPage() {
                                 <ul className="ml-4 text-sm">
                                   {v.itens.map(i => (
                                     <li key={i.id}>
-                                      {i.nome} × {i.qtd} = R$ {(i.preco * i.qtd).toFixed(2)}
+                                      {i.nome} × {i.qtd} = R${' '}
+                                      {(i.preco * i.qtd).toFixed(2)}
                                     </li>
                                   ))}
                                 </ul>
