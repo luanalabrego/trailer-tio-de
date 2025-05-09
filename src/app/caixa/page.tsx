@@ -196,7 +196,7 @@ export default function CaixaPage() {
   async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
     if (action === 'print') handleImprimir()
     if (action === 'whatsapp') abrirWhatsapp()
-  
+
     // 1) registra a venda
     await registrarVenda({
       orderNumber,
@@ -206,38 +206,44 @@ export default function CaixaPage() {
       total,
       pago: saleType === 'paid',
     })
-  
+
     // 2) lê todos os lotes de estoque (FIFO)
     const todosLotes = await listarEstoque()
-  
+
     // 3) distribui a dedução entre os lotes de cada item
     for (const item of itens as (PedidoItem & { unidade?: string })[]) {
       let remaining = item.qtd
-  
+
       const lotesProduto = todosLotes
         .filter(l => l.produtoId === item.id)
-        .sort((a, b) =>
-          a.inseridoEm.toDate().getTime() - b.inseridoEm.toDate().getTime()
+        .sort(
+          (a, b) =>
+            a.inseridoEm.toDate().getTime() -
+            b.inseridoEm.toDate().getTime()
         )
-  
+
       for (const lote of lotesProduto) {
         if (remaining <= 0) break
-  
+
         const deduzir = Math.min(lote.quantidade, remaining)
         const novaQtd = lote.quantidade - deduzir
-  
+
         // 3a) atualiza ou remove o lote
         await ajustarQuantidade(lote.id, novaQtd)
-  
-        // 3b) registra no histórico com ajuste negativo (incluindo criadoEm)
-await registrarHistoricoEstoque({
-  produtoId: lote.produtoId,
-  nome: item.nome,
-  ajuste: -deduzir,
-  motivo: 'Venda',
-  criadoEm: Timestamp.now(),   // ← aqui
-})
-  
+
+        // 3b) registra no histórico com ajuste negativo
+        await registrarHistoricoEstoque({
+          produtoId: lote.produtoId,
+          nome: item.nome,
+          ajuste: -deduzir,
+          motivo: 'Venda',
+          criadoEm: Timestamp.now(),
+        })
+
+        remaining -= deduzir
+      }
+    }
+
     // 4) limpa estado e recarrega
     setOrderNumber(prev => prev + 1)
     alert('Pedido finalizado!')
@@ -247,8 +253,7 @@ await registrarHistoricoEstoque({
     setClienteId('')
     setShowFinalModal(false)
     await carregar()
-  }
-
+  }  // ← fecha confirmarRegistro
 
   const resumoVendasHoje = useMemo(() => {
     const m = new Map<string, number>()
