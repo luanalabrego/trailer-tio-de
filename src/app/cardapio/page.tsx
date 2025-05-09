@@ -282,15 +282,7 @@ export default function CardapioPage() {
               )
               .map(p => (
                 <div key={p.id} className="bg-white p-2 rounded shadow flex flex-col">
-                  {p.imagemUrl && (
-                    <Image
-                      src={p.imagemUrl}
-                      alt={p.nome}
-                      width={200}
-                      height={100}
-                      className="object-cover rounded mb-1"
-                    />
-                  )}
+                  
                     {p.imagemUrl && (
                       <Image
                         src={p.imagemUrl}
