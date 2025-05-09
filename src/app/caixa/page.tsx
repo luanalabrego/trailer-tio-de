@@ -23,8 +23,8 @@ export default function CaixaPage() {
   const [vendas, setVendas] = useState<Venda[]>([])
 
   // carrinho e busca
-  const [itens, setItens] = useState<PedidoItem[]>([])
-  const [buscaProduto, setBuscaProduto] = useState('')
+  const [itens, setItens] = useState<ItemComUnidade[]>([])
+    const [buscaProduto, setBuscaProduto] = useState('')
   const sugeridos = useMemo(
     () =>
       buscaProduto.trim() === ''
