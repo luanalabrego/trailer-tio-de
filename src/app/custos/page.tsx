@@ -5,11 +5,13 @@ import { db } from '@/firebase/firebase'
 import {
   collection,
   addDoc,
-  getDocs,
-  Timestamp,
   updateDoc,
   deleteDoc,
   doc,
+  Timestamp,
+  onSnapshot,
+  query,
+  orderBy,
   QueryDocumentSnapshot,
   DocumentData,
 } from 'firebase/firestore'
@@ -41,28 +43,31 @@ export default function CustosPage() {
     new Date().toISOString().slice(0, 10)
   )
 
+  // carrega em tempo real
   useEffect(() => {
-    carregar()
+    const q = query(collection(db, 'custos'), orderBy('data', 'desc'))
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        const lista = snapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+          const data = docSnap.data()
+          return {
+            id: docSnap.id,
+            descricao: String(data.descricao),
+            valor: Number(data.valor),
+            data: data.data as Timestamp,
+          }
+        })
+        console.log('✏️ custos atualizados:', lista)
+        setCustos(lista)
+      },
+      (error) => {
+        console.error('❌ erro ao ouvir coleção custos:', error)
+        alert('Falha ao receber atualizações de custos. Veja o console.')
+      }
+    )
+    return () => unsub()
   }, [])
-
-  async function carregar() {
-    try {
-      const snap = await getDocs(collection(db, 'custos'))
-      const lista = snap.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
-        const data = docSnap.data()
-        return {
-          id: docSnap.id,
-          descricao: data.descricao as string,
-          valor: Number(data.valor),
-          data: data.data as Timestamp,
-        }
-      })
-      setCustos(lista)
-    } catch (err) {
-      console.error('Erro ao carregar custos:', err)
-      alert('Não foi possível carregar os custos. Veja o console.')
-    }
-  }
 
   function formatarData(data: Timestamp) {
     return data.toDate().toLocaleDateString('pt-BR')
@@ -132,12 +137,13 @@ export default function CustosPage() {
         })
         alert('💾 Custo registrado com sucesso!')
       }
+
+      // garantir que a lista já veio atualizada antes de fechar
+      setSaving(false)
       setShowModal(false)
-      await carregar()
     } catch (error) {
-      console.error('Erro ao salvar custo:', error)
-      alert('❌ Falha ao salvar o custo. Veja o console para mais detalhes.')
-    } finally {
+      console.error('❌ erro ao salvar custo:', error)
+      alert('Falha ao salvar o custo. Veja o console.')
       setSaving(false)
     }
   }
@@ -147,10 +153,9 @@ export default function CustosPage() {
     try {
       await deleteDoc(doc(db, 'custos', id))
       alert('🗑️ Custo excluído.')
-      await carregar()
     } catch (err) {
-      console.error('Erro ao excluir custo:', err)
-      alert('❌ Falha ao excluir o custo. Veja o console.')
+      console.error('❌ erro ao excluir custo:', err)
+      alert('Falha ao excluir o custo. Veja o console.')
     }
   }
 
