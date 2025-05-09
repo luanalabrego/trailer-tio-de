@@ -7,17 +7,20 @@ import { listarVendasDoDia, listarHistoricoVendas } from '@/lib/firebase-caixa'
 import { listarEstoque } from '@/lib/firebase-estoque'
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
-import type { Agendamento, PedidoItem, Venda } from '@/types'
+import type { Agendamento, Venda, Custo } from '@/types'
 
 export default function Dashboard() {
   const router = useRouter()
 
-  // cards
   const [hojeStats, setHojeStats] = useState({ valor: 0, count: 0 })
   const [ontemStats, setOntemStats] = useState({ valor: 0, count: 0 })
-  const [estoqueBaixoList, setEstoqueBaixoList] = useState<Array<{ id: string; nome: string; quantidade: number }>>([])
+  const [estoqueBaixoList, setEstoqueBaixoList] = useState<
+    { id: string; nome: string; quantidade: number }[]
+  >([])
   const [agendHojeList, setAgendHojeList] = useState<Agendamento[]>([])
-  const [agingPendList, setAgingPendList] = useState<Array<{ id: string; created: Date; total: number }>>([])
+  const [agingPendList, setAgingPendList] = useState<
+    { id: string; created: Date; total: number }[]
+  >([])
 
   useEffect(() => {
     carregarDados()
@@ -25,67 +28,88 @@ export default function Dashboard() {
 
   async function carregarDados() {
     const now = new Date()
-    const hojeStr = now.toISOString().slice(0,10)
-    // stats de hoje
+    const hojeStr = now.toISOString().slice(0, 10)
+
+    // --- Vendas de hoje ---
     const vendasHoje = await listarVendasDoDia()
-    const vendidosHoje = vendasHoje.filter(v => v.pago)
+    const pagosHoje = vendasHoje.filter(v => v.pago)
     setHojeStats({
-      count: vendidosHoje.length,
-      valor: +vendidosHoje.reduce((sum, v) => sum + v.total, 0).toFixed(2),
+      count: pagosHoje.length,
+      valor: +pagosHoje.reduce((sum, v) => sum + v.total, 0).toFixed(2),
     })
-    // stats de ontem
-    const ontem = new Date(now); ontem.setDate(ontem.getDate() - 1)
-    const startOntem = Timestamp.fromDate(new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate(), 0,0,0))
-    const endOntem   = Timestamp.fromDate(new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate(), 23,59,59,999))
-    const snapOntem = await getDocs(query(
-      collection(db,'vendas'),
-      where('criadoEm','>=', startOntem),
-      where('criadoEm','<=', endOntem),
-    ))
-    const listOntem: Venda[] = snapOntem.docs.map(d=>({ id: d.id, ...(d.data() as Omit<Venda,'id'>) }))
-    const vendidosOntem = listOntem.filter(v=> v.pago)
+
+    // --- Vendas de ontem ---
+    const ontem = new Date(now)
+    ontem.setDate(ontem.getDate() - 1)
+    const inicioOntem = Timestamp.fromDate(
+      new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate(), 0, 0, 0)
+    )
+    const fimOntem = Timestamp.fromDate(
+      new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate(), 23, 59, 59, 999)
+    )
+    const snapOntem = await getDocs(
+      query(
+        collection(db, 'vendas'),
+        where('criadoEm', '>=', inicioOntem),
+        where('criadoEm', '<=', fimOntem)
+      )
+    )
+    const listOntem: Venda[] = snapOntem.docs.map(d => ({
+      id: d.id,
+      ...(d.data() as Omit<Venda, 'id'>),
+    }))
+    const pagosOntem = listOntem.filter(v => v.pago)
     setOntemStats({
-      count: vendidosOntem.length,
-      valor: +vendidosOntem.reduce((sum,v)=> sum + v.total,0).toFixed(2),
+      count: pagosOntem.length,
+      valor: +pagosOntem.reduce((sum, v) => sum + v.total, 0).toFixed(2),
     })
 
-    // estoque baixo
+    // --- Estoque crítico ---
     const estoque = await listarEstoque()
-    const baixo = estoque.filter(p=> p.quantidade < 5)
-    setEstoqueBaixoList( abaixo => baixo.map(p=>({
-      id: p.id, nome: p.nome, quantidade: p.quantidade
-    })))
+    const baixo = estoque.filter(p => p.quantidade < 5)
+    setEstoqueBaixoList(
+      baixo.map(p => ({
+        id: p.id,
+        nome: p.nome,
+        quantidade: p.quantidade,
+      }))
+    )
 
-    // agendamentos de hoje
-    const snapA = await getDocs(collection(db,'agendamentos'))
-    const rawA = snapA.docs.map(d=> d.data() as Agendamento)
-    const agHoje = rawA.filter(a=>{
-      const dt = a.dataHora instanceof Timestamp
-        ? a.dataHora.toDate()
-        : a.dataHora instanceof Date
-        ? a.dataHora
-        : new Date(a.dataHora)
-      return dt.toISOString().slice(0,10) === hojeStr && a.status !== 'cancelado'
+    // --- Agendamentos de hoje ---
+    const snapA = await getDocs(collection(db, 'agendamentos'))
+    const rawA = snapA.docs.map(d => d.data() as Agendamento)
+    const agHoje = rawA.filter(a => {
+      if (a.status === 'cancelado') return false
+      const dt =
+        a.dataHora instanceof Timestamp
+          ? a.dataHora.toDate()
+          : a.dataHora instanceof Date
+          ? a.dataHora
+          : new Date(a.dataHora)
+      return dt.toISOString().slice(0, 10) === hojeStr
     })
     setAgendHojeList(agHoje)
 
-    // aging pendentes > 10 dias
+    // --- Aging de pendências >10 dias ---
     const hist = await listarHistoricoVendas()
-    const tenDays = new Date(); tenDays.setDate(tenDays.getDate()-10)
+    const dezDias = new Date()
+    dezDias.setDate(dezDias.getDate() - 10)
     const pendAging = hist
-      .filter(v=> !v.pago && v.clienteId) // pendente
-      .filter(v=>{
-        const dt = v.criadoEm instanceof Timestamp
-          ? v.criadoEm.toDate()
-          : new Date(v.criadoEm)
-        return dt < tenDays
+      .filter(v => !v.pago)
+      .filter(v => {
+        const dt =
+          v.criadoEm instanceof Timestamp
+            ? v.criadoEm.toDate()
+            : new Date(v.criadoEm)
+        return dt < dezDias
       })
-      .map(v=>({
+      .map(v => ({
         id: v.id,
-        created: v.criadoEm instanceof Timestamp
-          ? v.criadoEm.toDate()
-          : new Date(v.criadoEm),
-        total: v.total
+        created:
+          v.criadoEm instanceof Timestamp
+            ? v.criadoEm.toDate()
+            : new Date(v.criadoEm),
+        total: v.total,
       }))
     setAgingPendList(pendAging)
   }
@@ -93,25 +117,25 @@ export default function Dashboard() {
   const cards = [
     {
       title: 'Vendas Ontem',
-      value: `${ontemStats.count} pedido${ontemStats.count!==1?'s':''} • R$ ${ontemStats.valor.toFixed(2)}`,
+      value: `${ontemStats.count} pedido${ontemStats.count !== 1 ? 's' : ''} • R$ ${ontemStats.valor.toFixed(2)}`,
       bg: 'bg-purple-100',
       route: '/caixa',
     },
     {
       title: 'Vendas Hoje',
-      value: `${hojeStats.count} pedido${hojeStats.count!==1?'s':''} • R$ ${hojeStats.valor.toFixed(2)}`,
+      value: `${hojeStats.count} pedido${hojeStats.count !== 1 ? 's' : ''} • R$ ${hojeStats.valor.toFixed(2)}`,
       bg: 'bg-green-100',
       route: '/caixa',
     },
     {
-      title: 'Estoque Baixo',
-      value: `${estoqueBaixoList.length} produto${estoqueBaixoList.length!==1?'s':''}`,
+      title: 'Estoque Crítico',
+      value: `${estoqueBaixoList.length} produto${estoqueBaixoList.length !== 1 ? 's' : ''}`,
       bg: 'bg-yellow-100',
       route: '/estoque',
     },
     {
       title: 'Pendências >10 dias',
-      value: `${agingPendList.length} pedido${agingPendList.length!==1?'s':''}`,
+      value: `${agingPendList.length} pedido${agingPendList.length !== 1 ? 's' : ''}`,
       bg: 'bg-red-100',
       route: '/pagamentos-pendentes',
     },
@@ -123,12 +147,12 @@ export default function Dashboard() {
       <div className="min-h-screen bg-gray-50 pt-20 px-6">
         <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
 
-        {/* cards summary */}
+        {/* Cards principais */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {cards.map((c,i)=>(
+          {cards.map((c, i) => (
             <div
               key={i}
-              onClick={()=>router.push(c.route)}
+              onClick={() => router.push(c.route)}
               className={`${c.bg} cursor-pointer p-6 rounded-xl shadow hover:shadow-lg transition`}
             >
               <h2 className="text-gray-700 text-sm font-medium">{c.title}</h2>
@@ -137,7 +161,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* agendamentos de hoje */}
+        {/* Agendamentos de hoje */}
         <div className="bg-white p-6 rounded-xl shadow mb-8">
           <h2 className="text-xl font-semibold mb-4">Agendamentos de Hoje</h2>
           {agendHojeList.length === 0 ? (
@@ -145,15 +169,18 @@ export default function Dashboard() {
           ) : (
             <ul className="space-y-2">
               {agendHojeList.map(a => {
-                const dt = a.dataHora instanceof Timestamp
-                  ? a.dataHora.toDate()
-                  : a.dataHora instanceof Date
-                  ? a.dataHora
-                  : new Date(a.dataHora)
+                const dt =
+                  a.dataHora instanceof Timestamp
+                    ? a.dataHora.toDate()
+                    : a.dataHora instanceof Date
+                    ? a.dataHora
+                    : new Date(a.dataHora)
                 return (
                   <li key={a.id} className="flex justify-between">
                     <span>{a.nome}</span>
-                    <span className="text-sm text-gray-600">{dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
+                    <span className="text-sm text-gray-600">
+                      {dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </li>
                 )
               })}
@@ -161,7 +188,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* produtos com estoque baixo */}
+        {/* Estoque Crítico */}
         <div className="bg-white p-6 rounded-xl shadow mb-8">
           <h2 className="text-xl font-semibold mb-4">Estoque Crítico</h2>
           {estoqueBaixoList.length === 0 ? (
@@ -178,9 +205,9 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* aging pendências */}
+        {/* Aging de Pendências */}
         <div className="bg-white p-6 rounded-xl shadow mb-8">
-          <h2 className="text-xl font-semibold mb-4">Pendências Antigas (>10 dias)</h2>
+          <h2 className="text-xl font-semibold mb-4">Pendências Antigas (&gt;10 dias)</h2>
           {agingPendList.length === 0 ? (
             <p className="text-gray-500">Sem pendências antigas.</p>
           ) : (
