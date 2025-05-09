@@ -314,6 +314,7 @@ export default function CardapioPage() {
                       <input
                         type="number"
                         min={1}
+                        max={stockCounts[p.id] ?? 1}               /* ← limite pelo estoque */
                         value={quantidades[p.id] || 1}
                         onChange={e =>
                           setQuantidades(q => ({
@@ -326,6 +327,7 @@ export default function CardapioPage() {
                     </div>
                     <button
                       onClick={() => adicionarAoCarrinho(p)}
+                      disabled={(quantidades[p.id] || 1) > (stockCounts[p.id] ?? 0)}  /* ← desabilita além do max */
                       className="mt-auto bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700"
                     >
                       Adicionar
