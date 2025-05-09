@@ -533,8 +533,8 @@ export default function CardapioPage() {
         </>
       )}
 
-      {/* modal */}
-      {showModal && (
+            {/* modal */}
+            {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
             {modalStep === 'phone' ? (
@@ -610,6 +610,6 @@ export default function CardapioPage() {
           </div>
         </div>
       )}
-    </div>
-  )
-}
+    </div>   {/* fecha o <div className="min-h-screen…"> */}
+  );      {/* fecha o return(...) */}
+}         {/* fecha a função CardapioPage */}
