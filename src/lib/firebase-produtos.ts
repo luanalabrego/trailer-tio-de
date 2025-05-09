@@ -8,7 +8,7 @@ import {
   doc,
   QueryDocumentSnapshot,
   DocumentData,
-  Timestamp,
+  Timestamp,            // ← adicionado aqui
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { Produto } from '@/types'
@@ -34,8 +34,8 @@ export async function listarProdutos(): Promise<Produto[]> {
         controlaEstoque: Boolean(data.controlaEstoque),
         estoque: data.estoque as number | undefined,
         imagemUrl: (data.imagemUrl as string) || '',
-        criadoEm: data.criadoEm,
-        atualizadoEm: data.atualizadoEm,
+        criadoEm: data.criadoEm as Timestamp | undefined,
+        atualizadoEm: data.atualizadoEm as Timestamp | undefined,
       }
     })
   } catch (err) {
@@ -70,7 +70,7 @@ export async function salvarProduto(
       unidade: p.unidade,              // 'ml' | 'kg' | 'porcao' | 'un'
       controlaEstoque: p.controlaEstoque ?? false,
       imagemUrl,
-      atualizadoEm: Timestamp.now(),
+      atualizadoEm: Timestamp.now(),   // ← agora válido
     }
 
     // 3) Update ou create
@@ -81,7 +81,7 @@ export async function salvarProduto(
       // se for novo produto, inclui criadoEm
       await addDoc(colecao, {
         ...dados,
-        criadoEm: Timestamp.now(),
+        criadoEm: Timestamp.now(),     // ← idem
       })
     }
   } catch (err) {
