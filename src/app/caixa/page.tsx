@@ -487,8 +487,8 @@ export default function CaixaPage() {
         </div>
       )}
 
-      {/* modal novo cliente */}
-      {mostrarModalCliente && (
+            {/* modal novo cliente */}
+            {mostrarModalCliente && (
         <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
             <h2 className="text-xl font-bold mb-4">Novo Cliente</h2>
@@ -550,6 +550,6 @@ export default function CaixaPage() {
           </div>
         </div>
       )}
-    </>   {/* fecha o Fragment do JSX */}
-  );     {/* fecha o return( … ) */}
-}       {/* fecha a função CaixaPage */}
+    </>
+  );
+}
