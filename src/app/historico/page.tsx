@@ -22,7 +22,7 @@ export default function HistoricoAgendamentosPage() {
     const snap = await getDocs(collection(db, 'agendamentos'))
     const todos = snap.docs.map(d => {
       const raw = d.data() as DocumentData
-      const dataCriacaoTs: Timestamp = 
+      const dataCriacaoTs: Timestamp =
         (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
 
       return {
@@ -35,7 +35,7 @@ export default function HistoricoAgendamentosPage() {
         formaPagamento: String(raw.formaPagamento),
         total: Number(raw.total),
         pago: Boolean(raw.pago),
-        status: raw.status as
+        status: String(raw.status) as
           | 'pendente'
           | 'confirmado'
           | 'cancelado'
@@ -73,8 +73,11 @@ export default function HistoricoAgendamentosPage() {
       <Header />
       <div className="pt-20 px-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Histórico de Agendamentos</h1>
+
         {historico.length === 0 ? (
-          <p className="text-gray-600">Nenhum agendamento concluído ou cancelado.</p>
+          <p className="text-gray-600">
+            Nenhum agendamento concluído ou cancelado.
+          </p>
         ) : (
           <ul className="space-y-4">
             {historico.map(ag => (
@@ -96,12 +99,12 @@ export default function HistoricoAgendamentosPage() {
                     {ag.status.toUpperCase()}
                   </span>
                 </div>
+
                 <p className="text-sm text-gray-600">
                   Total: <strong>R$ {ag.total.toFixed(2)}</strong>
                 </p>
-                <p className="text-sm">
-                  Itens:
-                </p>
+
+                <p className="text-sm">Itens:</p>
                 <ul className="ml-4 list-disc text-sm">
                   {ag.itens.map(i => (
                     <li key={i.id}>
@@ -109,6 +112,7 @@ export default function HistoricoAgendamentosPage() {
                     </li>
                   ))}
                 </ul>
+
                 {ag.localEntrega && (
                   <p className="text-sm">
                     <strong>Entrega em:</strong> {ag.localEntrega}
