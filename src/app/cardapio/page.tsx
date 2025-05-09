@@ -147,20 +147,44 @@ export default function CardapioPage() {
       })
     )
 
-  const adicionarAoCarrinho = (p: Produto) => {
-    const qtd = quantidades[p.id] || 1
-    setCarrinho(prev => {
-      const exists = prev.find(i => i.id === p.id)
-      if (exists) {
-        return prev.map(i =>
-          i.id === p.id ? { ...i, qtd: i.qtd + qtd } : i
-        )
+    const adicionarAoCarrinho = (p: Produto) => {
+      const qtd = quantidades[p.id] || 1
+      const disponivel = stockCounts[p.id] ?? 0
+    
+      // 1️⃣ bloqueia se pedir mais que o disponível
+      if (qtd > disponivel) {
+        alert(`Só temos ${disponivel} unidade(s) de ${p.nome} em estoque.`)
+        return
       }
-      return [...prev, { id: p.id, nome: p.nome, preco: p.preco, qtd }]
-    })
-    setQuantidades(q => ({ ...q, [p.id]: 1 }))
-    alert('Item adicionado ao carrinho')
-  }
+    
+      setCarrinho(prev => {
+        const exists = prev.find(i => i.id === p.id)
+        if (exists) {
+          const novoTotal = exists.qtd + qtd
+          // 2️⃣ bloqueia se somar ultrapassar estoque
+          if (novoTotal > disponivel) {
+            alert(`Você já tem ${exists.qtd} no carrinho e só temos ${disponivel} disponíveis.`)
+            return prev
+          }
+          return prev.map(i =>
+            i.id === p.id ? { ...i, qtd: novoTotal } : i
+          )
+        }
+        return [...prev, { id: p.id, nome: p.nome, preco: p.preco, qtd }]
+      })
+    
+      // 3️⃣ atualiza estoque local para refletir no menu
+      setStockCounts(prev => ({
+        ...prev,
+        [p.id]: disponivel - qtd
+      }))
+    
+      // reset do contador de input
+      setQuantidades(q => ({ ...q, [p.id]: 1 }))
+    
+      alert('Item adicionado ao carrinho')
+    }
+    
 
   const total = carrinho.reduce((sum, i) => sum + i.preco * i.qtd, 0)
 
