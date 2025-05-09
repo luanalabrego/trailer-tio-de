@@ -10,6 +10,7 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { Agendamento, PedidoItem } from '@/types'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function HistoricoAgendamentosPage() {
   const [historico, setHistorico] = useState<
@@ -17,6 +18,7 @@ export default function HistoricoAgendamentosPage() {
   >([])
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
+  const [showFilters, setShowFilters] = useState<boolean>(false)
 
   useEffect(() => {
     carregarHistorico()
@@ -78,10 +80,7 @@ export default function HistoricoAgendamentosPage() {
         }
         return true
       })
-      .sort(
-        (a, b) =>
-          b.finishedAt.toMillis() - a.finishedAt.toMillis()
-      )
+      .sort((a, b) => b.finishedAt.toMillis() - a.finishedAt.toMillis())
   }, [historico, startDate, endDate])
 
   function formatarData(dt?: Timestamp | string | Date): string {
@@ -103,41 +102,54 @@ export default function HistoricoAgendamentosPage() {
       <Header />
 
       <main className="pt-20 px-4 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Histórico de Agendamentos</h1>
-
-        {/* filtros de período lado a lado */}
-        <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4 items-end overflow-x-auto">
-          <div className="flex-1 min-w-[140px]">
-            <label
-              htmlFor="startDate"
-              className="text-sm font-medium text-gray-700 mb-1 block"
-            >
-              Data início
-            </label>
-            <input
-              id="startDate"
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-          <div className="flex-1 min-w-[140px]">
-            <label
-              htmlFor="endDate"
-              className="text-sm font-medium text-gray-700 mb-1 block"
-            >
-              Data fim
-            </label>
-            <input
-              id="endDate"
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">Histórico de Agendamentos</h1>
+          <button
+            onClick={() => setShowFilters(f => !f)}
+            className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+          >
+            {showFilters ? (
+              <ChevronUp size={20} />
+            ) : (
+              <ChevronDown size={20} />
+            )}
+          </button>
         </div>
+
+        {showFilters && (
+          <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4 items-end overflow-x-auto">
+            <div className="flex-1 min-w-[140px]">
+              <label
+                htmlFor="startDate"
+                className="text-sm font-medium text-gray-700 mb-1 block"
+              >
+                Data início
+              </label>
+              <input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div className="flex-1 min-w-[140px]">
+              <label
+                htmlFor="endDate"
+                className="text-sm font-medium text-gray-700 mb-1 block"
+              >
+                Data fim
+              </label>
+              <input
+                id="endDate"
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+        )}
 
         {filtered.length === 0 ? (
           <p className="text-gray-600">
