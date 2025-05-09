@@ -30,7 +30,9 @@ export default function EstoquePage() {
   // formulário de adicionar/atualizar
   const [produtoSelecionado, setProdutoSelecionado] = useState<string>('')
   const [quantidade, setQuantidade] = useState(0)
-  const [validade, setValidade] = useState(new Date().toISOString().slice(0, 10))
+  const [validade, setValidade] = useState(
+    new Date().toISOString().slice(0, 10)
+  )
 
   // formulário de remoção
   const [produtoRemover, setProdutoRemover] = useState<string>('')
@@ -49,6 +51,19 @@ export default function EstoquePage() {
 
     // carrega lotes
     setItens(await listarEstoque())
+  }
+
+  // limpa campos do modal de adicionar
+  function resetAddForm() {
+    setProdutoSelecionado('')
+    setQuantidade(0)
+    setValidade(new Date().toISOString().slice(0, 10))
+  }
+
+  // abrir modal de adicionar com campos zerados
+  function openAddModal() {
+    resetAddForm()
+    setShowAddModal(true)
   }
 
   // resumo agrupado por produtoId
@@ -148,7 +163,7 @@ export default function EstoquePage() {
           <h1 className="text-2xl font-bold mb-4 sm:mb-0">Estoque</h1>
           <div className="flex gap-2">
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={openAddModal}
               className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
             >
               <Plus size={18} /> Adicionar/Atualizar
