@@ -1,38 +1,41 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import Header from '@/components/Header'
-import { db } from '@/firebase/firebase'
+import { Plus, Minus, X as Close, Search } from 'lucide-react'
 import {
-  collection,
-  getDocs,
-  Timestamp,
-  DocumentData,
-  query,
-  orderBy,
-  where
-} from 'firebase/firestore'
+  listarEstoque,
+  criarOuAtualizarItemEstoque,
+  ajustarQuantidade,
+  registrarHistoricoEstoque,
+  EstoqueItem,
+} from '@/lib/firebase-estoque'
 import { RegistroEstoque } from '@/types'
 
-
-
 export default function EstoquePage() {
+  // Estoque
   const [itens, setItens] = useState<EstoqueItem[]>([])
+
+  // Modais
   const [showAddModal, setShowAddModal] = useState(false)
   const [showRemoveModal, setShowRemoveModal] = useState(false)
 
-  const [detalhesVisiveis, setDetalhesVisiveis] = useState<string[]>([])
+  // Busca e detalhes
   const [busca, setBusca] = useState('')
+  const [detalhesVisiveis, setDetalhesVisiveis] = useState<string[]>([])
 
+  // Formulário de adicionar/atualizar
   const [isNewItem, setIsNewItem] = useState(false)
   const [nome, setNome] = useState('')
   const [quantidade, setQuantidade] = useState(0)
-  const [validade, setValidade] = useState(new Date().toISOString().slice(0, 10))
+  const [validade, setValidade] = useState(
+    new Date().toISOString().slice(0, 10)
+  )
 
-  // remoção
+  // Formulário de remoção
   const [nomeRemover, setNomeRemover] = useState('')
   const [quantidadeRemover, setQuantidadeRemover] = useState(1)
-  const [motivoRemocao, setMotivoRemocao] = useState('')  // novo estado para motivo
+  const [motivoRemocao, setMotivoRemocao] = useState('')
 
   useEffect(() => {
     carregar()
@@ -49,14 +52,12 @@ export default function EstoquePage() {
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
-    const dataInsercao = new Date()
-    const [y2, m2, d2] = validade.split('-').map(Number)
-    const dataVal = new Date(y2, m2 - 1, d2)
+    const [y, m, d] = validade.split('-').map(Number)
     await criarOuAtualizarItemEstoque(
       nome.trim(),
       quantidade,
-      dataInsercao,
-      dataVal
+      new Date(),
+      new Date(y, m - 1, d)
     )
     resetAddForm()
     carregar()
@@ -67,28 +68,30 @@ export default function EstoquePage() {
     let remaining = quantidadeRemover
     const lotes = itens
       .filter(i => i.nome === nomeRemover)
-      .sort((a, b) =>
-        (a.inseridoEm?.toDate?.() ?? new Date()).getTime() -
-        (b.inseridoEm?.toDate?.() ?? new Date()).getTime()
+      .sort(
+        (a, b) =>
+          a.inseridoEm.toDate().getTime() -
+          b.inseridoEm.toDate().getTime()
       )
+
     for (const lote of lotes) {
       if (remaining <= 0) break
       const disponivel = lote.quantidade
       const deduzir = Math.min(disponivel, remaining)
 
-      // 1) ajusta o estoque
+      // Atualiza estoque
       await ajustarQuantidade(lote.id, disponivel - deduzir)
-      // 2) registra no histórico
+      // Registra histórico com motivo
       await registrarHistoricoEstoque({
         produtoId: lote.id,
         nome: lote.nome,
         ajuste: -deduzir,
         motivo: motivoRemocao,
-        // criadoEm será Timestamp.now() dentro da função
       } as Omit<RegistroEstoque, 'id'>)
 
       remaining -= deduzir
     }
+
     resetRemoveForm()
     carregar()
   }
@@ -109,25 +112,29 @@ export default function EstoquePage() {
   }
 
   const resumo = useMemo(() => {
-    const map = new Map<string, number>()
-    itens.forEach(item => {
-      map.set(item.nome, (map.get(item.nome) || 0) + item.quantidade)
-    })
-    return Array.from(map.entries()).map(([nome, total]) => ({ nome, total }))
+    const mapa = new Map<string, number>()
+    itens.forEach(i =>
+      mapa.set(i.nome, (mapa.get(i.nome) || 0) + i.quantidade)
+    )
+    return Array.from(mapa.entries()).map(([nome, total]) => ({
+      nome,
+      total,
+    }))
   }, [itens])
 
   const resumoFiltrado = useMemo(
-    () => resumo.filter(r =>
-      r.nome.toLowerCase().includes(busca.toLowerCase())
-    ),
+    () =>
+      resumo.filter(r =>
+        r.nome.toLowerCase().includes(busca.toLowerCase())
+      ),
     [resumo, busca]
   )
 
-  function toggleDetalhes(nome: string) {
+  function toggleDetalhes(n: string) {
     setDetalhesVisiveis(prev =>
-      prev.includes(nome)
-        ? prev.filter(n => n !== nome)
-        : [...prev, nome]
+      prev.includes(n)
+        ? prev.filter(x => x !== n)
+        : [...prev, n]
     )
   }
 
@@ -135,8 +142,7 @@ export default function EstoquePage() {
     <>
       <Header />
       <div className="pt-20 px-4 max-w-4xl mx-auto">
-
-        {/* Título e Ações */}
+        {/* Cabeçalho e Ações */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
           <h1 className="text-2xl font-bold mb-4 sm:mb-0">Estoque</h1>
           <div className="flex gap-2">
@@ -157,7 +163,10 @@ export default function EstoquePage() {
 
         {/* Busca */}
         <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600" size={18}/>
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600"
+            size={18}
+          />
           <input
             type="text"
             placeholder="Buscar item..."
@@ -169,7 +178,9 @@ export default function EstoquePage() {
 
         {/* Resumo de Estoque */}
         <div className="mb-6 bg-white p-4 rounded-xl shadow">
-          <h2 className="text-xl font-semibold mb-3">Resumo de Estoque</h2>
+          <h2 className="text-xl font-semibold mb-3">
+            Resumo de Estoque
+          </h2>
           <ul className="space-y-2">
             {resumoFiltrado.map(r => (
               <li key={r.nome} className="border-t pt-2">
@@ -187,19 +198,19 @@ export default function EstoquePage() {
                   </button>
                 </div>
                 {detalhesVisiveis.includes(r.nome) && (
-                  <ul className="mt-2 ml-4 space-y-1">
+                  <ul className="mt-2 ml-4 space-y-1 text-sm">
                     {itens
                       .filter(i => i.nome === r.nome)
                       .map(item => (
                         <li
                           key={item.id}
-                          className="flex justify-between text-sm"
+                          className="flex justify-between"
                         >
                           <span>
                             Validade:{' '}
-                            {item.validade?.toDate
-                              ? item.validade.toDate().toLocaleDateString()
-                              : '—'}
+                            {item.validade
+                              .toDate()
+                              .toLocaleDateString()}
                           </span>
                           <span>Qtd: {item.quantidade}</span>
                         </li>
@@ -219,25 +230,33 @@ export default function EstoquePage() {
             onSubmit={handleAdd}
             className="p-6 rounded-xl shadow-lg w-full max-w-md bg-white space-y-4"
           >
-            <h2 className="text-lg font-semibold">Adicionar / Atualizar Estoque</h2>
-
+            <h2 className="text-lg font-semibold">
+              Adicionar / Atualizar Estoque
+            </h2>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-1">
                 <input
                   type="radio"
                   checked={!isNewItem}
-                  onChange={() => { setIsNewItem(false); setNome('') }}
-                /> Existente
+                  onChange={() => {
+                    setIsNewItem(false)
+                    setNome('')
+                  }}
+                />{' '}
+                Existente
               </label>
               <label className="flex items-center gap-1">
                 <input
                   type="radio"
                   checked={isNewItem}
-                  onChange={() => { setIsNewItem(true); setNome('') }}
-                /> Novo item
+                  onChange={() => {
+                    setIsNewItem(true)
+                    setNome('')
+                  }}
+                />{' '}
+                Novo item
               </label>
             </div>
-
             {!isNewItem ? (
               <select
                 value={nome}
@@ -247,7 +266,9 @@ export default function EstoquePage() {
               >
                 <option value="">Selecione um item</option>
                 {nomesUnicos.map(n => (
-                  <option key={n} value={n}>{n}</option>
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
                 ))}
               </select>
             ) : (
@@ -260,7 +281,6 @@ export default function EstoquePage() {
                 required
               />
             )}
-
             <input
               type="number"
               placeholder="Quantidade"
@@ -270,7 +290,6 @@ export default function EstoquePage() {
               min={0}
               required
             />
-
             <label className="flex flex-col">
               Data de validade
               <input
@@ -281,7 +300,6 @@ export default function EstoquePage() {
                 required
               />
             </label>
-
             <div className="flex justify-end gap-2">
               <button
                 type="button"
@@ -317,14 +335,18 @@ export default function EstoquePage() {
             >
               <option value="">Selecione o item</option>
               {nomesUnicos.map(n => (
-                <option key={n} value={n}>{n}</option>
+                <option key={n} value={n}>
+                  {n}
+                </option>
               ))}
             </select>
             <input
               type="number"
               placeholder="Quantidade a remover"
               value={quantidadeRemover}
-              onChange={e => setQuantidadeRemover(Number(e.target.value))}
+              onChange={e =>
+                setQuantidadeRemover(Number(e.target.value))
+              }
               className="w-full p-2 border rounded"
               min={1}
               required
