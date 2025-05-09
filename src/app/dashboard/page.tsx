@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Header } from '@/components/Header'
+import Header from '@/components/Header'
 import { listarVendasDoDia } from '@/lib/firebase-caixa'
 import { listarEstoque } from '@/lib/firebase-estoque'
 import { collection, getDocs, Timestamp } from 'firebase/firestore'

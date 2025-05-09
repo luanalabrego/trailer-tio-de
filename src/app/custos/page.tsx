@@ -13,7 +13,7 @@ import {
   QueryDocumentSnapshot,
   DocumentData,
 } from 'firebase/firestore'
-import { Header } from '@/components/Header'
+import Header from '@/components/Header'
 import { Custo } from '@/types'
 import { Plus, Pencil, Trash2, X as Close, Search as SearchIcon } from 'lucide-react'
 
