@@ -30,8 +30,8 @@ export default function ProdutosPage() {
   const [categoria, setCategoria] = useState('')
   const [preco, setPreco] = useState('')
   const [unidade, setUnidade] = useState('')
-  const [mlVolume, setMlVolume] = useState('')           // para produtos em ml
-  const [controlaEstoque, setControlaEstoque] = useState(false) // Novo
+  const [mlVolume, setMlVolume] = useState('')      // para produtos em ml
+  const [controlaEstoque, setControlaEstoque] = useState(false) // novo campo
   const [imagem, setImagem] = useState<File | null>(null)
 
   const [produtos, setProdutos] = useState<Produto[]>([])
@@ -62,7 +62,7 @@ export default function ProdutosPage() {
     setPreco('')
     setUnidade('')
     setMlVolume('')
-    setControlaEstoque(false)  // reset
+    setControlaEstoque(false)
     setImagem(null)
     setMostrarModal(true)
   }
@@ -73,7 +73,6 @@ export default function ProdutosPage() {
     setNome(p.nome)
     setCategoria(p.categoria)
     setPreco(String(p.preco))
-    // separa ml se unidade terminar com " ml"
     if (p.unidade.endsWith(' ml')) {
       setUnidade('ml')
       setMlVolume(p.unidade.replace(' ml', ''))
@@ -81,7 +80,7 @@ export default function ProdutosPage() {
       setUnidade(p.unidade)
       setMlVolume('')
     }
-    setControlaEstoque(p.controlaEstoque ?? false) // carregar valor existente
+    setControlaEstoque(p.controlaEstoque ?? false)
     setImagem(null)
     setMostrarModal(true)
   }
@@ -101,7 +100,7 @@ export default function ProdutosPage() {
           categoria,
           preco: parseFloat(preco),
           unidade: unidadeFinal,
-          controlaEstoque,         // inclui aqui
+          controlaEstoque,
           imagemUrl: produtoSelecionado?.imagemUrl || '',
         },
         imagem ?? undefined
@@ -343,7 +342,7 @@ export default function ProdutosPage() {
                 )}
 
                 {/* checkbox para controlar estoque */}
-                <label className="inline-flex items-center gap-2">
+                <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={controlaEstoque}
@@ -353,18 +352,21 @@ export default function ProdutosPage() {
                   <span className="text-sm text-gray-700">Controlar estoque</span>
                 </label>
 
-                <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200">
-                  <Upload size={18} />
-                  <span>Selecionar Imagem</span>
-                  <input
-                    type="file"
-                    onChange={e => setImagem(e.target.files?.[0] || null)}
-                    className="hidden"
-                  />
-                </label>
-                {imagem && (
-                  <p className="text-sm text-gray-600">Imagem: {imagem.name}</p>
-                )}
+                {/* botão de selecionar imagem agora em linha separada */}
+                <div>
+                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200">
+                    <Upload size={18} />
+                    <span>Selecionar Imagem</span>
+                    <input
+                      type="file"
+                      onChange={e => setImagem(e.target.files?.[0] || null)}
+                      className="hidden"
+                    />
+                  </label>
+                  {imagem && (
+                    <p className="text-sm text-gray-600 mt-1">Imagem: {imagem.name}</p>
+                  )}
+                </div>
 
                 <div className="text-right">
                   <button
