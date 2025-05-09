@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { Header } from '@/components/Header'
+import Header from '@/components/Header'
 import { listarHistoricoVendas } from '@/lib/firebase-caixa'
 import { Venda, PedidoItem } from '@/types'
 import { Timestamp } from 'firebase/firestore'
