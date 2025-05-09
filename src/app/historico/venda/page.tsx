@@ -20,7 +20,6 @@ export default function HistoricoVendasPage() {
     carregarTodasVendas()
   }, [])
 
-  // filtra por data e número do pedido, depois ordena
   const filtered = useMemo(() => {
     return vendas
       .filter(v => {
@@ -76,31 +75,25 @@ export default function HistoricoVendasPage() {
       <div className="pt-20 px-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Histórico de Vendas</h1>
 
-        {/* filtros: start, end e pedido */}
-        <div className="bg-white p-4 rounded-xl shadow mb-6 grid grid-cols-3 gap-4 items-end">
-          {/* Número do pedido */}
+        {/* busca por número do pedido */}
+        <div className="bg-white p-4 rounded-xl shadow mb-4">
+          <label htmlFor="orderSearch" className="block text-sm font-medium text-gray-700 mb-2">
+            Buscar por Pedido Nº
+          </label>
+          <input
+            id="orderSearch"
+            type="text"
+            placeholder="Digite o número do pedido..."
+            value={orderSearch}
+            onChange={e => setOrderSearch(e.target.value)}
+            className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        {/* filtros de período */}
+        <div className="bg-white p-4 rounded-xl shadow mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
           <div className="flex flex-col">
-            <label
-              htmlFor="orderSearch"
-              className="text-sm font-medium text-gray-700 mb-1"
-            >
-              Pedido Nº
-            </label>
-            <input
-              id="orderSearch"
-              type="text"
-              placeholder="Buscar nº pedido"
-              value={orderSearch}
-              onChange={e => setOrderSearch(e.target.value)}
-              className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-          {/* Data início */}
-          <div className="flex flex-col">
-            <label
-              htmlFor="startDate"
-              className="text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="startDate" className="text-sm font-medium text-gray-700 mb-1">
               Data início
             </label>
             <input
@@ -108,15 +101,11 @@ export default function HistoricoVendasPage() {
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          {/* Data fim */}
           <div className="flex flex-col">
-            <label
-              htmlFor="endDate"
-              className="text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="endDate" className="text-sm font-medium text-gray-700 mb-1">
               Data fim
             </label>
             <input
@@ -124,26 +113,22 @@ export default function HistoricoVendasPage() {
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
-              className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          {/* Limpar */}
           <button
             onClick={() => {
               setStartDate('')
               setEndDate('')
-              setOrderSearch('')
             }}
-            className="col-span-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full sm:mt-6 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            Limpar filtros
+            Limpar datas
           </button>
         </div>
 
         {filtered.length === 0 ? (
-          <p className="text-gray-600">
-            Nenhuma venda registrada com esses critérios.
-          </p>
+          <p className="text-gray-600">Nenhuma venda registrada com esses critérios.</p>
         ) : (
           <ul className="space-y-4">
             {filtered.map(v => (
@@ -151,7 +136,6 @@ export default function HistoricoVendasPage() {
                 key={v.id}
                 className="bg-white p-4 rounded-xl shadow flex flex-col gap-2"
               >
-                {/* Cabeçalho com número e data do pedido */}
                 <div className="flex justify-between items-center">
                   <div>
                     <span className="font-semibold">
@@ -164,7 +148,6 @@ export default function HistoricoVendasPage() {
                   </div>
                 </div>
 
-                {/* Itens da venda */}
                 <ul className="ml-4 list-disc text-sm">
                   {v.itens.map((i: PedidoItem) => (
                     <li key={i.id}>
@@ -173,15 +156,12 @@ export default function HistoricoVendasPage() {
                   ))}
                 </ul>
 
-                {/* Total e status */}
                 <p className="text-sm text-gray-600">
                   Total: <strong>R$ {v.total.toFixed(2)}</strong>
                 </p>
                 <p className="text-sm text-gray-600">
                   Status: <strong>{v.pago ? 'Pago' : 'Pendente'}</strong>
                 </p>
-
-                {/* Forma de pagamento, se houver */}
                 {v.pago && v.formaPagamento && (
                   <p className="text-sm text-gray-600">
                     Forma de pagamento:{' '}
