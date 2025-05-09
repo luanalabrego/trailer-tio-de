@@ -1,3 +1,5 @@
+// src/lib/firebase-produtos.ts
+
 import { db, storage } from '@/firebase/firebase'
 import {
   collection,
@@ -29,7 +31,7 @@ export async function listarProdutos(): Promise<Produto[]> {
         nome: data.nome as string,
         categoria: data.categoria as string,
         preco: data.preco as number,
-        unidade: data.unidade as 'ml' | 'kg' | 'porcao' | 'un',
+        unidade: data.unidade as string,
         controlaEstoque: Boolean(data.controlaEstoque),
         estoque: data.estoque as number | undefined,
         disponivel: (data.disponivel as boolean) ?? true,
@@ -48,13 +50,14 @@ export async function listarProdutos(): Promise<Produto[]> {
  * Salva um produto:
  *  - Se receber imagemFile, faz upload e obtém URL
  *  - Se vier com p.id, faz update; caso contrário, faz addDoc
+ *  - Omite o campo `estoque` quando estiver undefined, evitando erro do Firestore
  */
 export async function salvarProduto(
   p: Partial<Produto>,
   imagemFile?: File
 ): Promise<void> {
   try {
-    // 1) Se tiver arquivo, faz upload e busca URL
+    // 1) Upload de imagem, se houver
     let imagemUrl = p.imagemUrl || ''
     if (imagemFile) {
       const fileRef = ref(storage, `produtos/${Date.now()}_${imagemFile.name}`)
@@ -62,27 +65,30 @@ export async function salvarProduto(
       imagemUrl = await getDownloadURL(fileRef)
     }
 
-    // 2) Prepara o payload, incluindo estoque e disponivel
-    const dados: Partial<Produto> = {
+    // 2) Monta payload base, sempre incluindo flags obrigatórios
+    const dadosBase: any = {
       nome: p.nome,
       categoria: p.categoria,
       preco: p.preco,
-      unidade: p.unidade,              // 'ml' | 'kg' | 'porcao' | 'un'
+      unidade: p.unidade,
       controlaEstoque: p.controlaEstoque ?? false,
-      estoque: p.estoque,
       disponivel: p.disponivel ?? true,
       imagemUrl,
       atualizadoEm: Timestamp.now(),
     }
 
-    // 3) Update ou create
+    // 3) Só adiciona 'estoque' se for number (evita undefined)
+    if (p.controlaEstoque && typeof p.estoque === 'number') {
+      dadosBase.estoque = p.estoque
+    }
+
+    // 4) Executa update ou create
     if (p.id) {
       const refDoc = doc(db, 'produtos', p.id)
-      await updateDoc(refDoc, dados)
+      await updateDoc(refDoc, dadosBase)
     } else {
-      // se for novo produto, inclui criadoEm
       await addDoc(colecao, {
-        ...dados,
+        ...dadosBase,
         criadoEm: Timestamp.now(),
       })
     }
