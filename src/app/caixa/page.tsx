@@ -6,7 +6,10 @@ import { registrarVenda, listarVendasDoDia } from '@/lib/firebase-caixa'
 import { listarClientes, cadastrarCliente } from '@/lib/firebase-clientes'
 import { listarProdutos } from '@/lib/firebase-produtos'
 import { Plus } from 'lucide-react'
-import { Cliente, Produto, PedidoItem, Venda } from '@/types'
+import type { Cliente, Produto, PedidoItem, Venda as VendaType } from '@/types'
+
+// estende VendaType para incluir orderNumber
+type Venda = VendaType & { orderNumber?: number }
 
 export default function CaixaPage() {
   // sequência de números de pedido
@@ -54,16 +57,18 @@ export default function CaixaPage() {
   }, [])
 
   async function carregar() {
-    const [c, p, v] = await Promise.all([
+    const [c, p, vRaw] = await Promise.all([
       listarClientes(),
       listarProdutos(),
       listarVendasDoDia(),
     ])
     setClientes(c)
     setProdutos(p)
+    // tipa o retorno para Venda estendida
+    const v = vRaw as Venda[]
     setVendas(v)
 
-    // calcula próximo número de pedido
+    // calcula próximo número de pedido baseado no máximo existente
     const maxNum = v.reduce(
       (max, sale) => Math.max(max, sale.orderNumber ?? 0),
       0
@@ -79,10 +84,7 @@ export default function CaixaPage() {
           i.id === prod.id ? { ...i, qtd: i.qtd + 1 } : i
         )
       }
-      return [
-        ...prev,
-        { id: prod.id, nome: prod.nome, preco: prod.preco, qtd: 1 }
-      ]
+      return [...prev, { id: prod.id, nome: prod.nome, preco: prod.preco, qtd: 1 }]
     })
     setBuscaProduto('')
   }
@@ -90,9 +92,7 @@ export default function CaixaPage() {
   function alterarQtd(id: string, delta: number) {
     setItens(prev =>
       prev
-        .map(i =>
-          i.id === id ? { ...i, qtd: Math.max(1, i.qtd + delta) } : i
-        )
+        .map(i => (i.id === id ? { ...i, qtd: Math.max(1, i.qtd + delta) } : i))
         .filter(i => i.qtd > 0)
     )
   }
@@ -174,25 +174,16 @@ export default function CaixaPage() {
       return
     }
     if (saleType === 'pending' && !clienteId) {
-      alert(
-        'Por favor, selecione ou cadastre um cliente antes de continuar.'
-      )
+      alert('Por favor, selecione ou cadastre um cliente antes de continuar.')
       return
     }
     setShowFinalModal(true)
   }
 
-  async function confirmarRegistro(
-    action: 'print' | 'skip' | 'whatsapp'
-  ) {
-    // 1. Ação imediata
-    if (action === 'print') {
-      handleImprimir()
-    } else if (action === 'whatsapp') {
-      abrirWhatsapp()
-    }
+  async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
+    if (action === 'print') handleImprimir()
+    if (action === 'whatsapp') abrirWhatsapp()
 
-    // 2. Registra venda com número de pedido
     await registrarVenda({
       orderNumber,
       clienteId: saleType === 'pending' ? clienteId : '',
@@ -202,7 +193,6 @@ export default function CaixaPage() {
       pago: saleType === 'paid',
     })
 
-    // 3. Incrementa sequência e reseta estado
     setOrderNumber(prev => prev + 1)
     alert('Pedido finalizado!')
     setItens([])
@@ -220,10 +210,7 @@ export default function CaixaPage() {
         m.set(i.nome, (m.get(i.nome) || 0) + i.qtd)
       )
     )
-    return Array.from(m.entries()).map(([nome, total]) => ({
-      nome,
-      total,
-    }))
+    return Array.from(m.entries()).map(([nome, total]) => ({ nome, total }))
   }, [vendas])
 
   return (
@@ -235,9 +222,7 @@ export default function CaixaPage() {
         <div className="bg-white p-4 rounded-xl shadow space-y-6 mb-8">
           {/* busca */}
           <div>
-            <label className="block mb-1 text-sm">
-              Adicionar produto
-            </label>
+            <label className="block mb-1 text-sm">Adicionar produto</label>
             <input
               type="text"
               value={buscaProduto}
@@ -274,19 +259,13 @@ export default function CaixaPage() {
                       className="bg-gray-50 p-3 rounded flex flex-col gap-2"
                     >
                       <div className="flex justify-between">
-                        <span className="font-medium">
-                          {item.nome}
-                        </span>
-                        <span>
-                          R$ {(item.preco * item.qtd).toFixed(2)}
-                        </span>
+                        <span className="font-medium">{item.nome}</span>
+                        <span>R$ {(item.preco * item.qtd).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() =>
-                              alterarQtd(item.id, -1)
-                            }
+                            onClick={() => alterarQtd(item.id, -1)}
                             disabled={item.qtd <= 1}
                             className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50"
                           >
@@ -294,9 +273,7 @@ export default function CaixaPage() {
                           </button>
                           <span>{item.qtd}</span>
                           <button
-                            onClick={() =>
-                              alterarQtd(item.id, +1)
-                            }
+                            onClick={() => alterarQtd(item.id, +1)}
                             className="px-2 py-1 bg-gray-200 rounded"
                           >
                             +
@@ -312,11 +289,8 @@ export default function CaixaPage() {
                     </li>
                   ))}
                 </ul>
-                {/* total */}
                 <div className="mt-4 flex justify-end items-center">
-                  <span className="font-semibold mr-2">
-                    Total:
-                  </span>
+                  <span className="font-semibold mr-2">Total:</span>
                   <span className="text-lg font-bold">
                     R$ {total.toFixed(2)}
                   </span>
@@ -343,7 +317,6 @@ export default function CaixaPage() {
             </div>
           )}
 
-          {/* detalhes após escolha */}
           {saleType === 'paid' && (
             <div className="space-y-4">
               <button
@@ -371,6 +344,7 @@ export default function CaixaPage() {
               </button>
             </div>
           )}
+
           {saleType === 'pending' && (
             <div className="space-y-4">
               <button
@@ -409,15 +383,10 @@ export default function CaixaPage() {
           )}
         </div>
 
-        <h2 className="text-xl font-bold mb-2">
-          Itens vendidos hoje
-        </h2>
+        <h2 className="text-xl font-bold mb-2">Itens vendidos hoje</h2>
         <ul className="space-y-1 bg-white p-4 rounded-xl shadow">
           {resumoVendasHoje.map(r => (
-            <li
-              key={r.nome}
-              className="flex justify-between"
-            >
+            <li key={r.nome} className="flex justify-between">
               <span>{r.nome}</span>
               <span>Qtd: {r.total}</span>
             </li>
@@ -429,9 +398,7 @@ export default function CaixaPage() {
       {showFinalModal && (
         <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm">
-            <h2 className="text-lg font-semibold mb-4">
-              Pedido finalizado!
-            </h2>
+            <h2 className="text-lg font-semibold mb-4">Pedido finalizado!</h2>
             <div className="flex gap-4">
               <button
                 onClick={() => confirmarRegistro('print')}
@@ -441,9 +408,7 @@ export default function CaixaPage() {
               </button>
               {saleType === 'pending' ? (
                 <button
-                  onClick={() =>
-                    confirmarRegistro('whatsapp')
-                  }
+                  onClick={() => confirmarRegistro('whatsapp')}
                   className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700"
                 >
                   Enviar no WhatsApp
@@ -471,9 +436,7 @@ export default function CaixaPage() {
       {mostrarModalCliente && (
         <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-xl font-bold mb-4">
-              Novo Cliente
-            </h2>
+            <h2 className="text-xl font-bold mb-4">Novo Cliente</h2>
             <form
               onSubmit={async e => {
                 e.preventDefault()
@@ -489,10 +452,7 @@ export default function CaixaPage() {
                 placeholder="Nome"
                 value={novoCliente.nome}
                 onChange={e =>
-                  setNovoCliente({
-                    ...novoCliente,
-                    nome: e.target.value,
-                  })
+                  setNovoCliente({ ...novoCliente, nome: e.target.value })
                 }
                 className="w-full p-2 border rounded"
                 required
@@ -502,10 +462,7 @@ export default function CaixaPage() {
                 placeholder="Telefone com DDD"
                 value={novoCliente.telefone}
                 onChange={e =>
-                  setNovoCliente({
-                    ...novoCliente,
-                    telefone: e.target.value,
-                  })
+                  setNovoCliente({ ...novoCliente, telefone: e.target.value })
                 }
                 className="w-full p-2 border rounded"
                 required
@@ -515,10 +472,7 @@ export default function CaixaPage() {
                 placeholder="Aniversário"
                 value={novoCliente.aniversario}
                 onChange={e =>
-                  setNovoCliente({
-                    ...novoCliente,
-                    aniversario: e.target.value,
-                  })
+                  setNovoCliente({ ...novoCliente, aniversario: e.target.value })
                 }
                 className="w-full p-2 border rounded"
               />
@@ -530,7 +484,10 @@ export default function CaixaPage() {
                 >
                   Cancelar
                 </button>
-                <button className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                <button
+                  type="submit"
+                  className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                >
                   Salvar
                 </button>
               </div>
