@@ -216,29 +216,40 @@ export default function FinanceiroPage() {
           </div>
         )}
 
-        {/* cards de totais: dois por linha em mobile */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-5 rounded-2xl shadow text-center">
-            <p className="text-sm text-gray-500">Recebido</p>
-            <p className="text-2xl font-bold text-green-600">R$ {totais.receita.toFixed(2)}</p>
-          </div>
-          <div className="bg-white p-5 rounded-2xl shadow text-center">
-            <p className="text-sm text-gray-500">Pendente</p>
-            <p className="text-2xl font-bold text-red-600">R$ {totais.pendente.toFixed(2)}</p>
-            <p className="text-xs text-gray-600 mt-1">{pendCount} pedidos</p>
-          </div>
-          <div className="bg-white p-5 rounded-2xl shadow text-center">
-            <p className="text-sm text-gray-500">Custos</p>
-            <p className="text-2xl font-bold text-orange-600">R$ {totalCustos.toFixed(2)}</p>
-          </div>
-        </div>
+        {/* cards de totais + lucro juntos */}
+<div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div className="bg-white p-5 rounded-2xl shadow text-center">
+    <p className="text-sm text-gray-500">Recebido</p>
+    <p className="text-2xl font-bold text-green-600">
+      R$ {totais.receita.toFixed(2)}
+    </p>
+  </div>
+  <div className="bg-white p-5 rounded-2xl shadow text-center">
+    <p className="text-sm text-gray-500">Pendente</p>
+    <p className="text-2xl font-bold text-red-600">
+      R$ {totais.pendente.toFixed(2)}
+    </p>
+    <p className="text-xs text-gray-600 mt-1">
+      {pendCount} pedidos
+    </p>
+  </div>
+  <div className="bg-white p-5 rounded-2xl shadow text-center">
+    <p className="text-sm text-gray-500">Custos</p>
+    <p className="text-2xl font-bold text-orange-600">
+      R$ {totalCustos.toFixed(2)}
+    </p>
+  </div>
+  <div className="bg-white p-5 rounded-2xl shadow text-center">
+    <p className="text-sm text-gray-500">Lucro</p>
+    <p className="text-2xl font-bold text-indigo-600">
+      R$ {lucro.toFixed(2)}
+    </p>
+    <p className="text-xs text-gray-600 mt-1">
+      Margem: {margem.toFixed(1)}%
+    </p>
+  </div>
+</div>
 
-        {/* lucro */}
-        <div className="bg-white p-5 rounded-2xl shadow text-center mb-6">
-          <p className="text-sm text-gray-500">Lucro</p>
-          <p className="text-2xl font-bold text-indigo-600">R$ {lucro.toFixed(2)}</p>
-          <p className="text-xs text-gray-600 mt-1">Margem: {margem.toFixed(1)}%</p>
-        </div>
 
         {/* resumo por método */}
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Resumo por Método de Pagamento</h2>
