@@ -50,9 +50,9 @@ export default function CardapioPage() {
       setProdutos(prods)
       setClientes(clis)
       setQuantidades(Object.fromEntries(prods.map(p => [p.id, 1])))
+          // monta o mapa produtoId → soma de todos os lotes
   
-      // ← AQUI: carrega todos os lotes e monta o mapa de estoque
-      const lots = await listarEstoque()
+          const lots = await listarEstoque()
       const counts: Record<string, number> = {}
       lots.forEach(l => {
         counts[l.produtoId] = (counts[l.produtoId] || 0) + l.quantidade
@@ -165,6 +165,7 @@ export default function CardapioPage() {
   const total = carrinho.reduce((sum, i) => sum + i.preco * i.qtd, 0)
 
   async function handleAgendar() {
+    
     if (!dataHoraAgendada || !formaPagamento || carrinho.length === 0) {
       alert('Defina data/hora, forma de pagamento e adicione itens.')
       return
