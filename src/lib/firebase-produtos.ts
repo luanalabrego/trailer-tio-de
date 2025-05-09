@@ -1,5 +1,3 @@
-// src/lib/firebase-produtos.ts
-
 import { db, storage } from '@/firebase/firebase'
 import {
   collection,
@@ -30,8 +28,13 @@ export async function listarProdutos(): Promise<Produto[]> {
         nome: data.nome as string,
         categoria: data.categoria as string,
         preco: data.preco as number,
-        unidade: data.unidade as string,
+        // já mapeia como string — o componente que consome deve converter/validar
+        unidade: data.unidade as 'ml' | 'kg' | 'porcao' | 'un',
+        controlaEstoque: Boolean(data.controlaEstoque),
+        estoque: data.estoque as number | undefined,
         imagemUrl: (data.imagemUrl as string) || '',
+        criadoEm: data.criadoEm,
+        atualizadoEm: data.atualizadoEm,
       }
     })
   } catch (err) {
@@ -58,13 +61,15 @@ export async function salvarProduto(
       imagemUrl = await getDownloadURL(fileRef)
     }
 
-    // 2) Prepara o payload
-    const dados = {
+    // 2) Prepara o payload, incluindo as novas props
+    const dados: Partial<Produto> = {
       nome: p.nome,
       categoria: p.categoria,
       preco: p.preco,
-      unidade: p.unidade,
+      unidade: p.unidade,              // 'ml' | 'kg' | 'porcao' | 'un'
+      controlaEstoque: p.controlaEstoque ?? false,
       imagemUrl,
+      atualizadoEm: Timestamp.now(),
     }
 
     // 3) Update ou create
@@ -72,7 +77,11 @@ export async function salvarProduto(
       const refDoc = doc(db, 'produtos', p.id)
       await updateDoc(refDoc, dados)
     } else {
-      await addDoc(colecao, dados)
+      // se for novo produto, inclui criadoEm
+      await addDoc(colecao, {
+        ...dados,
+        criadoEm: Timestamp.now(),
+      })
     }
   } catch (err) {
     console.error('❌ produtos.erro salvarProduto', err)

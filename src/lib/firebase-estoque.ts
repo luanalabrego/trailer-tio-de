@@ -1,4 +1,3 @@
-// lib/firebase-estoque.ts
 import {
   collection,
   getDocs,
@@ -18,7 +17,7 @@ import { RegistroEstoque } from '@/types'
 
 export interface EstoqueItem {
   id: string
-  nome: string
+  produtoId: string
   quantidade: number
   inseridoEm: Timestamp
   validade: Timestamp
@@ -26,16 +25,19 @@ export interface EstoqueItem {
 }
 
 const estoqueRef = collection(db, 'estoque')
-// coleção para armazenar cada ajuste/remocão de estoque
+// coleção para armazenar cada ajuste/remoção de estoque
 const historicoRef = collection(db, 'estoque_historico')
 
+/**
+ * Retorna todos os lotes em estoque, com referência ao produtoId.
+ */
 export async function listarEstoque(): Promise<EstoqueItem[]> {
   const snap = await getDocs(estoqueRef)
   return snap.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
     const d = docSnap.data()
     return {
       id: docSnap.id,
-      nome: d.nome as string,
+      produtoId: d.produtoId as string,
       quantidade: d.quantidade as number,
       inseridoEm: d.inseridoEm as Timestamp,
       validade: d.validade as Timestamp,
@@ -44,8 +46,12 @@ export async function listarEstoque(): Promise<EstoqueItem[]> {
   })
 }
 
+/**
+ * Cria um novo lote ou atualiza a quantidade de um lote existente
+ * (mesmo produtoId + mesma validade).
+ */
 export async function criarOuAtualizarItemEstoque(
-  nome: string,
+  produtoId: string,
   quantidade: number,
   inseridoEm: Date,
   validade: Date
@@ -54,22 +60,25 @@ export async function criarOuAtualizarItemEstoque(
   const tsValidade = Timestamp.fromDate(validade)
   const now = Timestamp.now()
 
+  // busca lote já existente para este produto e validade
   const q = query(
     estoqueRef,
-    where('nome', '==', nome),
+    where('produtoId', '==', produtoId),
     where('validade', '==', tsValidade)
   )
   const snap = await getDocs(q)
 
   if (!snap.empty) {
+    // atualiza quantidade
     const docRef = doc(db, 'estoque', snap.docs[0].id)
     await updateDoc(docRef, {
       quantidade: increment(quantidade),
       atualizadoEm: now,
     })
   } else {
+    // cria novo lote
     await addDoc(estoqueRef, {
-      nome,
+      produtoId,
       quantidade,
       inseridoEm: tsInserido,
       validade: tsValidade,
@@ -79,9 +88,7 @@ export async function criarOuAtualizarItemEstoque(
 }
 
 /**
- * Ajusta (ou remove) a quantidade de um lote:
- * - Se a nova quantidade for > 0, atualiza o doc.
- * - Se for <= 0, deleta o documento.
+ * Ajusta (ou remove) a quantidade de um lote específico.
  */
 export async function ajustarQuantidade(
   id: string,
@@ -94,20 +101,23 @@ export async function ajustarQuantidade(
       atualizadoEm: Timestamp.now(),
     })
   } else {
-    // remove do banco se quantidade zerar
+    // remove do banco se zerar
     await deleteDoc(ref)
   }
 }
 
 /**
- * Registra cada ajuste/remocão no histórico de estoque,
- * incluindo motivo e timestamp de quando ocorreu.
+ * Registra cada ajuste/remoção no histórico de estoque,
+ * incluindo produtoId, nome legível, motivo e timestamp.
  */
 export async function registrarHistoricoEstoque(
   entry: Omit<RegistroEstoque, 'id'>
 ): Promise<void> {
   await addDoc(historicoRef, {
-    ...entry,
+    produtoId: entry.produtoId,
+    nome: entry.nome,       // mantém o nome para histórico legível
+    ajuste: entry.ajuste,
+    motivo: entry.motivo,
     criadoEm: Timestamp.now(),
   })
 }

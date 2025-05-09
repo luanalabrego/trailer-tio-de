@@ -1,12 +1,14 @@
-// src/types/index.ts
 import { Timestamp } from 'firebase/firestore'
 
 export interface Produto {
   id: string
   nome: string
   preco: number
-  unidade: string
+  // agora opcional e restringido às unidades controladas
+  unidade?: 'ml' | 'kg' | 'porcao' | 'un'
   categoria: string
+  // marca se esse produto deve ser controlado no estoque
+  controlaEstoque?: boolean
   estoque?: number
   imagemUrl?: string
   criadoEm?: Timestamp | Date
@@ -70,11 +72,12 @@ export interface Categoria {
 // registra cada ajuste de estoque (remoções aparecerão com ajuste negativo)
 export interface RegistroEstoque {
   id: string
+  // passaremos daqui para frente apenas o produtoId
   produtoId: string
-  nome: string
-  ajuste: number       // negativo para remoções
-  motivo: string       // motivo informado na remoção
-  criadoEm: Timestamp  // data/hora da remoção
+  nome: string       // ainda mantemos o nome para histórico legível
+  ajuste: number     // negativo para remoções
+  motivo: string     // motivo informado na remoção
+  criadoEm: Timestamp// data/hora da remoção
 }
 
 export interface Custo {
