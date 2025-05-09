@@ -19,13 +19,14 @@ export default function HistoricoVendasPage() {
     carregarTodasVendas()
   }, [])
 
-  // filtra e ordena por data de venda (criadoEm)
+  // filtra e ordena por criadoEm
   const filtered = useMemo(() => {
     return vendas
       .filter(v => {
-        const dt = v.criadoEm instanceof Timestamp
-          ? v.criadoEm.toDate()
-          : new Date(v.criadoEm as any)
+        const dt =
+          v.criadoEm instanceof Timestamp
+            ? v.criadoEm.toDate()
+            : new Date(v.criadoEm)
         if (startDate) {
           const start = new Date(startDate)
           if (dt < start) return false
@@ -38,17 +39,19 @@ export default function HistoricoVendasPage() {
         return true
       })
       .sort((a, b) => {
-        const da = a.criadoEm instanceof Timestamp
-          ? a.criadoEm.toMillis()
-          : new Date(a.criadoEm as any).getTime()
-        const db = b.criadoEm instanceof Timestamp
-          ? b.criadoEm.toMillis()
-          : new Date(b.criadoEm as any).getTime()
-        return db - da
+        const ta =
+          a.criadoEm instanceof Timestamp
+            ? a.criadoEm.toMillis()
+            : new Date(a.criadoEm).getTime()
+        const tb =
+          b.criadoEm instanceof Timestamp
+            ? b.criadoEm.toMillis()
+            : new Date(b.criadoEm).getTime()
+        return tb - ta
       })
   }, [vendas, startDate, endDate])
 
-  function formatarData(dt?: Date | string | Timestamp) {
+  function formatarData(dt?: Timestamp | Date | string) {
     if (!dt) return '—'
     let date: Date
     if (dt instanceof Timestamp) date = dt.toDate()
@@ -77,7 +80,7 @@ export default function HistoricoVendasPage() {
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full sm:w-48 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div className="flex flex-col">
@@ -89,7 +92,7 @@ export default function HistoricoVendasPage() {
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
-              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full sm:w-48 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <button
@@ -105,10 +108,7 @@ export default function HistoricoVendasPage() {
         ) : (
           <ul className="space-y-4">
             {filtered.map(v => (
-              <li
-                key={v.id}
-                className="bg-white p-4 rounded-xl shadow flex flex-col gap-2"
-              >
+              <li key={v.id} className="bg-white p-4 rounded-xl shadow flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold">Venda: {v.id}</span>
                   <span className="text-sm text-gray-600">
