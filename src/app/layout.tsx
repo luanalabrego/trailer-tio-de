@@ -23,11 +23,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
-        {children}
+        <main className="flex-grow">
+          {children}
+        </main>
+        <footer className="w-full py-4 text-center text-sm text-gray-500">
+          Criado com <span role="img" aria-label="coração">❤️</span> por Labrego Soluções Digitais
+        </footer>
       </body>
     </html>
   );
