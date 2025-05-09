@@ -29,20 +29,27 @@ export default function HistoricoVendasPage() {
           const num = v.orderNumber?.toString() ?? ''
           if (!num.includes(orderSearch)) return false
         }
-        // filtro por data
+
+        // converte criadoEm para Date
         const dt =
           v.criadoEm instanceof Timestamp
             ? v.criadoEm.toDate()
             : new Date(v.criadoEm)
+
+        // filtro por data início (interpreta como local)
         if (startDate) {
-          const start = new Date(startDate)
+          const [y, m, d] = startDate.split('-').map(Number)
+          const start = new Date(y, m - 1, d, 0, 0, 0, 0)
           if (dt < start) return false
         }
+
+        // filtro por data fim (interpreta como local)
         if (endDate) {
-          const end = new Date(endDate)
-          end.setHours(23, 59, 59, 999)
+          const [y, m, d] = endDate.split('-').map(Number)
+          const end = new Date(y, m - 1, d, 23, 59, 59, 999)
           if (dt > end) return false
         }
+
         return true
       })
       .sort((a, b) => {
@@ -98,7 +105,7 @@ export default function HistoricoVendasPage() {
           />
         </div>
 
-        {/* filtros de período sempre lado a lado */}
+        {/* filtros de período lado a lado */}
         <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4 items-end overflow-x-auto">
           <div className="flex-1 min-w-[140px]">
             <label
