@@ -192,7 +192,7 @@ export default function CardapioPage() {
   const total = carrinho.reduce((sum, i) => sum + i.preco * i.qtd, 0)
 
   async function handleAgendar() {
-    
+    // 1) validações básicas
     if (!dataHoraAgendada || !formaPagamento || carrinho.length === 0) {
       alert('Defina data/hora, forma de pagamento e adicione itens.')
       return
@@ -201,6 +201,8 @@ export default function CardapioPage() {
       alert('Escolha o local de entrega.')
       return
     }
+  
+    // 2) monta o payload e salva o agendamento
     const payload: AgendamentoPayload = {
       nome: clienteExistente!.nome,
       whatsapp: telefone,
@@ -213,17 +215,51 @@ export default function CardapioPage() {
       localEntrega: tipoEntrega === 'entrega' ? localEntrega : undefined,
     }
     await salvarAgendamento(payload)
+  
+    // 3) deduz estoque FIFO lote a lote
+    const lots = await listarEstoque()
+    for (const item of carrinho) {
+      let remaining = item.qtd
+      const productLots = lots
+        .filter(l => l.produtoId === item.id)
+        .sort((a, b) =>
+          a.inseridoEm.toDate().getTime() - b.inseridoEm.toDate().getTime()
+        )
+  
+      for (const lot of productLots) {
+        if (remaining <= 0) break
+        const toDeduct = Math.min(lot.quantidade, remaining)
+        // ajusta lote
+        await ajustarQuantidade(lot.id, lot.quantidade - toDeduct)
+        // registra no histórico
+        await registrarHistoricoEstoque({
+          produtoId: lot.produtoId,
+          nome: item.nome,
+          ajuste: -toDeduct,
+          motivo: 'Venda',
+        })
+        remaining -= toDeduct
+      }
+    }
+  
+    // 4) re-calcula o stockCounts local para UI
+    const updatedLots = await listarEstoque()
+    const newCounts: Record<string, number> = {}
+    updatedLots.forEach(l => {
+      newCounts[l.produtoId] = (newCounts[l.produtoId] || 0) + l.quantidade
+    })
+    setStockCounts(newCounts)
+  
+    // 5) opcional: enviar resumo via WhatsApp
     if (confirm('Pedido confirmado!\n\nDeseja enviar o resumo via WhatsApp?')) {
       const linhas = payload.itens
         .map(i => `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`)
         .join('\n')
-    
-      // converte Timestamp ou string/data para string formatada
       const when =
         payload.dataHora instanceof Timestamp
           ? payload.dataHora.toDate().toLocaleString('pt-BR')
           : new Date(payload.dataHora).toLocaleString('pt-BR')
-    
+  
       window.open(
         `https://wa.me/55${telefone}?text=${encodeURIComponent(
           `Olá ${payload.nome},\n${linhas}\nTotal: R$ ${payload.total.toFixed(
@@ -233,7 +269,8 @@ export default function CardapioPage() {
         '_blank'
       )
     }
-    
+  
+    // 6) limpa estado e volta ao menu
     setCarrinho([])
     setDataHoraAgendada('')
     setFormaPagamento('')
@@ -242,6 +279,7 @@ export default function CardapioPage() {
     setLocalEntrega('')
     setView('menu')
   }
+  
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 max-w-4xl mx-auto pt-8">
