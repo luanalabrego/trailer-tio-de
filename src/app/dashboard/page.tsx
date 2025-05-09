@@ -169,31 +169,32 @@ setEstoqueBaixoList(
         </div>
 
         {/* Agendamentos de hoje */}
-        <div className="bg-white p-6 rounded-xl shadow mb-8">
-          <h2 className="text-xl font-semibold mb-4">Agendamentos de Hoje</h2>
-          {agendHojeList.length === 0 ? (
-            <p className="text-gray-500">Nenhum agendamento para hoje.</p>
-          ) : (
-            <ul className="space-y-2">
-              {agendHojeList.map(a => {
-                const dt =
-                  a.dataHora instanceof Timestamp
-                    ? a.dataHora.toDate()
-                    : a.dataHora instanceof Date
-                    ? a.dataHora
-                    : new Date(a.dataHora)
-                return (
-                  <li key={a.id} className="flex justify-between">
-                    <span>{a.nome}</span>
-                    <span className="text-sm text-gray-600">
-                      {dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </div>
+<div className="bg-white p-6 rounded-xl shadow mb-8">
+  <h2 className="text-xl font-semibold mb-4">Agendamentos de Hoje</h2>
+  {agendHojeList.length === 0 ? (
+    <p className="text-gray-500">Nenhum agendamento para hoje.</p>
+  ) : (
+    <ul className="space-y-2">
+      {agendHojeList.map(a => {
+        const dt =
+          a.dataHora instanceof Timestamp
+            ? a.dataHora.toDate()
+            : a.dataHora instanceof Date
+            ? a.dataHora
+            : new Date(a.dataHora)
+        return (
+          <li key={a.id} className="flex justify-between">
+            <span>{a.nome}</span>
+            <span className="text-sm text-gray-600">
+              {dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </li>
+        )
+      })}
+    </ul>
+  )}
+</div>
+
 
         {/* Estoque Crítico */}
         <div className="bg-white p-6 rounded-xl shadow mb-8">
