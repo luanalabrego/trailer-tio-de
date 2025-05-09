@@ -140,7 +140,7 @@ export default function AgendamentosPage() {
       itens: ag.itens,
       formaPagamento: ag.formaPagamento,
       total: Number(ag.total),
-      pago: ag.pago,
+      pago: Boolean(ag.pago),
     }
     await registrarVenda(venda)
     await deleteDoc(doc(db, 'agendamentos', ag.id))
