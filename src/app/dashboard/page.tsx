@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import { listarVendasDoDia, listarHistoricoVendas } from '@/lib/firebase-caixa'
 import { listarEstoque } from '@/lib/firebase-estoque'
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
-import type { Agendamento, Venda, Custo } from '@/types'
+import type { Agendamento, Venda } from '@/types'
 
 export default function Dashboard() {
   const router = useRouter()
