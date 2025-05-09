@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { useRouter } from 'next/navigation'
 import { auth } from '@/firebase/firebase'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -49,6 +50,17 @@ export default function LoginPage() {
         onSubmit={handleLogin}
         className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm"
       >
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <Image
+            src="/logo.png"
+            alt="Trailer do Tio Dé"
+            width={64}
+            height={64}
+            unoptimized
+          />
+        </div>
+
         <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
 
         <input
