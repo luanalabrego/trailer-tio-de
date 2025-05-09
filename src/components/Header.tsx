@@ -71,7 +71,7 @@ export default function Header() {
         "
       >
         {/* Logo e nome mais à esquerda em desktop */}
-        <Link href="/" className="flex items-center">
+        <Link href="/" className="flex items-center ml-2 md:ml-0">
           <Image
             src="/logo.png"
             alt="Trailer Do Tio Dé"
