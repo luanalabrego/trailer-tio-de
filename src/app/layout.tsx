@@ -31,7 +31,7 @@ export default function RootLayout({
           {children}
         </main>
         <footer className="w-full py-4 text-center text-sm text-gray-500">
-          Criado com <span role="img" aria-label="coração">❤️</span> por Labrego Soluções Digitais
+          Criado por Labrego Soluções Digitais
         </footer>
       </body>
     </html>
