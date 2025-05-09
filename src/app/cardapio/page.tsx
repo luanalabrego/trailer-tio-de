@@ -7,6 +7,8 @@ import { listarClientes, cadastrarCliente } from '@/lib/firebase-clientes'
 import { salvarAgendamento } from '@/lib/firebase-agendamentos'
 import { Produto, PedidoItem, NovoAgendamento, Cliente } from '@/types'
 import { Timestamp } from 'firebase/firestore'
+import { listarEstoque } from '@/lib/firebase-estoque'      // ← novo
+
 
 
 type AgendamentoPayload = NovoAgendamento & {
@@ -17,6 +19,7 @@ type AgendamentoPayload = NovoAgendamento & {
 
 export default function CardapioPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
+  const [stockCounts, setStockCounts] = useState<Record<string, number>>({})  // ← novo
   const [carrinho, setCarrinho] = useState<PedidoItem[]>([])
   const [view, setView] = useState<'menu' | 'carrinho'>('menu')
   const [clientes, setClientes] = useState<Cliente[]>([])
@@ -38,7 +41,6 @@ export default function CardapioPage() {
   const [tipoEntrega, setTipoEntrega] = useState<'retirada' | 'entrega'>('retirada')
   const [localEntrega, setLocalEntrega] = useState('')
 
-  // busca inicial
   useEffect(() => {
     async function init() {
       const [prods, clis] = await Promise.all([
@@ -48,6 +50,15 @@ export default function CardapioPage() {
       setProdutos(prods)
       setClientes(clis)
       setQuantidades(Object.fromEntries(prods.map(p => [p.id, 1])))
+  
+      // ← AQUI: carrega todos os lotes e monta o mapa de estoque
+      const lots = await listarEstoque()
+      const counts: Record<string, number> = {}
+      lots.forEach(l => {
+        counts[l.produtoId] = (counts[l.produtoId] || 0) + l.quantidade
+      })
+      setStockCounts(counts)
+  
 
       const stored = localStorage.getItem('clienteTelefone') || ''
       if (stored) {
@@ -278,7 +289,7 @@ export default function CardapioPage() {
                 p.categoria === cat &&
                 (
                   p.controlaEstoque
-                    ? (p.estoque ?? 0) > 0    // só inclui se controla estoque e estoque > 0
+                  ? (stockCounts[p.id] ?? 0) > 0      // ← usa nosso mapa de estoque real
                     : p.disponivel           // ou, se não controla estoque, só se estiver disponivel
                 )
               )
