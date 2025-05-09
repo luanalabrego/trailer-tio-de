@@ -1,16 +1,19 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Header from '@/components/Header'
-import { Plus, Minus, X as Close, Search } from 'lucide-react'
+import { db } from '@/firebase/firebase'
 import {
-  listarEstoque,
-  criarOuAtualizarItemEstoque,
-  ajustarQuantidade,
-  registrarHistoricoEstoque,
-  EstoqueItem,
-} from '@/lib/firebase-estoque'
+  collection,
+  getDocs,
+  Timestamp,
+  DocumentData,
+  query,
+  orderBy,
+  where
+} from 'firebase/firestore'
 import { RegistroEstoque } from '@/types'
+
 
 
 export default function EstoquePage() {
