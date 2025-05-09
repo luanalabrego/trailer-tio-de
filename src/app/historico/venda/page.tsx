@@ -29,27 +29,21 @@ export default function HistoricoVendasPage() {
           const num = v.orderNumber?.toString() ?? ''
           if (!num.includes(orderSearch)) return false
         }
-
-        // converte criadoEm para Date
+        // filtro por data
         const dt =
           v.criadoEm instanceof Timestamp
             ? v.criadoEm.toDate()
             : new Date(v.criadoEm)
-
-        // filtro por data início (interpreta como local)
         if (startDate) {
           const [y, m, d] = startDate.split('-').map(Number)
           const start = new Date(y, m - 1, d, 0, 0, 0, 0)
           if (dt < start) return false
         }
-
-        // filtro por data fim (interpreta como local)
         if (endDate) {
           const [y, m, d] = endDate.split('-').map(Number)
           const end = new Date(y, m - 1, d, 23, 59, 59, 999)
           if (dt > end) return false
         }
-
         return true
       })
       .sort((a, b) => {
@@ -85,33 +79,26 @@ export default function HistoricoVendasPage() {
 
         {/* busca por número do pedido */}
         <div className="bg-white p-4 rounded-xl shadow mb-4 relative">
-          <label
-            htmlFor="orderSearch"
-            className="text-sm font-medium text-gray-700 mb-1 block"
-          >
+          <label htmlFor="orderSearch" className="text-sm font-medium text-gray-700 mb-1 block">
             Pedido Nº
           </label>
-          <Search
-            size={16}
-            className="absolute left-6 top-12 text-gray-400"
-          />
-          <input
-            id="orderSearch"
-            type="text"
-            placeholder="Buscar nº do pedido"
-            value={orderSearch}
-            onChange={e => setOrderSearch(e.target.value)}
-            className="w-full pl-10 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+          <div className="relative">
+            <Search className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400" size={20} />
+            <input
+              id="orderSearch"
+              type="text"
+              placeholder="Buscar nº do pedido"
+              value={orderSearch}
+              onChange={e => setOrderSearch(e.target.value)}
+              className="w-full pl-10 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
         </div>
 
         {/* filtros de período lado a lado */}
         <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4 items-end overflow-x-auto">
           <div className="flex-1 min-w-[140px]">
-            <label
-              htmlFor="startDate"
-              className="text-sm font-medium text-gray-700 mb-1 block"
-            >
+            <label htmlFor="startDate" className="text-sm font-medium text-gray-700 mb-1 block">
               Data início
             </label>
             <input
@@ -123,10 +110,7 @@ export default function HistoricoVendasPage() {
             />
           </div>
           <div className="flex-1 min-w-[140px]">
-            <label
-              htmlFor="endDate"
-              className="text-sm font-medium text-gray-700 mb-1 block"
-            >
+            <label htmlFor="endDate" className="text-sm font-medium text-gray-700 mb-1 block">
               Data fim
             </label>
             <input
@@ -146,10 +130,7 @@ export default function HistoricoVendasPage() {
         ) : (
           <ul className="space-y-4">
             {filtered.map(v => (
-              <li
-                key={v.id}
-                className="bg-white p-4 rounded-xl shadow flex flex-col gap-2"
-              >
+              <li key={v.id} className="bg-white p-4 rounded-xl shadow flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                   <div>
                     <span className="font-semibold">
