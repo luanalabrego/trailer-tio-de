@@ -32,17 +32,23 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, emailNormalizado, senha)
-      localStorage.setItem(
-        'perfil',
-        emailNormalizado === 'adm@trailertiode.com' ? 'ADM' : 'FUNC'
-      )
+    
+      // Define o perfil com base no e-mail
+      const perfil = emailNormalizado === 'adm@trailertiode.com' ? 'ADM' : 'FUNC'
+    
+      // Salva no localStorage (se necessário)
+      localStorage.setItem('perfil', perfil)
+    
+      // Grava um cookie para o middleware ler
+      document.cookie = `perfil=${perfil}; path=/; max-age=${60 * 60}; SameSite=Lax`
+    
       router.push('/dashboard')
     } catch {
       setErro('E-mail ou senha inválidos.')
     } finally {
       setCarregando(false)
     }
-  }
+    
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
