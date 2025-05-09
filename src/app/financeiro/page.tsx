@@ -8,7 +8,6 @@ import {
   query,
   where,
   getDocs,
-  orderBy,
   Timestamp,
 } from 'firebase/firestore'
 import { CreditCard, DollarSign, Zap, Tag, ChevronDown, ChevronUp } from 'lucide-react'
