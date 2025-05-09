@@ -54,6 +54,8 @@ export interface Agendamento {
   dataCriacao?: Timestamp
   observacao?: string
   aniversario?: string
+  canceladoEm?: Timestamp
+  finalizadoEm?: Timestamp
 }
 
 export type NovoAgendamento = Omit<Agendamento, 'id' | 'status'>
