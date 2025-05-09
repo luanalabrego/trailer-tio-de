@@ -55,7 +55,7 @@ export default function Header() {
         <Link href="/" className="flex items-center">
           <Image
             src="/logo.png"
-            alt="Trailer Tio Dê"
+            alt="Trailer Do Tio Dé"
             width={64}
             height={64}
             unoptimized

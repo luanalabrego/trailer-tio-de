@@ -134,7 +134,7 @@ export default function Dashboard() {
       route: '/estoque',
     },
     {
-      title: 'Pendências >10 dias',
+      title: 'Pendências de Pagamento >10 dias',
       value: `${agingPendList.length} pedido${agingPendList.length !== 1 ? 's' : ''}`,
       bg: 'bg-red-100',
       route: '/pagamentos-pendentes',
@@ -207,9 +207,9 @@ export default function Dashboard() {
 
         {/* Aging de Pendências */}
         <div className="bg-white p-6 rounded-xl shadow mb-8">
-          <h2 className="text-xl font-semibold mb-4">Pendências Antigas (&gt;10 dias)</h2>
+          <h2 className="text-xl font-semibold mb-4">Pendências de Pagamento (&gt;10 dias)</h2>
           {agingPendList.length === 0 ? (
-            <p className="text-gray-500">Sem pendências antigas.</p>
+            <p className="text-gray-500">Sem pendências de pagamento antigas.</p>
           ) : (
             <ul className="space-y-2">
               {agingPendList.map(v => (
