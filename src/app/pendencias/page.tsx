@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Header } from '@/components/Header'
+import Header from '@/components/Header'
 import { listarClientes } from '@/lib/firebase-clientes'
 import { db } from '@/firebase/firebase'
 import {
