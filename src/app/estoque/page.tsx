@@ -7,9 +7,11 @@ import {
   listarEstoque,
   criarOuAtualizarItemEstoque,
   ajustarQuantidade,
+  registrarHistoricoEstoque,
+  EstoqueItem,
 } from '@/lib/firebase-estoque'
-import { registrarHistoricoEstoque } from '@/lib/firebase-estoque'
-import { EstoqueItem, RegistroEstoque } from '@/types'
+import { RegistroEstoque } from '@/types'
+
 
 export default function EstoquePage() {
   const [itens, setItens] = useState<EstoqueItem[]>([])
