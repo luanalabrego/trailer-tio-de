@@ -122,7 +122,7 @@ export default function AgendamentosPage() {
     if (!confirm('Tem certeza que deseja cancelar este pedido?')) return
     await updateDoc(doc(db, 'agendamentos', ag.id), {
       status: 'cancelado',
-      canceladoEm: serverTimestamp(),
+      canceladoEm: serverTimestamp(),    // ← linha adicionada
     })
     await carregar()
   }
@@ -141,7 +141,7 @@ export default function AgendamentosPage() {
     await registrarVenda(venda)
     await updateDoc(doc(db, 'agendamentos', ag.id), {
       status: 'finalizado',
-      finalizadoEm: serverTimestamp(),
+      finalizadoEm: serverTimestamp(),   // ← linha adicionada
     })
     if (!ag.pago) {
       enviarWhatsApp(
