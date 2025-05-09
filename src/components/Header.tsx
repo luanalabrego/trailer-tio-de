@@ -37,7 +37,7 @@ export default function Header() {
     Agendamentos: [{ name: 'Agendamentos', href: '/agendamentos' }],
     Histórico: [
       { name: 'Agendamentos', href: '/historico/agendamentos' },
-      { name: 'Vendas', href: '/historico/vendas' },
+      { name: 'Vendas', href: '/historico/venda' },
       { name: 'Estoque', href: '/historico/estoque' },
     ],
     Cardápio: [{ name: 'Cardápio', href: '/cardapio' }],
