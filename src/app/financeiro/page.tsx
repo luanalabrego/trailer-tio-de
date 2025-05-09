@@ -16,14 +16,11 @@ import type { Venda, Custo } from '@/types'
 
 type VendaFirestore = Omit<Venda, 'id'> & { status?: string }
 type CustoFirestore = Omit<Custo, 'id'>
-type CaixaFirestore = { valor: number; data: Timestamp }
 type Metodo = 'todos' | 'pix' | 'cartao' | 'dinheiro' | 'outro'
-
 
 export default function FinanceiroPage() {
   const [vendas, setVendas] = useState<(Venda & { status?: string })[]>([])
   const [custos, setCustos] = useState<Custo[]>([])
-  const [caixas, setCaixas] = useState<CaixaFirestore[]>([])
   const [acessoNegado, setAcessoNegado] = useState(false)
   const [dataInicio, setDataInicio] = useState<string>(() => {
     const d = new Date(); d.setHours(0,0,0,0)
@@ -33,7 +30,7 @@ export default function FinanceiroPage() {
     const d = new Date(); d.setHours(23,59,59,999)
     return d.toISOString().slice(0,10)
   })
-  const [filtroMetodo, setFiltroMetodo] = useState<'todos'|'pix'|'cartao'|'dinheiro'|'outro'>('todos')
+  const [filtroMetodo, setFiltroMetodo] = useState<Metodo>('todos')
   const [showFilters, setShowFilters] = useState(false)
 
   function parseLocalDate(str: string, endOfDay = false): Date {
@@ -77,7 +74,7 @@ export default function FinanceiroPage() {
           return {
             id: d.id,
             ...raw,
-            status: raw.status,          // pode ser 'pendente' | 'finalizado' | 'cancelado'
+            status: raw.status, // 'pendente' | 'finalizado' | 'cancelado'
           }
         })
         .filter(a => a.status !== 'cancelado')
@@ -101,15 +98,6 @@ export default function FinanceiroPage() {
         where('data', '<=', fimTs),
       ))
       setCustos(snapC.docs.map(d => ({ id: d.id, ...(d.data() as CustoFirestore) })))
-
-      // 6) caixa (filtrar também)
-      const snapCx = await getDocs(query(
-        collection(db, 'caixa'),
-        where('data', '>=', inicioTs),
-        where('data', '<=', fimTs),
-        orderBy('data', 'asc'),
-      ))
-      setCaixas(snapCx.docs.map(d => d.data() as CaixaFirestore))
     }
     carregar()
   }, [dataInicio, dataFim, filtroMetodo])
@@ -125,10 +113,9 @@ export default function FinanceiroPage() {
     { receita: 0, pendente: 0 }
   )
   const totalCustos = custos.reduce((sum, c) => sum + (c.valor ?? 0), 0)
-  const totalCaixa  = caixas.reduce((sum, c) => sum + (c.valor ?? 0), 0)
-  const lucro    = totais.receita - totalCustos
-  const margem   = totais.receita > 0 ? (lucro / totais.receita) * 100 : 0
-  const pendCount = vendas.filter(v => !(v.pago || v.status === 'finalizado')).length
+  const lucro       = totais.receita - totalCustos
+  const margem      = totais.receita > 0 ? (lucro / totais.receita) * 100 : 0
+  const pendCount   = vendas.filter(v => !(v.pago || v.status === 'finalizado')).length
 
   const resumoPorMetodo = useMemo(() => {
     const base = { pix: 0, cartao: 0, dinheiro: 0, outro: 0 }
@@ -140,10 +127,10 @@ export default function FinanceiroPage() {
   }, [vendas])
 
   const metodos = [
-    { key: 'pix',     label: 'Pix',     Icon: Zap,         color: 'text-green-600' },
-    { key: 'cartao',  label: 'Cartão',  Icon: CreditCard,  color: 'text-blue-600'  },
-    { key: 'dinheiro',label: 'Dinheiro',Icon: DollarSign,  color: 'text-yellow-500'},
-    { key: 'outro',   label: 'Outro',   Icon: Tag,         color: 'text-gray-600' },
+    { key: 'pix',      label: 'Pix',      Icon: Zap,         color: 'text-green-600' },
+    { key: 'cartao',   label: 'Cartão',   Icon: CreditCard,  color: 'text-blue-600'  },
+    { key: 'dinheiro', label: 'Dinheiro', Icon: DollarSign,  color: 'text-yellow-500'},
+    { key: 'outro',    label: 'Outro',    Icon: Tag,         color: 'text-gray-600' },
   ]
 
   if (acessoNegado) {
@@ -199,7 +186,6 @@ export default function FinanceiroPage() {
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                   setFiltroMetodo(e.target.value as Metodo)
                 }
-                
               >
                 <option value="todos">Todos</option>
                 <option value="pix">Pix</option>
@@ -211,7 +197,7 @@ export default function FinanceiroPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           <div className="bg-white p-5 rounded-2xl shadow text-center">
             <p className="text-sm text-gray-500">Recebido</p>
             <p className="text-2xl font-bold text-green-600">R$ {totais.receita.toFixed(2)}</p>
@@ -224,10 +210,6 @@ export default function FinanceiroPage() {
           <div className="bg-white p-5 rounded-2xl shadow text-center">
             <p className="text-sm text-gray-500">Custos</p>
             <p className="text-2xl font-bold text-orange-600">R$ {totalCustos.toFixed(2)}</p>
-          </div>
-          <div className="bg-white p-5 rounded-2xl shadow text-center">
-            <p className="text-sm text-gray-500">Caixa</p>
-            <p className="text-2xl font-bold text-blue-600">R$ {totalCaixa.toFixed(2)}</p>
           </div>
         </div>
 
@@ -243,7 +225,7 @@ export default function FinanceiroPage() {
             <div key={key} className="bg-white p-5 rounded-2xl shadow flex flex-col items-center">
               <Icon size={32} className={`${color} mb-2`} />
               <p className="font-medium">{label}</p>
-              <p className="text-2xl font-bold mt-1">R$ {resumoPorMetodo[key as keyof typeof resumoPorMetodo].toFixed(2)}</p>
+              <p className="text-2xl font-bold mt-1">R$ {(resumoPorMetodo[key] ?? 0).toFixed(2)}</p>
             </div>
           ))}
         </div>
