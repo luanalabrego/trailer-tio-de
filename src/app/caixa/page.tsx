@@ -203,20 +203,18 @@ async function confirmarRegistro(action: 'print' | 'skip' | 'whatsapp') {
     pago: saleType === 'paid',
   })
 
-  // 2) prepara batch para atualizar estoques
-  const batch = writeBatch(db)
+// 2) prepara batch para atualizar estoques
+const batch = writeBatch(db)
 
-  for (const item of itens) {
-    const prodRef = doc(db, 'produtos', item.id)
-    const prodSnap = await getDoc(prodRef)
-    if (prodSnap.exists()) {
-      const data = prodSnap.data()
-      if (data.controlaEstoque) {
-        const novoEstoque = (data.estoque ?? 0) - item.qtd
-        batch.update(prodRef, { estoque: novoEstoque })
-      }
-    }
-  }
+for (const item of itens) {
+  const prodRef = doc(db, 'produtos', item.id)
+  // só atualiza se controlaEstoque for true
+  batch.update(prodRef, {
+    estoque: increment(-item.qtd)
+  })
+}
+
+await batch.commit()
 
   // 3) envia todas as atualizações de uma vez
   await batch.commit()
