@@ -1,189 +1,190 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { Menu, X, ChevronDown } from 'lucide-react'
-import Image from 'next/image'
+import { useEffect, useState, useMemo } from 'react'
+import Header from '@/components/Header'
+import { db } from '@/firebase/firebase'
+import {
+  collection,
+  getDocs,
+  DocumentData,
+  Timestamp,
+} from 'firebase/firestore'
+import { Agendamento, PedidoItem } from '@/types'
 
-export function Header() {
-  const pathname = usePathname()
-  const router = useRouter()
-  const [menuAberto, setMenuAberto] = useState(false)
-  const [submenuAberto, setSubmenuAberto] = useState<string | null>(null)
-  const [perfil, setPerfil] = useState<string | null>(null)
+export default function HistoricoAgendamentosPage() {
+  const [historico, setHistorico] = useState<
+    (Agendamento & { finishedAt: Timestamp })[]
+  >([])
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
 
   useEffect(() => {
-    const tipo = localStorage.getItem('perfil')?.toUpperCase() || null
-    setPerfil(tipo)
+    carregarHistorico()
   }, [])
 
-  if (!perfil) return null
+  async function carregarHistorico() {
+    const snap = await getDocs(collection(db, 'agendamentos'))
+    const todos = snap.docs.map(d => {
+      const raw = d.data() as DocumentData
+      const dataCriacaoTs: Timestamp =
+        (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
+      const finishedAt: Timestamp =
+        (raw.finalizadoEm as Timestamp) ??
+        (raw.canceladoEm as Timestamp) ??
+        dataCriacaoTs
 
-  const groupedLinks = {
-    Dashboard: [{ name: 'Dashboard', href: '/dashboard' }],
-    Produtos: [
-      { name: 'Cadastrar Produtos', href: '/produtos' },
-      { name: 'Categorias', href: '/categorias' },
-      { name: 'Estoque', href: '/estoque' },
-    ],
-    Financeiro: [
-      { name: 'Resumo Financeiro', href: '/financeiro' },
-      { name: 'Pagamentos Pendentes', href: '/pendencias' },
-      { name: 'Custos', href: '/custos' },
-    ],
-    Caixa: [{ name: 'Caixa', href: '/caixa' }],
-    Clientes: perfil === 'ADM' ? [{ name: 'Clientes', href: '/clientes' }] : [],
-    Agendamentos: [{ name: 'Agendamentos', href: '/agendamentos' }],
-    Histórico: [
-      { name: 'Agendamentos', href: '/historicos/agendamentos' },
-      { name: 'Vendas',       href: '/historicos/vendas'       },
-      { name: 'Estoque',      href: '/historicos/estoque'      },
-    ],
-    Cardápio: [{ name: 'Cardápio', href: '/cardapio' }],
+      return {
+        id: d.id,
+        nome: String(raw.nome),
+        whatsapp: String(raw.whatsapp),
+        dataHora: raw.dataHora as Timestamp | string | Date,
+        dataCriacao: dataCriacaoTs,
+        itens: raw.itens as PedidoItem[],
+        formaPagamento: String(raw.formaPagamento),
+        total: Number(raw.total),
+        pago: Boolean(raw.pago),
+        status: String(raw.status) as
+          | 'pendente'
+          | 'confirmado'
+          | 'cancelado'
+          | 'finalizado',
+        localEntrega: raw.localEntrega ? String(raw.localEntrega) : undefined,
+        observacao: raw.observacao ? String(raw.observacao) : undefined,
+        finishedAt,
+      }
+    })
+
+    setHistorico(
+      todos.filter(a => a.status === 'cancelado' || a.status === 'finalizado')
+    )
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('perfil')
-    router.push('/login')
+  const filtered = useMemo(() => {
+    return historico
+      .filter(ag => {
+        const fin = ag.finishedAt.toDate()
+        if (startDate) {
+          const start = new Date(startDate)
+          if (fin < start) return false
+        }
+        if (endDate) {
+          const end = new Date(endDate)
+          end.setHours(23, 59, 59, 999)
+          if (fin > end) return false
+        }
+        return true
+      })
+      .sort((a, b) => b.finishedAt.toMillis() - a.finishedAt.toMillis())
+  }, [historico, startDate, endDate])
+
+  function formatarData(dt?: Timestamp | string | Date): string {
+    if (!dt) return 'Inválida'
+    const date =
+      dt instanceof Timestamp ? dt.toDate() : dt instanceof Date ? dt : new Date(dt)
+    return date.toLocaleString('pt-BR', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    })
   }
 
   return (
-    <header className="bg-white shadow fixed top-0 w-full z-50">
-      <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4">
-        {/* Logo */}
-        <Link href="/">
-          <a className="flex items-center">
-            <Image
-              src="/logo.png"
-              alt="Trailer Tio Dê"
-              width={64}
-              height={64}
-              unoptimized
-              className="w-12 h-12 sm:w-16 sm:h-16"
+    <>
+      <Header />
+
+      <main className="pt-20 px-4 max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6">Histórico de Agendamentos</h1>
+
+        {/* filtros de período */}
+        <div className="bg-white p-4 rounded-xl shadow mb-6 flex flex-wrap gap-4 items-end">
+          <div className="flex flex-col">
+            <label htmlFor="startDate" className="text-sm font-medium text-gray-700 mb-1">
+              Data início
+            </label>
+            <input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <span className="ml-2 text-xl sm:text-2xl font-bold text-gray-800">
-              Trailer Tio Dê
-            </span>
-          </a>
-        </Link>
+          </div>
+          <div className="flex flex-col">
+            <label htmlFor="endDate" className="text-sm font-medium text-gray-700 mb-1">
+              Data fim
+            </label>
+            <input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="w-full sm:w-48 p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <button
+            onClick={() => { setStartDate(''); setEndDate('') }}
+            className="h-fit px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            Limpar filtros
+          </button>
+        </div>
 
-        {/* Desktop */}
-        <nav className="hidden md:flex space-x-6">
-          {Object.entries(groupedLinks).map(([grupo, links]) =>
-            links.length === 1 ? (
-              <Link
-                key={links[0].href}
-                href={links[0].href}
-                className={`text-sm font-medium ${
-                  pathname === links[0].href
-                    ? 'text-indigo-600 underline'
-                    : 'text-gray-700 hover:text-indigo-600'
-                }`}
+        {filtered.length === 0 ? (
+          <p className="text-gray-600">Nenhum agendamento no período selecionado.</p>
+        ) : (
+          <ul className="space-y-4">
+            {filtered.map(ag => (
+              <li
+                key={ag.id}
+                className="bg-white p-4 rounded-xl shadow flex flex-col gap-2"
               >
-                {grupo}
-              </Link>
-            ) : (
-              <div key={grupo} className="relative">
-                <button
-                  onClick={() =>
-                    setSubmenuAberto(prev => (prev === grupo ? null : grupo))
-                  }
-                  className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-indigo-600"
-                >
-                  {grupo}
-                  <ChevronDown
-                    size={14}
-                    className={`transition-transform ${
-                      submenuAberto === grupo ? 'rotate-180' : ''
+                <div className="flex justify-between items-center">
+                  <p className="font-semibold">
+                    {ag.nome} — {formatarData(ag.dataHora)}
+                  </p>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      ag.status === 'finalizado'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
                     }`}
-                  />
-                </button>
-                {submenuAberto === grupo && (
-                  <ul className="absolute mt-2 w-48 bg-white border rounded shadow-lg z-50">
-                    {links.map(link => (
-                      <li key={link.href}>
-                        <Link
-                          href={link.href}
-                          onClick={() => setSubmenuAberto(null)}
-                          className={`block px-4 py-2 text-sm hover:bg-gray-100 ${
-                            pathname === link.href
-                              ? 'text-indigo-600 font-semibold'
-                              : 'text-gray-700'
-                          }`}
-                        >
-                          {link.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                  >
+                    {ag.status.toUpperCase()}
+                  </span>
+                </div>
+
+                <p className="text-sm text-gray-600">
+                  {ag.status === 'finalizado' ? 'Finalizado em:' : 'Cancelado em:'}{' '}
+                  <strong>{formatarData(ag.finishedAt)}</strong>
+                </p>
+
+                <p className="text-sm">Itens:</p>
+                <ul className="ml-4 list-disc text-sm">
+                  {ag.itens.map(i => (
+                    <li key={i.id}>
+                      {i.nome} × {i.qtd} = R$ {(i.preco * i.qtd).toFixed(2)}
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="text-sm text-gray-600 mt-2">
+                  Total do pedido: <strong>R$ {ag.total.toFixed(2)}</strong>
+                </p>
+
+                {ag.localEntrega && (
+                  <p className="text-sm">
+                    <strong>Entrega em:</strong> {ag.localEntrega}
+                  </p>
                 )}
-              </div>
-            )
-          )}
-          <button
-            onClick={handleLogout}
-            className="text-sm text-red-500 hover:underline"
-          >
-            Sair
-          </button>
-        </nav>
-
-        {/* Mobile toggle */}
-        <div className="md:hidden">
-          <button onClick={() => setMenuAberto(prev => !prev)}>
-            {menuAberto ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile dropdown */}
-      {menuAberto && (
-        <div className="md:hidden bg-white shadow-lg px-4 pb-4">
-          {Object.entries(groupedLinks).map(([grupo, links]) => (
-            <div key={grupo} className="mb-2">
-              {links.length === 1 ? (
-                <Link
-                  href={links[0].href}
-                  onClick={() => setMenuAberto(false)}
-                  className={`block py-2 text-sm ${
-                    pathname === links[0].href ? 'text-indigo-600' : 'text-gray-700'
-                  }`}
-                >
-                  {grupo}
-                </Link>
-              ) : (
-                <details>
-                  <summary className="cursor-pointer py-2 text-sm font-semibold">
-                    {grupo}
-                  </summary>
-                  <ul className="pl-4">
-                    {links.map(link => (
-                      <li key={link.href}>
-                        <Link
-                          href={link.href}
-                          onClick={() => setMenuAberto(false)}
-                          className={`block py-1 text-sm ${
-                            pathname === link.href ? 'text-indigo-600' : 'text-gray-700'
-                          }`}
-                        >
-                          {link.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-            </div>
-          ))}
-          <button
-            onClick={handleLogout}
-            className="block w-full text-left py-2 text-sm text-red-500"
-          >
-            Sair
-          </button>
-        </div>
-      )}
-    </header>
-)
+                {ag.observacao && (
+                  <p className="text-sm">
+                    <strong>Obs:</strong> {ag.observacao}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </main>
+    </>
+  )
 }

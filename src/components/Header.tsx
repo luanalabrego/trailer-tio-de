@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { Menu, X, ChevronDown } from 'lucide-react'
 import Image from 'next/image'
 
-export function Header() {
+export default function Header() {
   const pathname = usePathname()
   const router = useRouter()
   const [menuAberto, setMenuAberto] = useState(false)
@@ -24,18 +24,22 @@ export function Header() {
     Dashboard: [{ name: 'Dashboard', href: '/dashboard' }],
     Produtos: [
       { name: 'Cadastrar Produtos', href: '/produtos' },
-      { name: 'Cadastrar Categorias', href: '/categorias' },
+      { name: 'Categorias', href: '/categorias' },
       { name: 'Estoque', href: '/estoque' },
     ],
     Financeiro: [
       { name: 'Resumo Financeiro', href: '/financeiro' },
       { name: 'Pagamentos Pendentes', href: '/pendencias' },
-      { name: 'Cadastrar Custos', href: '/custos' },
+      { name: 'Custos', href: '/custos' },
     ],
     Caixa: [{ name: 'Caixa', href: '/caixa' }],
     Clientes: perfil === 'ADM' ? [{ name: 'Clientes', href: '/clientes' }] : [],
     Agendamentos: [{ name: 'Agendamentos', href: '/agendamentos' }],
-    'Histórico': [{ name: 'Histórico', href: '/historico' }],
+    Histórico: [
+      { name: 'Agendamentos', href: '/historicos/agendamentos' },
+      { name: 'Vendas', href: '/historicos/vendas' },
+      { name: 'Estoque', href: '/historicos/estoque' },
+    ],
     Cardápio: [{ name: 'Cardápio', href: '/cardapio' }],
   }
 
@@ -48,20 +52,18 @@ export function Header() {
     <header className="bg-white shadow fixed top-0 w-full z-50">
       <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4">
         {/* Logo */}
-        <Link href="/">
-          <a className="flex items-center">
-            <Image
-              src="/logo.png"
-              alt="Trailer Tio Dê"
-              width={64}
-              height={64}
-              unoptimized
-              className="w-12 h-12 sm:w-16 sm:h-16"
-            />
-            <span className="ml-2 text-xl sm:text-2xl font-bold text-gray-800">
-              Trailer Tio Dê
-            </span>
-          </a>
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/logo.png"
+            alt="Trailer Tio Dê"
+            width={64}
+            height={64}
+            unoptimized
+            className="w-12 h-12 sm:w-16 sm:h-16"
+          />
+          <span className="ml-2 text-xl sm:text-2xl font-bold text-gray-800">
+            Trailer Tio Dê
+          </span>
         </Link>
 
         {/* Desktop */}
