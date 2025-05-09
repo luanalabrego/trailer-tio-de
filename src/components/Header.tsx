@@ -86,73 +86,80 @@ export default function Header() {
         </Link>
 
         {/* Menu Desktop */}
-        <nav className="hidden md:flex space-x-6">
-          {menuOrder.map(grupo => {
-            const links = groupedLinks[grupo] || []
-            if (!links.length) return null
+<nav className="hidden md:flex space-x-6">
+  {menuOrder.map(grupo => {
+    const links = groupedLinks[grupo] || []
+    if (!links.length) return null
 
-            if (links.length === 1) {
-              const link = links[0]
-              return (
+    if (links.length === 1) {
+      const link = links[0]
+      const isActive = pathname === link.href
+      return (
+        <Link
+          key={link.href}
+          href={link.href}
+          className={`
+            relative text-sm font-medium text-gray-700 hover:text-gray-900
+            pb-1 transition
+            ${isActive ? 'border-b-2 border-indigo-400' : ''}
+          `}
+        >
+          {grupo}
+        </Link>
+      )
+    }
+
+    const anyChildActive = links.some(l => l.href === pathname)
+    return (
+      <div key={grupo} className="relative">
+        <button
+          onClick={() =>
+            setSubmenuAberto(prev => (prev === grupo ? null : grupo))
+          }
+          className={`
+            relative flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900
+            pb-1 transition
+            ${anyChildActive ? 'border-b-2 border-indigo-400' : ''}
+          `}
+        >
+          {grupo}
+          <ChevronDown
+            size={14}
+            className={`transition-transform ${
+              submenuAberto === grupo ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+        {submenuAberto === grupo && (
+          <ul className="absolute mt-2 w-48 bg-white border rounded shadow-lg z-50">
+            {links.map(link => (
+              <li key={link.href}>
                 <Link
-                  key={link.href}
                   href={link.href}
-                  className={`text-sm font-medium ${
+                  onClick={() => setSubmenuAberto(null)}
+                  className={`block px-4 py-2 text-sm hover:bg-gray-100 ${
                     pathname === link.href
-                      ? 'text-indigo-600 underline'
-                      : 'text-gray-700 hover:text-indigo-600'
+                      ? 'text-indigo-600 font-semibold'
+                      : 'text-gray-700'
                   }`}
                 >
-                  {grupo}
+                  {link.name}
                 </Link>
-              )
-            }
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    )
+  })}
+  <button
+    onClick={handleLogout}
+    className="text-sm text-red-500 hover:underline"
+  >
+    Sair
+  </button>
+</nav>
 
-            return (
-              <div key={grupo} className="relative">
-                <button
-                  onClick={() =>
-                    setSubmenuAberto(prev => (prev === grupo ? null : grupo))
-                  }
-                  className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-indigo-600"
-                >
-                  {grupo}
-                  <ChevronDown
-                    size={14}
-                    className={`transition-transform ${
-                      submenuAberto === grupo ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-                {submenuAberto === grupo && (
-                  <ul className="absolute mt-2 w-48 bg-white border rounded shadow-lg z-50">
-                    {links.map(link => (
-                      <li key={link.href}>
-                        <Link
-                          href={link.href}
-                          onClick={() => setSubmenuAberto(null)}
-                          className={`block px-4 py-2 text-sm hover:bg-gray-100 ${
-                            pathname === link.href
-                              ? 'text-indigo-600 font-semibold'
-                              : 'text-gray-700'
-                          }`}
-                        >
-                          {link.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )
-          })}
-          <button
-            onClick={handleLogout}
-            className="text-sm text-red-500 hover:underline"
-          >
-            Sair
-          </button>
-        </nav>
 
         {/* Toggle Mobile */}
         <div className="md:hidden">
