@@ -550,6 +550,6 @@ export default function CaixaPage() {
           </div>
         </div>
       )}
-    </>
-  )
-}
+    </>   {/* fecha o Fragment do JSX */}
+  );     {/* fecha o return( … ) */}
+}       {/* fecha a função CaixaPage */}
