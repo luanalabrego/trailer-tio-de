@@ -1,15 +1,17 @@
 import { Timestamp } from 'firebase/firestore'
 
+import { Timestamp } from 'firebase/firestore'
+
 export interface Produto {
   id: string
   nome: string
   preco: number
-  // restringe só às unidades válidas
-  unidade: 'ml' | 'kg' | 'porcao' | 'un'
+  // continua sendo string para aceitar algo como "50 ml"
+  unidade: string
   categoria: string
   // marca se esse produto deve ser controlado no estoque
-  controlaEstoque: boolean
-  // só usado se controlaEstoque for true
+  controlaEstoque?: boolean
+  // se controlaEstoque for true, registra quantidade
   estoque?: number
   // novo flag para itens sem controle de estoque
   disponivel: boolean
