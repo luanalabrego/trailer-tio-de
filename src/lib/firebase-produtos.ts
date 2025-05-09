@@ -65,8 +65,8 @@ export async function salvarProduto(
       imagemUrl = await getDownloadURL(fileRef)
     }
 
-    // 2) Monta payload base, sempre incluindo flags obrigatórios
-    const dadosBase: any = {
+    // 2) Monta payload base, usando Partial<Produto> em vez de any
+    const dadosBase: Partial<Produto> = {
       nome: p.nome,
       categoria: p.categoria,
       preco: p.preco,
