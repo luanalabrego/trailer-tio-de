@@ -276,9 +276,11 @@ export default function CardapioPage() {
             {produtos
               .filter(p =>
                 p.categoria === cat &&
-                (p.controlaEstoque
-                  ? (p.estoque ?? 0) > 0
-                  : p.disponivel)
+                (
+                  p.controlaEstoque
+                    ? (p.estoque ?? 0) > 0    // só inclui se controla estoque e estoque > 0
+                    : p.disponivel           // ou, se não controla estoque, só se estiver disponivel
+                )
               )
               .map(p => (
                 <div key={p.id} className="bg-white p-2 rounded shadow flex flex-col">
