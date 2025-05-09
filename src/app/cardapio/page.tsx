@@ -266,25 +266,31 @@ export default function CardapioPage() {
       </div>
 
       {view === 'menu' ? (
-        categoriasToShow.map(cat => (
-          <section key={cat} className="mb-8">
-            <h2 className="text-xl font-semibold text-indigo-600 mb-2">{cat}</h2>
-            <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+      categoriasToShow.map(cat => (
+        <section key={cat} className="mb-8">
+          <h2 className="text-xl font-semibold text-indigo-600 mb-2">
+            {cat}
+          </h2>
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+            {/* AQUI É ONDE VAMOS SUBSTITUIR */}
             {produtos
-  .filter(p =>
-    p.categoria === cat &&
-    (p.controlaEstoque
-      ? (p.estoque ?? 0) > 0
-      : p.disponivel
-    )
-  )
-  .map(p => (
-    <div key={p.id} className="bg-white p-2 rounded shadow flex flex-col">
-      {/* … */}
-    </div>
-  ))}
-
-                  >
+              .filter(p =>
+                p.categoria === cat &&
+                (p.controlaEstoque
+                  ? (p.estoque ?? 0) > 0
+                  : p.disponivel)
+              )
+              .map(p => (
+                <div key={p.id} className="bg-white p-2 rounded shadow flex flex-col">
+                  {p.imagemUrl && (
+                    <Image
+                      src={p.imagemUrl}
+                      alt={p.nome}
+                      width={200}
+                      height={100}
+                      className="object-cover rounded mb-1"
+                    />
+                  )}
                     {p.imagemUrl && (
                       <Image
                         src={p.imagemUrl}
