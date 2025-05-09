@@ -38,6 +38,7 @@ export interface Venda {
   total: number
   pago: boolean
   criadoEm: Timestamp
+  orderNumber?: number
 }
 
 export interface Agendamento {

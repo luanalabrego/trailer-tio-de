@@ -1,3 +1,4 @@
+// src/lib/firebase-caixa.ts
 import { db } from '@/firebase/firebase'
 import {
   collection,
@@ -8,18 +9,20 @@ import {
   orderBy,
   Timestamp,
 } from 'firebase/firestore'
-import { Venda } from '@/types'
+import type { Venda } from '@/types'
 
 const colecao = collection(db, 'vendas')
 
 /**
- * Registra uma nova venda, gravando também o timestamp de criação.
+ * Registra uma nova venda, gravando também o timestamp de criação
+ * e o número sequencial de pedido (orderNumber).
  */
 export async function registrarVenda(venda: Omit<Venda, 'id' | 'criadoEm'>) {
   const vendaCompleta = {
     ...venda,
-    criadoEm: Timestamp.now(),      // timestamp mais semântico
+    criadoEm: Timestamp.now(),
     pago: venda.pago ?? false,
+    orderNumber: venda.orderNumber,  // <-- aqui
   }
 
   await addDoc(colecao, vendaCompleta)
@@ -55,12 +58,14 @@ export async function listarVendasDoDia(): Promise<Venda[]> {
       total: Number(data.total),
       pago: Boolean(data.pago),
       criadoEm: data.criadoEm as Timestamp,
+      orderNumber: (data.orderNumber as number) || undefined,  // <-- aqui
     } as Venda
   })
 }
 
 /**
- * Lista todo o histórico de vendas, sem filtro de data, da mais recente para a mais antiga.
+ * Lista todo o histórico de vendas, sem filtro de data,
+ * da mais recente para a mais antiga.
  */
 export async function listarHistoricoVendas(): Promise<Venda[]> {
   const q = query(colecao, orderBy('criadoEm', 'desc'))
@@ -76,6 +81,7 @@ export async function listarHistoricoVendas(): Promise<Venda[]> {
       total: Number(data.total),
       pago: Boolean(data.pago),
       criadoEm: data.criadoEm as Timestamp,
+      orderNumber: (data.orderNumber as number) || undefined,  // <-- e aqui
     } as Venda
   })
 }
