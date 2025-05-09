@@ -131,12 +131,13 @@ export default function AgendamentosPage() {
     const cli = clientes.find(
       c => c.telefone.replace(/\D/g, '') === ag.whatsapp.replace(/\D/g, '')
     )
-    const venda: Omit<Venda, 'id' | 'data'> = {
+    const venda: Omit<Venda, 'id' | 'criadoEm'> = {
       clienteId: cli?.id || '',
       itens: ag.itens,
       formaPagamento: ag.formaPagamento,
       total: Number(ag.total),
       pago: Boolean(ag.pago),
+      criadoEm: Timestamp.now(),
     }
     await registrarVenda(venda)
     await updateDoc(doc(db, 'agendamentos', ag.id), {
