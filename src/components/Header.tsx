@@ -35,6 +35,7 @@ export function Header() {
     Caixa: [{ name: 'Caixa', href: '/caixa' }],
     Clientes: perfil === 'ADM' ? [{ name: 'Clientes', href: '/clientes' }] : [],
     Agendamentos: [{ name: 'Agendamentos', href: '/agendamentos' }],
++   Histórico: [{ name: 'Histórico', href: '/historico' }],
     Cardápio: [{ name: 'Cardápio', href: '/cardapio' }],
   }
 
@@ -50,11 +51,11 @@ export function Header() {
         <Link href="/">
           <a className="flex items-center">
             <Image
-              src="/logo.png"            // coloque o seu logo em public/logo.png
+              src="/logo.png"
               alt="Trailer Tio Dê"
               width={64}
               height={64}
-              unoptimized                // evita loader externo, garante renderização direta
+              unoptimized
               className="w-12 h-12 sm:w-16 sm:h-16"
             />
             <span className="ml-2 text-xl sm:text-2xl font-bold text-gray-800">
