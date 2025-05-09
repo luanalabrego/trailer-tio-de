@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { db } from '@/firebase/firebase'
 import {
   collection,
@@ -12,7 +12,11 @@ import { Header } from '@/components/Header'
 import { Agendamento, PedidoItem } from '@/types'
 
 export default function HistoricoAgendamentosPage() {
-  const [historico, setHistorico] = useState<Agendamento[]>([])
+  const [historico, setHistorico] = useState<
+    (Agendamento & { finishedAt: Timestamp })[]
+  >([])
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
 
   useEffect(() => {
     carregarHistorico()
@@ -24,6 +28,8 @@ export default function HistoricoAgendamentosPage() {
       const raw = d.data() as DocumentData
       const dataCriacaoTs: Timestamp =
         (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
+      // use `d.updateTime` as momento de cancelamento/finalização
+      const finishedAt = (d.updateTime as Timestamp) ?? dataCriacaoTs
 
       return {
         id: d.id,
@@ -42,16 +48,32 @@ export default function HistoricoAgendamentosPage() {
           | 'finalizado',
         localEntrega: raw.localEntrega ? String(raw.localEntrega) : undefined,
         observacao: raw.observacao ? String(raw.observacao) : undefined,
-      } as Agendamento
+        finishedAt,
+      }
     })
 
-    // mantém só cancelados e finalizados
     setHistorico(
-      todos.filter(
-        a => a.status === 'cancelado' || a.status === 'finalizado'
-      )
+      todos.filter(a => a.status === 'cancelado' || a.status === 'finalizado')
     )
   }
+
+  // filtra por período de finishedAt
+  const filtered = useMemo(() => {
+    return historico.filter(ag => {
+      const fin = ag.finishedAt.toDate()
+      if (startDate) {
+        const start = new Date(startDate)
+        if (fin < start) return false
+      }
+      if (endDate) {
+        const end = new Date(endDate)
+        // inclui todo o dia
+        end.setHours(23, 59, 59, 999)
+        if (fin > end) return false
+      }
+      return true
+    })
+  }, [historico, startDate, endDate])
 
   function formatarData(dt?: Timestamp | string | Date): string {
     if (!dt) return 'Inválida'
@@ -74,13 +96,44 @@ export default function HistoricoAgendamentosPage() {
       <div className="pt-20 px-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Histórico de Agendamentos</h1>
 
-        {historico.length === 0 ? (
+        {/* filtros de período */}
+        <div className="mb-6 flex flex-wrap gap-4 items-end">
+          <div>
+            <label className="block text-sm">Data início</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="mt-1 p-2 border rounded"
+            />
+          </div>
+          <div>
+            <label className="block text-sm">Data fim</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="mt-1 p-2 border rounded"
+            />
+          </div>
+          <button
+            onClick={() => {
+              setStartDate('')
+              setEndDate('')
+            }}
+            className="h-fit mt-6 text-sm text-indigo-600 hover:underline"
+          >
+            Limpar filtros
+          </button>
+        </div>
+
+        {filtered.length === 0 ? (
           <p className="text-gray-600">
-            Nenhum agendamento concluído ou cancelado.
+            Nenhum agendamento no período selecionado.
           </p>
         ) : (
           <ul className="space-y-4">
-            {historico.map(ag => (
+            {filtered.map(ag => (
               <li
                 key={ag.id}
                 className="bg-white p-4 rounded-xl shadow flex flex-col gap-2"
@@ -99,6 +152,14 @@ export default function HistoricoAgendamentosPage() {
                     {ag.status.toUpperCase()}
                   </span>
                 </div>
+
+                {/* data de cancelamento ou finalização */}
+                <p className="text-sm text-gray-600">
+                  {ag.status === 'finalizado'
+                    ? 'Finalizado em: '
+                    : 'Cancelado em: '}
+                  <strong>{formatarData(ag.finishedAt)}</strong>
+                </p>
 
                 <p className="text-sm text-gray-600">
                   Total: <strong>R$ {ag.total.toFixed(2)}</strong>
