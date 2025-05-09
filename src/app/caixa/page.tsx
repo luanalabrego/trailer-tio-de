@@ -11,8 +11,12 @@ import { db } from '@/firebase/firebase'
 
 import type { Cliente, Produto, PedidoItem, Venda as VendaType } from '@/types'
 
+// ← Aqui criamos o alias para poder guardar também a 'unidade'
+type ItemComUnidade = PedidoItem & { unidade?: string }
+
 // estende VendaType para incluir orderNumber
 type Venda = VendaType & { orderNumber?: number }
+
 
 export default function CaixaPage() {
   // sequência de números de pedido
