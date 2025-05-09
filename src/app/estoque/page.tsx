@@ -3,12 +3,12 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import Header from '@/components/Header'
 import { Plus, Minus, X as Close, Search } from 'lucide-react'
-import { 
-  listarEstoque, 
+import {
+  listarEstoque,
   criarOuAtualizarItemEstoque,
   ajustarQuantidade,
   registrarHistoricoEstoque,
-  EstoqueItem
+  EstoqueItem,
 } from '@/lib/firebase-estoque'
 import { listarProdutos } from '@/lib/firebase-produtos'
 import type { RegistroEstoque, Produto } from '@/types'
@@ -59,11 +59,12 @@ export default function EstoquePage() {
     )
     return Array.from(mapa.entries()).map(([produtoId, total]) => {
       const p = produtos.find(x => x.id === produtoId)
-      const unidade = p?.unidade ?? ''
-      const label = p
-        ? `${p.nome} — ${total}${unidade}`
-        : `${produtoId} — ${total}`
-      return { produtoId, label, total }
+      return {
+        produtoId,
+        nome: p?.nome ?? produtoId,
+        unidade: p?.unidade ?? '',
+        total,
+      }
     })
   }, [itens, produtos])
 
@@ -72,7 +73,8 @@ export default function EstoquePage() {
   const resumoFiltrado = useMemo(
     () =>
       resumo.filter(r =>
-        (r.label ?? '').toLowerCase().includes(termoBusca)
+        r.nome.toLowerCase().includes(termoBusca) ||
+        r.unidade.toLowerCase().includes(termoBusca)
       ),
     [resumo, termoBusca]
   )
@@ -107,7 +109,11 @@ export default function EstoquePage() {
     // pega lotes do produto, por inserção
     const lotes = itens
       .filter(i => i.produtoId === produtoRemover)
-      .sort((a, b) => a.inseridoEm.toDate().getTime() - b.inseridoEm.toDate().getTime())
+      .sort(
+        (a, b) =>
+          a.inseridoEm.toDate().getTime() -
+          b.inseridoEm.toDate().getTime()
+      )
 
     for (const lote of lotes) {
       if (remaining <= 0) break
@@ -141,12 +147,16 @@ export default function EstoquePage() {
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
           <h1 className="text-2xl font-bold mb-4 sm:mb-0">Estoque</h1>
           <div className="flex gap-2">
-            <button onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
               <Plus size={18} /> Adicionar/Atualizar
             </button>
-            <button onClick={() => setShowRemoveModal(true)}
-              className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+            <button
+              onClick={() => setShowRemoveModal(true)}
+              className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
               <Minus size={18} /> Remover
             </button>
           </div>
@@ -154,7 +164,10 @@ export default function EstoquePage() {
 
         {/* Busca */}
         <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600" size={18}/>
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600"
+            size={18}
+          />
           <input
             type="text"
             placeholder="Buscar item..."
@@ -171,7 +184,9 @@ export default function EstoquePage() {
             {resumoFiltrado.map(r => (
               <li key={r.produtoId} className="border-t pt-2">
                 <div className="flex justify-between items-center">
-                  <span className="font-medium">{r.label}</span>
+                  <span className="font-medium">
+                    {r.nome} — {r.unidade} — Total: {r.total}
+                  </span>
                   <button
                     onClick={() => toggleDetalhes(r.produtoId)}
                     className="text-indigo-600 hover:underline text-sm"
@@ -187,7 +202,10 @@ export default function EstoquePage() {
                       .filter(i => i.produtoId === r.produtoId)
                       .map(item => (
                         <li key={item.id} className="flex justify-between">
-                          <span>Validade: {item.validade.toDate().toLocaleDateString()}</span>
+                          <span>
+                            Validade:{' '}
+                            {item.validade.toDate().toLocaleDateString()}
+                          </span>
                           <span>Qtd: {item.quantidade}</span>
                         </li>
                       ))}
@@ -202,9 +220,13 @@ export default function EstoquePage() {
       {/* Modal Adicionar/Atualizar */}
       {showAddModal && (
         <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
-          <form onSubmit={handleAdd}
-            className="p-6 rounded-xl shadow-lg w-full max-w-md bg-white space-y-4">
-            <h2 className="text-lg font-semibold">Adicionar / Atualizar Estoque</h2>
+          <form
+            onSubmit={handleAdd}
+            className="p-6 rounded-xl shadow-lg w-full max-w-md bg-white space-y-4"
+          >
+            <h2 className="text-lg font-semibold">
+              Adicionar / Atualizar Estoque
+            </h2>
 
             <label className="flex flex-col text-sm text-gray-700">
               Produto
@@ -217,7 +239,7 @@ export default function EstoquePage() {
                 <option value="">Selecione…</option>
                 {produtos.map(p => (
                   <option key={p.id} value={p.id}>
-                    {p.nome} {p.unidade ?? ''}
+                    {p.nome} {p.unidade}
                   </option>
                 ))}
               </select>
@@ -245,12 +267,17 @@ export default function EstoquePage() {
             </label>
 
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 flex items-center gap-1"
+              >
                 <Close size={16} /> Cancelar
               </button>
-              <button type="submit"
-                className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 flex items-center gap-1">
+              <button
+                type="submit"
+                className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 flex items-center gap-1"
+              >
                 <Plus size={16} /> Salvar
               </button>
             </div>
@@ -261,8 +288,10 @@ export default function EstoquePage() {
       {/* Modal Remoção */}
       {showRemoveModal && (
         <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
-          <form onSubmit={handleRemove}
-            className="p-6 rounded-xl shadow-lg w-full max-w-md bg-white space-y-4">
+          <form
+            onSubmit={handleRemove}
+            className="p-6 rounded-xl shadow-lg w-full max-w-md bg-white space-y-4"
+          >
             <h2 className="text-lg font-semibold">Remover Estoque</h2>
 
             <label className="flex flex-col text-sm text-gray-700">
@@ -276,7 +305,7 @@ export default function EstoquePage() {
                 <option value="">Selecione…</option>
                 {produtos.map(p => (
                   <option key={p.id} value={p.id}>
-                    {p.nome} {p.unidade ?? ''}
+                    {p.nome} {p.unidade}
                   </option>
                 ))}
               </select>
@@ -304,12 +333,17 @@ export default function EstoquePage() {
             </label>
 
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowRemoveModal(false)}
-                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setShowRemoveModal(false)}
+                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 flex items-center gap-1"
+              >
                 <Close size={16} /> Cancelar
               </button>
-              <button type="submit"
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 flex items-center gap-1">
+              <button
+                type="submit"
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 flex items-center gap-1"
+              >
                 <Minus size={16} /> Remover
               </button>
             </div>
