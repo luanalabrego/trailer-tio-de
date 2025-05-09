@@ -6,16 +6,15 @@ import { registrarVenda, listarVendasDoDia } from '@/lib/firebase-caixa'
 import { listarClientes, cadastrarCliente } from '@/lib/firebase-clientes'
 import { listarProdutos } from '@/lib/firebase-produtos'
 import { Plus } from 'lucide-react'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
-import { db } from '@/firebase/firebase'
 
+// substitua ambos estes imports duplicados por um só:
 import { writeBatch, doc, getDoc, updateDoc } from 'firebase/firestore'
+import { db } from '@/firebase/firebase'
 
 import type { Cliente, Produto, PedidoItem, Venda as VendaType } from '@/types'
 
-// ← Aqui criamos o alias para poder guardar também a 'unidade'
+// estende PedidoItem para incluir unidade
 type ItemComUnidade = PedidoItem & { unidade?: string }
-
 // estende VendaType para incluir orderNumber
 type Venda = VendaType & { orderNumber?: number }
 
