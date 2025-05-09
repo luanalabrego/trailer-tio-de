@@ -24,7 +24,7 @@ export function Header() {
     Dashboard: [{ name: 'Dashboard', href: '/dashboard' }],
     Produtos: [
       { name: 'Cadastrar Produtos', href: '/produtos' },
-      { name: 'Categorias', href: '/categorias' },
+      { name: 'Cadastrar Categorias', href: '/categorias' },
       { name: 'Estoque', href: '/estoque' },
     ],
     Financeiro: [

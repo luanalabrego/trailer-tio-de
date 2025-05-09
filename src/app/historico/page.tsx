@@ -164,10 +164,6 @@ export default function HistoricoAgendamentosPage() {
                   <strong>{formatarData(ag.finishedAt)}</strong>
                 </p>
 
-                <p className="text-sm text-gray-600">
-                  Total: <strong>R$ {ag.total.toFixed(2)}</strong>
-                </p>
-
                 <p className="text-sm">Itens:</p>
                 <ul className="ml-4 list-disc text-sm">
                   {ag.itens.map(i => (
@@ -176,6 +172,10 @@ export default function HistoricoAgendamentosPage() {
                     </li>
                   ))}
                 </ul>
+
+                <p className="text-sm text-gray-600 mt-2">
+                  Total do pedido: <strong>R$ {ag.total.toFixed(2)}</strong>
+                </p>
 
                 {ag.localEntrega && (
                   <p className="text-sm">
