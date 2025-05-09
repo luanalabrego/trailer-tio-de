@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { listarVendasDoDia } from '@/lib/firebase-caixa'
 import { listarEstoque } from '@/lib/firebase-estoque'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, Timestamp } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
 import { Agendamento } from '@/types'
 
@@ -36,10 +36,21 @@ export default function Dashboard() {
     // Agendamentos do dia
     const snap = await getDocs(collection(db, 'agendamentos'))
     const hoje = new Date().toISOString().slice(0, 10)
-    const doDia = snap.docs
-      .map(doc => doc.data() as Agendamento)
-      .filter(a => a.dataHora.startsWith(hoje)).length
-    setAgendamentosHoje(doDia)
+const doDia = snap.docs
+  .map(doc => doc.data() as Agendamento)
+  .filter(a => {
+    // converte string|Date|Timestamp para Date
+    const dt: Date =
+      a.dataHora instanceof Timestamp
+        ? a.dataHora.toDate()
+        : a.dataHora instanceof Date
+        ? a.dataHora
+        : new Date(a.dataHora)
+    // compara somente yyyy-mm-dd
+    return dt.toISOString().slice(0, 10) === hoje
+  }).length
+setAgendamentosHoje(doDia)
+
   }
 
   const cards = [
