@@ -1,37 +1,31 @@
-// middleware.ts
+// middleware.ts (na raiz do projeto)
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = [
-  '/login',
-  '/_next/',
-  '/_next/static/',
-  '/_next/image/',
-  '/api/',
-  '/favicon.ico',
-]
+// Executa em todas as rotas, exceto as públicas
+export const config = {
+  matcher: [
+    // regex que exclui /login, /api, /_next e favicon
+    '/((?!login|api|_next|favicon.ico).*)',
+  ],
+}
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // 1) libera rotas públicas (login, assets, api, favicon)
-  if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
+  // rota de login — libera sempre
+  if (pathname === '/login') {
     return NextResponse.next()
   }
 
-  // 2) exige login: cookie 'perfil' deve existir
+  // verifica cookie de sessão
   const perfil = req.cookies.get('perfil')?.value
   if (!perfil) {
+    // redireciona para /login
     const loginUrl = req.nextUrl.clone()
     loginUrl.pathname = '/login'
     return NextResponse.redirect(loginUrl)
   }
 
-  // 3) tudo OK: deixa seguir
   return NextResponse.next()
-}
-
-export const config = {
-  // pega **todas** as rotas
-  matcher: ['/:path*'],
 }
