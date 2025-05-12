@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Header from '@/components/Header'
 import {
   listarClientes,
+  cadastrarCliente,
   salvarCliente,
   excluirCliente,
 } from '@/lib/firebase-clientes'
@@ -18,7 +19,7 @@ export default function ClientesPage() {
 
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
-  const [aniversario, setAniversario] = useState('') // YYYY-MM-DD
+  const [aniversario, setAniversario] = useState('')  // YYYY-MM-DD
   const [observacoes, setObservacoes] = useState('')
 
   useEffect(() => {
@@ -52,14 +53,14 @@ export default function ClientesPage() {
     } else {
       setAniversario('')
     }
-    setObservacoes(cliente.observacoes || '')
+    setObservacoes(cliente.observacoes)
     setMostrarModal(true)
   }
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // não cadastrar cliente duplicado pelo mesmo telefone
+    // evita duplicação de telefone
     const existeDuplicado = modoEdicao
       ? clientes.some(c => c.telefone === telefone && c.id !== clienteSelecionado?.id)
       : clientes.some(c => c.telefone === telefone)
@@ -68,23 +69,23 @@ export default function ClientesPage() {
       return
     }
 
-    // formata data para "DD/MM/YYYY" ou undefined
+    // formatar data para "DD/MM/YYYY" antes de salvar ou undefined
     const aniversarioFormatado = aniversario
       ? aniversario.split('-').reverse().join('/')
       : undefined
 
-    const dados = {
+    const dados: Omit<Cliente, 'id'> = {
       nome,
       telefone,
       aniversario: aniversarioFormatado,
       observacoes,
+      totalGasto: 0,
     }
 
     if (modoEdicao && clienteSelecionado) {
       await salvarCliente({ id: clienteSelecionado.id, ...dados })
     } else {
-      // gera um novo id para clientes novos
-      await salvarCliente({ id: crypto.randomUUID(), ...dados })
+      await cadastrarCliente(dados)
     }
 
     setMostrarModal(false)
