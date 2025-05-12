@@ -18,7 +18,7 @@ export default function ClientesPage() {
 
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
-  const [aniversario, setAniversario] = useState('') // ISO YYYY-MM-DD
+  const [aniversario, setAniversario] = useState('') // YYYY-MM-DD
   const [observacoes, setObservacoes] = useState('')
 
   useEffect(() => {
@@ -45,26 +45,47 @@ export default function ClientesPage() {
     setClienteSelecionado(cliente)
     setNome(cliente.nome)
     setTelefone(cliente.telefone)
-    // converte "DD/MM/YYYY" para "YYYY-MM-DD" para o input date
-    let iso = ''
+    // converte "DD/MM/YYYY" → "YYYY-MM-DD" para o input date
     if (cliente.aniversario) {
       const [dd, mm, yyyy] = cliente.aniversario.split('/')
-      iso = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
+      setAniversario(`${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`)
+    } else {
+      setAniversario('')
     }
-    setAniversario(iso)
     setObservacoes(cliente.observacoes || '')
     setMostrarModal(true)
   }
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault()
-    await salvarCliente({
-      id: clienteSelecionado!.id,
+
+    // não cadastrar cliente duplicado pelo mesmo telefone
+    const existeDuplicado = modoEdicao
+      ? clientes.some(c => c.telefone === telefone && c.id !== clienteSelecionado?.id)
+      : clientes.some(c => c.telefone === telefone)
+    if (existeDuplicado) {
+      alert('Já existe um cliente cadastrado com este telefone.')
+      return
+    }
+
+    // formata data para "DD/MM/YYYY" ou undefined
+    const aniversarioFormatado = aniversario
+      ? aniversario.split('-').reverse().join('/')
+      : undefined
+
+    const dados = {
       nome,
       telefone,
-      aniversario,   // YYYY-MM-DD
+      aniversario: aniversarioFormatado,
       observacoes,
-    })
+    }
+
+    if (modoEdicao && clienteSelecionado) {
+      await salvarCliente({ id: clienteSelecionado.id, ...dados })
+    } else {
+      await salvarCliente(dados)
+    }
+
     setMostrarModal(false)
     await carregar()
   }
@@ -79,15 +100,14 @@ export default function ClientesPage() {
   return (
     <>
       <Header />
-      <div className="pt-20 px-4 max-w-4xl mx-auto">
+      <div className="pt-20 px-4 max-w-4xl mx-auto bg-white">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Clientes</h1>
           <button
             onClick={abrirModalNovo}
             className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition"
           >
-            <Plus size={18} />
-            Novo Cliente
+            <Plus size={18} /> Novo Cliente
           </button>
         </div>
 
@@ -126,16 +146,17 @@ export default function ClientesPage() {
         </ul>
       </div>
 
-      {/* Modal */}
       {mostrarModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
             <h2 className="text-xl font-bold text-gray-800 mb-4">
               {modoEdicao ? 'Editar Cliente' : 'Novo Cliente'}
             </h2>
             <form onSubmit={handleSalvar} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome completo
+                </label>
                 <input
                   type="text"
                   value={nome}
@@ -146,7 +167,9 @@ export default function ClientesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone (WhatsApp)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Telefone (WhatsApp)
+                </label>
                 <input
                   type="tel"
                   placeholder="(DDD) 99999-0000"
@@ -158,18 +181,22 @@ export default function ClientesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Data de aniversário</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Data de aniversário
+                </label>
                 <input
                   type="date"
                   value={aniversario}
                   onChange={e => setAniversario(e.target.value)}
                   className="w-full p-2 border rounded"
                 />
-                <p className="text-xs text-gray-500 mt-1">Selecione a data (formato brasileiro)</p>
+                <p className="text-xs text-gray-500 mt-1">(opcional)</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Observações
+                </label>
                 <input
                   type="text"
                   value={observacoes}
