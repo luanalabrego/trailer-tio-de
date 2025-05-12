@@ -83,7 +83,8 @@ export default function ClientesPage() {
     if (modoEdicao && clienteSelecionado) {
       await salvarCliente({ id: clienteSelecionado.id, ...dados })
     } else {
-      await salvarCliente(dados)
+      // gera um novo id para clientes novos
+      await salvarCliente({ id: crypto.randomUUID(), ...dados })
     }
 
     setMostrarModal(false)
