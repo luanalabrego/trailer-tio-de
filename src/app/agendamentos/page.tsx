@@ -213,44 +213,47 @@ export default function AgendamentosPage() {
                   </button>
 
                   {isOpen && (
-                    <div className="px-4 pb-4 space-y-4">
-                      <p className="text-sm text-gray-500">
-                        Registrado em: {formatarData(ag.dataCriacao)}
-                      </p>
-                      {ag.localEntrega && (
-                        <p>
-                          <strong>Local:</strong> {ag.localEntrega}
-                        </p>
-                      )}
-                      {ag.observacao && (
-                        <p>
-                          <strong>Obs:</strong> {ag.observacao}
-                        </p>
-                      )}
+  <div className="px-4 pb-4 space-y-4">
+    {/* ... outros campos ... */}
 
-                      <ul className="space-y-2">
-                        {ag.itens.map(i => (
-                          <li key={i.id} className="flex justify-between">
-                            {(() => {
-                              const prod = produtos.find(p => p.id === i.id)
-                              return prod ? (
-                                <span>
-                                  {prod.categoria} — {i.nome} — {i.qtd} {prod.unidade}
-                                </span>
-                              ) : (
-                                <span>
-                                  {i.nome} × {i.qtd}
-                                </span>
-                              )
-                            })()}
-                            <span>R$ {(i.preco * i.qtd).toFixed(2)}</span>
-                          </li>
-                        ))}
-                      </ul>
+    {/* Agrupa itens por categoria */}
+    {(() => {
+      // Construir um mapa categoria → lista de { prod, qtd }
+      const itensPorCategoria = ag.itens.reduce(
+        (acc, i) => {
+          const prod = produtos.find(p => p.id === i.id)
+          if (!prod) return acc
+          if (!acc[prod.categoria]) acc[prod.categoria] = []
+          acc[prod.categoria].push({ prod, qtd: i.qtd })
+          return acc
+        },
+        {} as Record<string, { prod: Produto; qtd: number }[]>
+      )
 
-                      <p className="text-right font-medium">
-                        Total do Pedido: R$ {Number(ag.total).toFixed(2)}
-                      </p>
+      return (
+        <ul className="space-y-4">
+          {Object.entries(itensPorCategoria).map(([categoria, lista]) => (
+            <li key={categoria}>
+              <h4 className="font-semibold text-lg">{categoria}</h4>
+              <ul className="ml-4 list-disc space-y-1">
+                {lista.map(({ prod, qtd }) => (
+                  <li key={prod.id} className="flex justify-between">
+                    <span>{prod.nome}</span>
+                    <span className="font-medium">
+                      {qtd} {prod.unidade}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )
+    })()}
+
+    <p className="text-right font-medium">
+      Total do Pedido: R$ {Number(ag.total).toFixed(2)}
+    </p>
 
                       <div className="flex gap-2">
                         {ag.status === 'pendente' && (
