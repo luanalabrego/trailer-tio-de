@@ -12,18 +12,24 @@ import {
   DocumentData,
 } from 'firebase/firestore'
 import Header from '@/components/Header'
-import { Agendamento, Cliente, PedidoItem, Venda } from '@/types'
+import { Agendamento, Cliente, PedidoItem, Venda, Produto } from '@/types'
 import { listarClientes } from '@/lib/firebase-clientes'
+import { listarProdutos } from '@/lib/firebase-produtos'
 import { registrarVenda } from '@/lib/firebase-caixa'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function AgendamentosPage() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
+  const [produtos, setProdutos] = useState<Produto[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    carregar()
+    // carrega produtos e agendamentos em paralelo
+    Promise.all([
+      listarProdutos().then(setProdutos),
+      carregar()
+    ])
   }, [])
 
   async function carregar() {
@@ -122,7 +128,7 @@ export default function AgendamentosPage() {
     if (!confirm('Tem certeza que deseja cancelar este pedido?')) return
     await updateDoc(doc(db, 'agendamentos', ag.id), {
       status: 'cancelado',
-      canceladoEm: serverTimestamp(),    // ← linha adicionada
+      canceladoEm: serverTimestamp(),
     })
     await carregar()
   }
@@ -131,33 +137,31 @@ export default function AgendamentosPage() {
     const cli = clientes.find(
       c => c.telefone.replace(/\D/g, '') === ag.whatsapp.replace(/\D/g, '')
     )
-    // depois
-const venda: Omit<Venda, 'id'> = {
-  clienteId: cli?.id || '',
-  itens: ag.itens,
-  formaPagamento: ag.formaPagamento,
-  total: Number(ag.total),
-  pago: Boolean(ag.pago),
-  criadoEm: Timestamp.now(),   // agora pertence ao tipo, já que você só omitiu 'id'
-}
+    const venda: Omit<Venda, 'id'> = {
+      clienteId: cli?.id || '',
+      itens: ag.itens,
+      formaPagamento: ag.formaPagamento,
+      total: Number(ag.total),
+      pago: Boolean(ag.pago),
+      criadoEm: Timestamp.now(),
+    }
 
     await registrarVenda(venda)
     await updateDoc(doc(db, 'agendamentos', ag.id), {
       status: 'finalizado',
-      finalizadoEm: serverTimestamp(),   // ← linha adicionada
+      finalizadoEm: serverTimestamp(),
     })
     if (!ag.pago) {
       enviarWhatsApp(
-        `Olá ${ag.nome}, seu pedido de ${formatarData(
+        `Olá ${ag.nome}, seu pedido agendado para ${formatarData(
           ag.dataHora
-        )} foi entregue e finalizado!`,
+        )} foi entregue e finalizado com sucesso!`,
         ag.whatsapp
       )
     }
     await carregar()
   }
 
-  // somente agendamentos ativos
   const ativos = sortedAgendamentos.filter(
     ag => !['cancelado', 'finalizado'].includes(ag.status)
   )
@@ -201,8 +205,7 @@ const venda: Omit<Venda, 'id'> = {
                           {ag.nome} — {tipo} — {formatarData(ag.dataHora)}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {ag.itens.length} item(s) • {ag.formaPagamento} • Total: R${' '}
-                          {Number(ag.total).toFixed(2)}
+                          {ag.itens.length} item(s) • {ag.formaPagamento} • Total: R$ {Number(ag.total).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -228,9 +231,18 @@ const venda: Omit<Venda, 'id'> = {
                       <ul className="space-y-2">
                         {ag.itens.map(i => (
                           <li key={i.id} className="flex justify-between">
-                            <span>
-                              {i.nome} × {i.qtd}
-                            </span>
+                            {(() => {
+                              const prod = produtos.find(p => p.id === i.id)
+                              return prod ? (
+                                <span>
+                                  {prod.categoria} — {i.nome} — {i.qtd} {prod.unidade}
+                                </span>
+                              ) : (
+                                <span>
+                                  {i.nome} × {i.qtd}
+                                </span>
+                              )
+                            })()}
                             <span>R$ {(i.preco * i.qtd).toFixed(2)}</span>
                           </li>
                         ))}
@@ -267,6 +279,7 @@ const venda: Omit<Venda, 'id'> = {
                           <button
                             onClick={() => finalizarPedido(ag)}
                             className="bg-green-600 text-white px-3 py-1 rounded"
+                            type="button"
                           >
                             Finalizar
                           </button>
