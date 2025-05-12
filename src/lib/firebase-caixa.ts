@@ -1,4 +1,3 @@
-// src/lib/firebase-caixa.ts
 import { db } from '@/firebase/firebase'
 import {
   collection,
@@ -15,14 +14,19 @@ const colecao = collection(db, 'vendas')
 
 /**
  * Registra uma nova venda, gravando também o timestamp de criação
- * e o número sequencial de pedido (orderNumber).
+ * e, se fornecido, o número sequencial de pedido (orderNumber).
  */
 export async function registrarVenda(venda: Omit<Venda, 'id' | 'criadoEm'>) {
-  const vendaCompleta = {
+  // monta o payload inicial (sem orderNumber)
+  const vendaCompleta: any = {
     ...venda,
     criadoEm: Timestamp.now(),
     pago: venda.pago ?? false,
-    orderNumber: venda.orderNumber,  // <-- aqui
+  }
+
+  // só adiciona orderNumber se não for undefined
+  if (venda.orderNumber !== undefined) {
+    vendaCompleta.orderNumber = venda.orderNumber
   }
 
   await addDoc(colecao, vendaCompleta)
@@ -58,7 +62,7 @@ export async function listarVendasDoDia(): Promise<Venda[]> {
       total: Number(data.total),
       pago: Boolean(data.pago),
       criadoEm: data.criadoEm as Timestamp,
-      orderNumber: (data.orderNumber as number) || undefined,  // <-- aqui
+      orderNumber: (data.orderNumber as number) || undefined,
     } as Venda
   })
 }
@@ -81,7 +85,7 @@ export async function listarHistoricoVendas(): Promise<Venda[]> {
       total: Number(data.total),
       pago: Boolean(data.pago),
       criadoEm: data.criadoEm as Timestamp,
-      orderNumber: (data.orderNumber as number) || undefined,  // <-- e aqui
+      orderNumber: (data.orderNumber as number) || undefined,
     } as Venda
   })
 }
