@@ -53,8 +53,8 @@ export default function ClientesPage() {
     } else {
       setAniversario('')
     }
-    setObservacoes(cliente.observacoes)
-    setMostrarModal(true)
+    setObservacoes(cliente.observacoes ?? '')
+        setMostrarModal(true)
   }
 
   const handleSalvar = async (e: React.FormEvent) => {
