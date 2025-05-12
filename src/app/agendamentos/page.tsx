@@ -214,11 +214,9 @@ export default function AgendamentosPage() {
 
                   {isOpen && (
   <div className="px-4 pb-4 space-y-4">
-    {/* ... outros campos ... */}
+    {/* ...outros campos... */}
 
-    {/* Agrupa itens por categoria */}
     {(() => {
-      // Construir um mapa categoria → lista de { prod, qtd }
       const itensPorCategoria = ag.itens.reduce(
         (acc, i) => {
           const prod = produtos.find(p => p.id === i.id)
@@ -234,14 +232,14 @@ export default function AgendamentosPage() {
         <ul className="space-y-4">
           {Object.entries(itensPorCategoria).map(([categoria, lista]) => (
             <li key={categoria}>
-              <h4 className="font-semibold text-lg">{categoria}</h4>
-              <ul className="ml-4 list-disc space-y-1">
+              <h4 className="font-semibold text-base mb-1">{categoria}</h4>
+              <ul className="ml-4 space-y-1">
                 {lista.map(({ prod, qtd }) => (
-                  <li key={prod.id} className="flex justify-between">
-                    <span>{prod.nome}</span>
-                    <span className="font-medium">
-                      {qtd} {prod.unidade}
+                  <li key={prod.id} className="flex justify-between items-center">
+                    <span>
+                      {qtd} - {prod.nome} {prod.unidade}
                     </span>
+                    <span>R$ {(prod.preco * qtd).toFixed(2)}</span>
                   </li>
                 ))}
               </ul>
