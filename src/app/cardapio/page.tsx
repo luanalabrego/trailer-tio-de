@@ -138,7 +138,6 @@ export default function CardapioPage() {
       prev.map(item => {
         if (item.id !== id) return item
         const product = produtos.find(p => p.id === id)!
-        // se controla estoque, limita pelo stockCounts, senão permite enquanto disponível
         const disponivel = product.controlaEstoque
           ? stockCounts[id] ?? 0
           : product.disponivel
@@ -460,6 +459,49 @@ export default function CardapioPage() {
                     </li>
                   ))}
                 </ul>
+
+                {/* Tipo de entrega */}
+                <div className="mb-4">
+                  <label className="block mb-1 text-sm text-gray-700">Tipo de Entrega</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="radio"
+                        name="tipoEntrega"
+                        value="retirada"
+                        checked={tipoEntrega === 'retirada'}
+                        onChange={() => setTipoEntrega('retirada')}
+                        className="form-radio"
+                      />
+                      Retirada
+                    </label>
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="radio"
+                        name="tipoEntrega"
+                        value="entrega"
+                        checked={tipoEntrega === 'entrega'}
+                        onChange={() => setTipoEntrega('entrega')}
+                        className="form-radio"
+                      />
+                      Entrega
+                    </label>
+                  </div>
+                </div>
+                {tipoEntrega === 'entrega' && (
+                  <div className="mb-4">
+                    <label className="block mb-1 text-sm text-gray-700">Local de Entrega</label>
+                    <input
+                      type="text"
+                      value={localEntrega}
+                      onChange={e => setLocalEntrega(e.target.value)}
+                      placeholder="Endereço para entrega"
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                )}
+
+                {/* Agendamento, pagamento e observação */}
                 <div className="mb-4">
                   <label className="block mb-1 text-sm text-gray-700">Agendar para</label>
                   <input
