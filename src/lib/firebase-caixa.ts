@@ -1,3 +1,4 @@
+// src/lib/firebase-caixa.ts
 import { db } from '@/firebase/firebase'
 import {
   collection,
@@ -13,27 +14,33 @@ import type { Venda } from '@/types'
 const colecao = collection(db, 'vendas')
 
 /**
- * Registra uma nova venda, gravando também o timestamp de criação
- * e, se fornecido, o número sequencial de pedido (orderNumber).
+ * Registra uma nova venda com timestamp e orderNumber opcional.
  */
-export async function registrarVenda(venda: Omit<Venda, 'id' | 'criadoEm'>) {
-  // monta o payload inicial (sem orderNumber)
-  const vendaCompleta: any = {
+export async function registrarVenda(
+  venda: Omit<Venda, 'id' | 'criadoEm'>
+): Promise<void> {
+  // Define um type-safe payload sem usar `any`
+  type Payload = Omit<Venda, 'id' | 'criadoEm'> & {
+    criadoEm: Timestamp
+    pago: boolean
+    orderNumber?: number
+  }
+
+  const payload: Payload = {
     ...venda,
     criadoEm: Timestamp.now(),
     pago: venda.pago ?? false,
   }
 
-  // só adiciona orderNumber se não for undefined
   if (venda.orderNumber !== undefined) {
-    vendaCompleta.orderNumber = venda.orderNumber
+    payload.orderNumber = venda.orderNumber
   }
 
-  await addDoc(colecao, vendaCompleta)
+  await addDoc(colecao, payload)
 }
 
 /**
- * Lista apenas as vendas do dia atual, ordenadas da mais recente para a mais antiga.
+ * Lista apenas as vendas do dia atual, da mais recente para a mais antiga.
  */
 export async function listarVendasDoDia(): Promise<Venda[]> {
   const hoje = new Date()
@@ -68,8 +75,7 @@ export async function listarVendasDoDia(): Promise<Venda[]> {
 }
 
 /**
- * Lista todo o histórico de vendas, sem filtro de data,
- * da mais recente para a mais antiga.
+ * Lista todo o histórico de vendas, sem filtro de data, da mais recente para a mais antiga.
  */
 export async function listarHistoricoVendas(): Promise<Venda[]> {
   const q = query(colecao, orderBy('criadoEm', 'desc'))
