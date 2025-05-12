@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
@@ -13,9 +13,6 @@ import {
   registrarHistoricoEstoque,
 } from '@/lib/firebase-estoque'
 
-
-
-
 type AgendamentoPayload = NovoAgendamento & {
   tipoEntrega: 'retirada' | 'entrega'
   localEntrega?: string
@@ -24,7 +21,7 @@ type AgendamentoPayload = NovoAgendamento & {
 
 export default function CardapioPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
-  const [stockCounts, setStockCounts] = useState<Record<string, number>>({})  // ← novo
+  const [stockCounts, setStockCounts] = useState<Record<string, number>>({})
   const [carrinho, setCarrinho] = useState<PedidoItem[]>([])
   const [view, setView] = useState<'menu' | 'carrinho'>('menu')
   const [clientes, setClientes] = useState<Cliente[]>([])
@@ -55,15 +52,14 @@ export default function CardapioPage() {
       setProdutos(prods)
       setClientes(clis)
       setQuantidades(Object.fromEntries(prods.map(p => [p.id, 1])))
-          // monta o mapa produtoId → soma de todos os lotes
-  
-          const lots = await listarEstoque()
+
+      // monta o mapa produtoId → soma de todos os lotes
+      const lots = await listarEstoque()
       const counts: Record<string, number> = {}
       lots.forEach(l => {
         counts[l.produtoId] = (counts[l.produtoId] || 0) + l.quantidade
       })
       setStockCounts(counts)
-  
 
       const stored = localStorage.getItem('clienteTelefone') || ''
       if (stored) {
@@ -140,60 +136,74 @@ export default function CardapioPage() {
   const incrementarItem = (id: string) =>
     setCarrinho(prev =>
       prev.map(item => {
-        if (item.id !== id) return item;
-  
-        const disponivel = stockCounts[id] ?? 0;
+        if (item.id !== id) return item
+        const product = produtos.find(p => p.id === id)!
+        // se controla estoque, limita pelo stockCounts, senão permite enquanto disponível
+        const disponivel = product.controlaEstoque
+          ? stockCounts[id] ?? 0
+          : product.disponivel
+          ? Infinity
+          : 0
         if (item.qtd < disponivel) {
-          return { ...item, qtd: item.qtd + 1 };
+          return { ...item, qtd: item.qtd + 1 }
         } else {
-          alert(`Só há ${disponivel} em estoque para este produto.`);
-          return item;
+          alert(
+            product.controlaEstoque
+              ? `Só há ${stockCounts[id]} em estoque para este produto.`
+              : 'Este produto não está mais disponível.'
+          )
+          return item
         }
       })
-    );
-    const decrementarItem = (id: string) =>
-      setCarrinho(prev =>
-        prev.flatMap(i => {
-          if (i.id === id) {
-            if (i.qtd > 1) return { ...i, qtd: i.qtd - 1 };
-            return [];
-          }
-          return i;
-        })
-      );
-    
+    )
 
-      const adicionarAoCarrinho = (p: Produto) => {
-        const qtdDesejada = quantidades[p.id] || 1;
-        const jaNoCarrinho = carrinho.find(i => i.id === p.id)?.qtd ?? 0;
-        const disponivel = stockCounts[p.id] ?? 0;
-        const restante = disponivel - jaNoCarrinho;
-      
-        if (qtdDesejada > restante) {
-          alert(`Você só pode adicionar mais ${restante} unidade(s) deste produto.`);
-          return;
+  const decrementarItem = (id: string) =>
+    setCarrinho(prev =>
+      prev.flatMap(i => {
+        if (i.id === id) {
+          if (i.qtd > 1) return { ...i, qtd: i.qtd - 1 }
+          return []
         }
-      
-        setCarrinho(prev => {
-          const exists = prev.find(i => i.id === p.id);
-          if (exists) {
-            return prev.map(i =>
-              i.id === p.id ? { ...i, qtd: i.qtd + qtdDesejada } : i
-            );
-          }
-          return [...prev, { id: p.id, nome: p.nome, preco: p.preco, qtd: qtdDesejada }];
-        });
-      
-        setQuantidades(q => ({ ...q, [p.id]: 1 }));
-        alert('Item adicionado ao carrinho');
-      };
-    
-    
+        return i
+      })
+    )
+
+  const adicionarAoCarrinho = (p: Produto) => {
+    const qtdDesejada = quantidades[p.id] || 1
+    const jaNoCarrinho = carrinho.find(i => i.id === p.id)?.qtd ?? 0
+    const disponivel = p.controlaEstoque
+      ? stockCounts[p.id] ?? 0
+      : p.disponivel
+      ? Infinity
+      : 0
+    const restante = disponivel - jaNoCarrinho
+
+    if (qtdDesejada > restante) {
+      alert(
+        p.controlaEstoque
+          ? `Você só pode adicionar mais ${restante} unidade(s) deste produto.`
+          : 'Este produto não está mais disponível.'
+      )
+      return
+    }
+
+    setCarrinho(prev => {
+      const exists = prev.find(i => i.id === p.id)
+      if (exists) {
+        return prev.map(i =>
+          i.id === p.id ? { ...i, qtd: i.qtd + qtdDesejada } : i
+        )
+      }
+      return [...prev, { id: p.id, nome: p.nome, preco: p.preco, qtd: qtdDesejada }]
+    })
+
+    setQuantidades(q => ({ ...q, [p.id]: 1 }))
+    alert('Item adicionado ao carrinho')
+  }
 
   const total = carrinho.reduce((sum, i) => sum + i.preco * i.qtd, 0)
 
   async function handleAgendar() {
-    // Validações
     if (!dataHoraAgendada || !formaPagamento || carrinho.length === 0) {
       alert('Defina data/hora, forma de pagamento e adicione itens.')
       return
@@ -202,8 +212,7 @@ export default function CardapioPage() {
       alert('Escolha o local de entrega.')
       return
     }
-  
-    // 1) Salva agendamento
+
     const payload: AgendamentoPayload = {
       nome: clienteExistente!.nome,
       whatsapp: telefone,
@@ -216,8 +225,8 @@ export default function CardapioPage() {
       localEntrega: tipoEntrega === 'entrega' ? localEntrega : undefined,
     }
     await salvarAgendamento(payload)
-  
-    // 2) Deduza estoque FIFO lote a lote
+
+    // Deduza estoque FIFO lote a lote
     const lots = await listarEstoque()
     for (const item of carrinho) {
       let remaining = item.qtd
@@ -226,15 +235,11 @@ export default function CardapioPage() {
         .sort((a, b) =>
           a.inseridoEm.toDate().getTime() - b.inseridoEm.toDate().getTime()
         )
-  
+
       for (const lot of productLots) {
         if (remaining <= 0) break
         const toDeduct = Math.min(lot.quantidade, remaining)
-  
-        // 2.1) Ajusta o lote no banco
         await ajustarQuantidade(lot.id, lot.quantidade - toDeduct)
-  
-        // 2.2) Registra no histórico
         await registrarHistoricoEstoque({
           produtoId: lot.produtoId,
           nome: item.nome,
@@ -242,23 +247,19 @@ export default function CardapioPage() {
           motivo: 'Venda',
           criadoEm: Timestamp.now(),
         })
-  
         remaining -= toDeduct
       }
     }
-  
-    // 3) Atualiza o estado local de estoque para a UI
+
+    // Atualiza o estado local de estoque
     const updatedLots = await listarEstoque()
     const newCounts: Record<string, number> = {}
     updatedLots.forEach(l => {
       newCounts[l.produtoId] = (newCounts[l.produtoId] || 0) + l.quantidade
     })
     setStockCounts(newCounts)
-  
-    // 4) Pergunta sobre WhatsApp
-    if (
-      confirm('Pedido confirmado!\n\nDeseja enviar o resumo via WhatsApp?')
-    ) {
+
+    if (confirm('Pedido confirmado!\n\nDeseja enviar o resumo via WhatsApp?')) {
       const linhas = payload.itens
         .map(
           i =>
@@ -269,7 +270,7 @@ export default function CardapioPage() {
         payload.dataHora instanceof Timestamp
           ? payload.dataHora.toDate().toLocaleString('pt-BR')
           : new Date(payload.dataHora).toLocaleString('pt-BR')
-  
+
       window.open(
         `https://wa.me/55${telefone}?text=${encodeURIComponent(
           `Olá ${payload.nome},\n${linhas}\nTotal: R$ ${payload.total.toFixed(
@@ -279,8 +280,8 @@ export default function CardapioPage() {
         '_blank'
       )
     }
-  
-    // 5) Limpa estado e volta ao menu
+
+    // limpa tudo e volta ao menu
     setCarrinho([])
     setDataHoraAgendada('')
     setFormaPagamento('')
@@ -289,10 +290,10 @@ export default function CardapioPage() {
     setLocalEntrega('')
     setView('menu')
   }
-  
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 max-w-4xl mx-auto pt-8">
+      {/* Cabeçalho e boas-vindas */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Image
@@ -320,6 +321,7 @@ export default function CardapioPage() {
         </div>
       </div>
 
+      {/* Título e botão do carrinho */}
       <header className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-gray-800">Cardápio</h1>
         <button
@@ -330,6 +332,7 @@ export default function CardapioPage() {
         </button>
       </header>
 
+      {/* Filtro de categorias */}
       <div className="flex gap-2 overflow-x-auto mb-4">
         <button
           onClick={() => setSelectedCategory(null)}
@@ -353,69 +356,74 @@ export default function CardapioPage() {
       </div>
 
       {view === 'menu' ? (
-      categoriasToShow.map(cat => (
-        <section key={cat} className="mb-8">
-          <h2 className="text-xl font-semibold text-indigo-600 mb-2">
-            {cat}
-          </h2>
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
-            {/* AQUI É ONDE VAMOS SUBSTITUIR */}
-            {produtos
-              .filter(p =>
-                p.categoria === cat &&
-                (
-                  p.controlaEstoque
-                  ? (stockCounts[p.id] ?? 0) > 0      // ← usa nosso mapa de estoque real
-                    : p.disponivel           // ou, se não controla estoque, só se estiver disponivel
-                )
-              )
-              .map(p => (
-                <div key={p.id} className="bg-white p-2 rounded shadow flex flex-col">
-                  
-                    {p.imagemUrl && (
-                      <Image
-                        src={p.imagemUrl}
-                        alt={p.nome}
-                        width={200}
-                        height={100}
-                        className="object-cover rounded mb-1"
-                      />
-                    )}
-                    <h3 className="text-md font-bold">{p.nome}</h3>
-                    <p className="text-sm text-gray-600 mb-2">
-                      {p.unidade} — R$ {p.preco.toFixed(2)}
-                    </p>
-                    <div className="flex items-center gap-1 mb-2">
-                      <label className="text-sm">Qtd:</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={stockCounts[p.id] ?? 1}               /* ← limite pelo estoque */
-                        value={quantidades[p.id] || 1}
-                        onChange={e =>
-                          setQuantidades(q => ({
-                            ...q,
-                            [p.id]: Math.max(1, Number(e.target.value)),
-                          }))
+        <>
+          {/* Lista de produtos */}
+          {categoriasToShow.map(cat => (
+            <section key={cat} className="mb-8">
+              <h2 className="text-xl font-semibold text-indigo-600 mb-2">
+                {cat}
+              </h2>
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+                {produtos
+                  .filter(p =>
+                    p.categoria === cat &&
+                    (
+                      p.controlaEstoque
+                        ? (stockCounts[p.id] ?? 0) > 0
+                        : p.disponivel
+                    )
+                  )
+                  .map(p => (
+                    <div key={p.id} className="bg-white p-2 rounded shadow flex flex-col">
+                      {p.imagemUrl && (
+                        <Image
+                          src={p.imagemUrl}
+                          alt={p.nome}
+                          width={200}
+                          height={100}
+                          className="object-cover rounded mb-1"
+                        />
+                      )}
+                      <h3 className="text-md font-bold">{p.nome}</h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {p.unidade} — R$ {p.preco.toFixed(2)}
+                      </p>
+                      <div className="flex items-center gap-1 mb-2">
+                        <label className="text-sm">Qtd:</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={p.controlaEstoque ? stockCounts[p.id] ?? 1 : undefined}
+                          value={quantidades[p.id] || 1}
+                          onChange={e =>
+                            setQuantidades(q => ({
+                              ...q,
+                              [p.id]: Math.max(1, Number(e.target.value)),
+                            }))
+                          }
+                          className="w-12 p-1 border rounded text-center text-sm"
+                        />
+                      </div>
+                      <button
+                        onClick={() => adicionarAoCarrinho(p)}
+                        disabled={
+                          p.controlaEstoque
+                            ? (quantidades[p.id] || 1) > (stockCounts[p.id] ?? 0)
+                            : !p.disponivel
                         }
-                        className="w-12 p-1 border rounded text-center text-sm"
-                      />
+                        className="mt-auto bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700 disabled:opacity-50"
+                      >
+                        Adicionar
+                      </button>
                     </div>
-                    <button
-                      onClick={() => adicionarAoCarrinho(p)}
-                      disabled={(quantidades[p.id] || 1) > (stockCounts[p.id] ?? 0)}  /* ← desabilita além do max */
-                      className="mt-auto bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700"
-                    >
-                      Adicionar
-                    </button>
-                  </div>
-                ))}
-            </div>
-          </section>
-        ))
+                  ))}
+              </div>
+            </section>
+          ))}
+        </>
       ) : (
         <>
-          {/* ← Voltar ao menu */}
+          {/* Tela carrinho */}
           <div className="mb-4">
             <button
               onClick={() => setView('menu')}
@@ -424,8 +432,6 @@ export default function CardapioPage() {
               ← Voltar ao menu
             </button>
           </div>
-
-          {/* Início do carrinho */}
           <div className="bg-white p-4 rounded shadow border">
             <div className="flex justify-between items-center mb-4">
               <span className="font-semibold">
@@ -438,59 +444,34 @@ export default function CardapioPage() {
                 Mudar número
               </button>
             </div>
-
             {carrinho.length === 0 ? (
               <p className="text-gray-600">Carrinho vazio.</p>
             ) : (
               <>
                 <ul className="space-y-2 mb-4">
                   {carrinho.map(item => (
-                    <li
-                      key={item.id}
-                      className="flex justify-between items-center"
-                    >
+                    <li key={item.id} className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => decrementarItem(item.id)}
-                          className="px-2 py-1 bg-gray-200 rounded"
-                        >
-                          –
-                        </button>
-                        <span className="text-sm">
-                          {item.nome} × {item.qtd}
-                        </span>
-                        <button
-                          onClick={() => incrementarItem(item.id)}
-                          className="px-2 py-1 bg-gray-200 rounded"
-                        >
-                          +
-                        </button>
+                        <button onClick={() => decrementarItem(item.id)} className="px-2 py-1 bg-gray-200 rounded">–</button>
+                        <span className="text-sm">{item.nome} × {item.qtd}</span>
+                        <button onClick={() => incrementarItem(item.id)} className="px-2 py-1 bg-gray-200 rounded">+</button>
                       </div>
-                      <span className="text-sm">
-                        R$ {(item.preco * item.qtd).toFixed(2)}
-                      </span>
+                      <span className="text-sm">R$ {(item.preco * item.qtd).toFixed(2)}</span>
                     </li>
                   ))}
                 </ul>
-
                 <div className="mb-4">
-                  <label className="block mb-1 text-sm text-gray-700">
-                    Agendar para
-                  </label>
+                  <label className="block mb-1 text-sm text-gray-700">Agendar para</label>
                   <input
                     type="datetime-local"
-                    min={new Date(Date.now() + 3600000)
-                      .toISOString()
-                      .slice(0, 16)}
+                    min={new Date(Date.now() + 3600000).toISOString().slice(0, 16)}
                     value={dataHoraAgendada}
                     onChange={e => setDataHoraAgendada(e.target.value)}
                     className="w-full p-2 border rounded"
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="block mb-1 text-sm text-gray-700">
-                    Forma de Pagamento
-                  </label>
+                  <label className="block mb-1 text-sm text-gray-700">Forma de Pagamento</label>
                   <select
                     value={formaPagamento}
                     onChange={e => setFormaPagamento(e.target.value)}
@@ -505,9 +486,7 @@ export default function CardapioPage() {
                   </select>
                 </div>
                 <div className="mb-4">
-                  <label className="block mb-1 text-sm text-gray-700">
-                    Observação
-                  </label>
+                  <label className="block mb-1 text-sm text-gray-700">Observação</label>
                   <textarea
                     value={observacao}
                     onChange={e => setObservacao(e.target.value)}
@@ -518,7 +497,6 @@ export default function CardapioPage() {
                 <div className="text-right font-bold text-lg mb-4">
                   Total: R$ {total.toFixed(2)}
                 </div>
-
                 <div className="flex gap-2">
                   <button
                     onClick={() => setView('menu')}
@@ -536,22 +514,17 @@ export default function CardapioPage() {
               </>
             )}
           </div>
-          {/* Fim do carrinho */}
         </>
       )}
 
-      {/* modal */}
+      {/* Modal de telefone/cadastro */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
             {modalStep === 'phone' ? (
               <>
-                <h2 className="text-xl font-bold mb-2">
-                  Digite seu WhatsApp
-                </h2>
-                <label className="block mb-1 text-sm">
-                  Digite seu número:
-                </label>
+                <h2 className="text-xl font-bold mb-2">Digite seu WhatsApp</h2>
+                <label className="block mb-1 text-sm">Digite seu número:</label>
                 <input
                   type="tel"
                   value={telefone}
@@ -561,26 +534,14 @@ export default function CardapioPage() {
                   autoFocus
                 />
                 <div className="flex justify-end gap-2">
-                  <button
-                    onClick={cancelarModal}
-                    className="px-4 py-2 rounded border"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handlePhoneContinue}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded"
-                  >
-                    Continuar
-                  </button>
+                  <button onClick={cancelarModal} className="px-4 py-2 rounded border">Cancelar</button>
+                  <button onClick={handlePhoneContinue} className="px-4 py-2 bg-indigo-600 text-white rounded">Continuar</button>
                 </div>
               </>
             ) : (
               <>
                 <h2 className="text-xl font-bold mb-2">Cadastro</h2>
-                <label className="block mb-1 text-sm">
-                  Digite seu nome:
-                </label>
+                <label className="block mb-1 text-sm">Digite seu nome:</label>
                 <input
                   type="text"
                   value={nome}
@@ -588,29 +549,16 @@ export default function CardapioPage() {
                   placeholder="Nome"
                   className="w-full p-2 border rounded mb-3"
                 />
-                <label className="block mb-1 text-sm">
-                  Digite sua data de nascimento:
-                </label>
+                <label className="block mb-1 text-sm">Digite sua data de nascimento:</label>
                 <input
                   type="date"
-                  placeholder="Data de Nascimento"
                   value={aniversario}
                   onChange={e => setAniversario(e.target.value)}
                   className="w-full p-2 border rounded mb-4"
                 />
                 <div className="flex justify-end gap-2">
-                  <button
-                    onClick={cancelarModal}
-                    className="px-4 py-2 rounded border"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleRegisterSubmit}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded"
-                  >
-                    Enviar
-                  </button>
+                  <button onClick={cancelarModal} className="px-4 py-2 rounded border">Cancelar</button>
+                  <button onClick={handleRegisterSubmit} className="px-4 py-2 bg-indigo-600 text-white rounded">Enviar</button>
                 </div>
               </>
             )}
