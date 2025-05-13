@@ -403,8 +403,7 @@ export default function CardapioPage() {
                               [p.id]: Math.max(1, Number(e.target.value)),
                             }))
                           }
-                          className="w-12 p-1 border rounded text-center text-sm"
-                        />
+                          className="w-8 h-8 p-0.5 border rounded text-center text-xs"                        />
                       </div>
                       <button
                         onClick={() => adicionarAoCarrinho(p)}
