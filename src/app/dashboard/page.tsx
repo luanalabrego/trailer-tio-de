@@ -83,9 +83,9 @@ setEstoqueBaixoList(
 
 
     // --- Agendamentos de hoje (comparando no fuso local) ---
-const snapA = await getDocs(collection(db, 'agendamentos'))
-const rawA = snapA.docs.map(d => d.data() as Agendamento)
-const hoje = new Date()
+    const snapA = await getDocs(collection(db, 'agendamentos'))
+    const rawA = snapA.docs.map(d => d.data() as Agendamento)
+    const hoje = new Date()
 const agHoje = rawA.filter(a => {
   if (a.status === 'cancelado') return false
   const dt =
