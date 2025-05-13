@@ -363,8 +363,8 @@ export default function CardapioPage() {
               <h2 className="text-xl font-semibold text-indigo-600 mb-2">
                 {cat}
               </h2>
-              <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
-                {produtos
+              <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
+              {produtos
                   .filter(p =>
                     p.categoria === cat &&
                     (
