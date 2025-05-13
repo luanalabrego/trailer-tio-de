@@ -376,15 +376,16 @@ export default function CardapioPage() {
                   .map(p => (
                     <div key={p.id} className="bg-white p-2 rounded shadow flex flex-col">
                       {p.imagemUrl && (
-                        
-                        <Image
-                          src={p.imagemUrl}
-                          alt={p.nome}
-                          width={200}
-                          height={100}
-                          className="object-cover rounded mb-1"
-                        />
-                      )}
+  <div className="relative w-full h-32 overflow-hidden rounded mb-1">
+    <Image
+      src={p.imagemUrl}
+      alt={p.nome}
+      fill
+      className="object-cover"
+    />
+  </div>
+)}
+
                       <h3 className="text-md font-bold">{p.nome}</h3>
                       <p className="text-sm text-gray-600 mb-2">
                         {p.unidade} — R$ {p.preco.toFixed(2)}
