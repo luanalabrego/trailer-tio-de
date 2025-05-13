@@ -331,10 +331,10 @@ export default function CardapioPage() {
         </button>
       </header>
 
-      <div className="flex gap-2 overflow-x-auto mb-4">
+      <div className="flex gap-2 overflow-x-auto whitespace-nowrap mb-4">
   <button
     onClick={() => setSelectedCategory(null)}
-    className={`px-3 py-1 rounded ${
+    className={`flex-none px-3 py-1 rounded whitespace-nowrap ${
       !selectedCategory ? 'bg-indigo-600 text-white' : 'bg-gray-200'
     }`}
   >
@@ -344,7 +344,7 @@ export default function CardapioPage() {
     <button
       key={cat}
       onClick={() => setSelectedCategory(cat)}
-      className={`px-3 py-1 rounded ${
+      className={`flex-none px-3 py-1 rounded whitespace-nowrap ${
         selectedCategory === cat ? 'bg-indigo-600 text-white' : 'bg-gray-200'
       }`}
     >
@@ -352,6 +352,7 @@ export default function CardapioPage() {
     </button>
   ))}
 </div>
+
 
 
       {view === 'menu' ? (
