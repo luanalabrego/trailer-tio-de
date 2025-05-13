@@ -83,20 +83,26 @@ setEstoqueBaixoList(
 )
 
 
-    // --- Agendamentos de hoje ---
-    const snapA = await getDocs(collection(db, 'agendamentos'))
-    const rawA = snapA.docs.map(d => d.data() as Agendamento)
-    const agHoje = rawA.filter(a => {
-      if (a.status === 'cancelado') return false
-      const dt =
-        a.dataHora instanceof Timestamp
-          ? a.dataHora.toDate()
-          : a.dataHora instanceof Date
-          ? a.dataHora
-          : new Date(a.dataHora)
-      return dt.toISOString().slice(0, 10) === hojeStr
-    })
-    setAgendHojeList(agHoje)
+    // --- Agendamentos de hoje (comparando no fuso local) ---
+const snapA = await getDocs(collection(db, 'agendamentos'))
+const rawA = snapA.docs.map(d => d.data() as Agendamento)
+const hoje = new Date()
+const agHoje = rawA.filter(a => {
+  if (a.status === 'cancelado') return false
+  const dt =
+    a.dataHora instanceof Timestamp
+      ? a.dataHora.toDate()
+      : a.dataHora instanceof Date
+      ? a.dataHora
+      : new Date(a.dataHora)
+  return (
+    dt.getFullYear() === hoje.getFullYear() &&
+    dt.getMonth()    === hoje.getMonth() &&
+    dt.getDate()     === hoje.getDate()
+  )
+})
+setAgendHojeList(agHoje)
+
 
     // --- Aging de pendências >10 dias ---
     const hist = await listarHistoricoVendas()
