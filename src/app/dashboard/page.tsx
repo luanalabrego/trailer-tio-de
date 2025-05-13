@@ -28,8 +28,7 @@ export default function Dashboard() {
   }, [])
 
   async function carregarDados() {
-    const hoje = new Date()
-
+    const hojeLocal = new Date()
     // --- Vendas de hoje ---
     const vendasHoje = await listarVendasDoDia()
     const pagosHoje = vendasHoje.filter(v => v.pago)
