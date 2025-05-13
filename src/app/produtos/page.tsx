@@ -91,8 +91,23 @@ export default function ProdutosPage() {
     e.preventDefault()
     if (!nome.trim() || !categoria || !preco || !unidade) return
 
-    const unidadeFinal =
-      unidade === 'ml' ? `${mlVolume.trim()} ml` : unidade
+// --- lógica de conversão ml → L ---
+let unidadeFinal: string
+if (unidade === 'ml') {
+  const mlNumber = parseFloat(mlVolume.trim())
+  if (!isNaN(mlNumber) && mlNumber % 1000 === 0) {
+    // se for múltiplo exato de 1000, converte para litros inteiros
+    const litros = mlNumber / 1000
+    unidadeFinal = `${litros} L`
+  } else {
+    // senão mantém em ml
+    unidadeFinal = `${mlNumber} ml`
+  }
+} else {
+  unidadeFinal = unidade
+}
+// ------------------------------------
+
 
     try {
       await salvarProduto(
