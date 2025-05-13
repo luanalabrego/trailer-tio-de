@@ -331,28 +331,28 @@ export default function CardapioPage() {
         </button>
       </header>
 
-      {/* Filtro de categorias */}
       <div className="flex gap-2 overflow-x-auto mb-4">
-        <button
-          onClick={() => setSelectedCategory(null)}
-          className={`px-3 py-1 rounded ${
-            !selectedCategory ? 'bg-indigo-600 text-white' : 'bg-gray-200'
-          }`}
-        >
-          Todos
-        </button>
-        {categorias.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1 rounded ${
-              selectedCategory === cat ? 'bg-indigo-600 text-white' : 'bg-gray-200'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
+  <button
+    onClick={() => setSelectedCategory(null)}
+    className={`px-3 py-1 rounded ${
+      !selectedCategory ? 'bg-indigo-600 text-white' : 'bg-gray-200'
+    }`}
+  >
+    Todos
+  </button>
+  {categorias.map(cat => (
+    <button
+      key={cat}
+      onClick={() => setSelectedCategory(cat)}
+      className={`px-3 py-1 rounded ${
+        selectedCategory === cat ? 'bg-indigo-600 text-white' : 'bg-gray-200'
+      }`}
+    >
+      {cat}
+    </button>
+  ))}
+</div>
+
 
       {view === 'menu' ? (
         <>
@@ -375,6 +375,7 @@ export default function CardapioPage() {
                   .map(p => (
                     <div key={p.id} className="bg-white p-2 rounded shadow flex flex-col">
                       {p.imagemUrl && (
+                        
                         <Image
                           src={p.imagemUrl}
                           alt={p.nome}
