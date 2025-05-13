@@ -28,7 +28,6 @@ export default function Dashboard() {
   }, [])
 
   async function carregarDados() {
-    const hojeLocal = new Date()
     // --- Vendas de hoje ---
     const vendasHoje = await listarVendasDoDia()
     const pagosHoje = vendasHoje.filter(v => v.pago)
@@ -38,8 +37,8 @@ export default function Dashboard() {
     })
 
     // --- Vendas de ontem ---
-    const ontem = new Date(now)
-    ontem.setDate(ontem.getDate() - 1)
+    const ontem = new Date()
+        ontem.setDate(ontem.getDate() - 1)
     const inicioOntem = Timestamp.fromDate(
       new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate(), 0, 0, 0)
     )
