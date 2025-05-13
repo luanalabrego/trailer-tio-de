@@ -28,8 +28,7 @@ export default function Dashboard() {
   }, [])
 
   async function carregarDados() {
-    const now = new Date()
-    const hojeStr = now.toISOString().slice(0, 10)
+    const hoje = new Date()
 
     // --- Vendas de hoje ---
     const vendasHoje = await listarVendasDoDia()
