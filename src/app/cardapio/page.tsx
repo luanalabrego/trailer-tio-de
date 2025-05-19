@@ -274,7 +274,7 @@ export default function CardapioPage() {
   *Agendado para:* ${when}
   *Entrega:* ${payload.tipoEntrega}${payload.tipoEntrega === 'entrega' ? '\n*Endereço:* ' + payload.localEntrega : ''}
   ${payload.observacao ? '\n*Obs:* ' + payload.observacao : ''}`;
-    const lojaPhone = '55119998701457';
+    const lojaPhone = '5511998701457';
     const waUrl = `https://wa.me/${lojaPhone}?text=${encodeURIComponent(mensagem)}`;
   
     // 7) Redireciona a janela já aberta para o WhatsApp da loja
