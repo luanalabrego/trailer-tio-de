@@ -270,26 +270,26 @@ export default function CardapioPage() {
         ? payload.dataHora.toDate().toLocaleString('pt-BR')
         : new Date(payload.dataHora).toLocaleString('pt-BR');
   
-    const mensagem = `🛒 *Novo Pedido*
+    const mensagem = `*Novo Pedido*
   
   *Cliente:* ${payload.nome}
   
   *Itens:*
   ${linhas}
   
-  💲 *Total:* R$ ${payload.total.toFixed(2)}
+  *Total:* R$ ${payload.total.toFixed(2)}
   
-  📅 *Data/Hora:* ${when}
+  *Data/Hora:* ${when}
   
   *Tipo de Entrega:* ${payload.tipoEntrega}
   ${
     payload.tipoEntrega === 'entrega'
-      ? `📍 *Endereço:* ${payload.localEntrega}\n`
+      ? `*Endereço:* ${payload.localEntrega}\n`
       : ''
   }
   ${
     payload.observacao
-      ? `📝 *Observação:* ${payload.observacao}\n`
+      ? `*Observação:* ${payload.observacao}\n`
       : ''
   }
   `;
