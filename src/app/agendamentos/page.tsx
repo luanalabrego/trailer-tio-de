@@ -215,76 +215,84 @@ export default function AgendamentosPage() {
                   {isOpen && (
   <div className="px-4 pb-4 space-y-4">
     {/* ...outros campos... */}
-
     {(() => {
-      const itensPorCategoria = ag.itens.reduce(
-        (acc, i) => {
-          const prod = produtos.find(p => p.id === i.id)
-          if (!prod) return acc
-          if (!acc[prod.categoria]) acc[prod.categoria] = []
-          acc[prod.categoria].push({ prod, qtd: i.qtd })
-          return acc
-        },
-        {} as Record<string, { prod: Produto; qtd: number }[]>
-      )
+  const itensPorCategoria = ag.itens.reduce(
+    (acc, i) => {
+      const prod = produtos.find(p => p.id === i.id)
+      if (!prod) return acc
+      if (!acc[prod.categoria]) acc[prod.categoria] = []
+      acc[prod.categoria].push({ prod, qtd: i.qtd })
+      return acc
+    },
+    {} as Record<string, { prod: Produto; qtd: number }[]>
+  )
 
-      return (
-        <ul className="space-y-4">
-          {Object.entries(itensPorCategoria).map(([categoria, lista]) => (
-            <li key={categoria}>
-              <h4 className="font-semibold text-base mb-1">{categoria}</h4>
-              <ul className="ml-4 space-y-1">
-                {lista.map(({ prod, qtd }) => (
-                  <li key={prod.id} className="flex justify-between items-center">
-                    <span>
-                      {qtd} - {prod.nome} {prod.unidade}
-                    </span>
-                    <span>R$ {(prod.preco * qtd).toFixed(2)}</span>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
-      )
-    })()}
+  return (
+    <ul className="space-y-4">
+      {Object.entries(itensPorCategoria).map(([categoria, lista]) => (
+        <li key={categoria}>
+          <h4 className="font-semibold text-base mb-1">{categoria}</h4>
+          <ul className="ml-4 space-y-1">
+            {lista.map(({ prod, qtd }) => (
+              <li key={prod.id} className="flex justify-between items-center">
+                <span>
+                  {qtd} - {prod.nome} {prod.unidade}
+                </span>
+                <span>R$ {(prod.preco * qtd).toFixed(2)}</span>
+              </li>
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
+  )
+})()}
 
-    <p className="text-right font-medium">
-      Total do Pedido: R$ {Number(ag.total).toFixed(2)}
-    </p>
+{/* Exibe a observação, se houver */}
+{ag.observacao && (
+  <div>
+    <h4 className="font-semibold text-base">Observação</h4>
+    <p className="text-sm text-gray-700">{ag.observacao}</p>
+  </div>
+)}
 
-                      <div className="flex gap-2">
-                        {ag.status === 'pendente' && (
-                          <button
-                            onClick={() => confirmacaoPedido(ag)}
-                            className="bg-blue-600 text-white px-3 py-1 rounded"
-                          >
-                            Confirmar
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleCancelarPedido(ag)}
-                          className="bg-red-600 text-white px-3 py-1 rounded"
-                        >
-                          Cancelar
-                        </button>
-                        {ag.status === 'confirmado' && !ag.pago && (
-                          <button
-                            onClick={() => handleRegistrarPagamento(ag)}
-                            className="bg-purple-600 text-white px-3 py-1 rounded"
-                          >
-                            Registrar Pag.
-                          </button>
-                        )}
-                        {ag.status === 'confirmado' && (
-                          <button
-                            onClick={() => finalizarPedido(ag)}
-                            className="bg-green-600 text-white px-3 py-1 rounded"
-                            type="button"
-                          >
-                            Finalizar
-                          </button>
-                        )}
+<p className="text-right font-medium">
+  Total do Pedido: R$ {Number(ag.total).toFixed(2)}
+</p>
+
+<div className="flex gap-2">
+  {ag.status === 'pendente' && (
+    <button
+      onClick={() => confirmacaoPedido(ag)}
+      className="bg-blue-600 text-white px-3 py-1 rounded"
+    >
+      Confirmar
+    </button>
+  )}
+  <button
+    onClick={() => handleCancelarPedido(ag)}
+    className="bg-red-600 text-white px-3 py-1 rounded"
+  >
+    Cancelar
+  </button>
+  {ag.status === 'confirmado' && !ag.pago && (
+    <button
+      onClick={() => handleRegistrarPagamento(ag)}
+      className="bg-purple-600 text-white px-3 py-1 rounded"
+    >
+      Registrar Pag.
+    </button>
+  )}
+  {ag.status === 'confirmado' && (
+    <button
+      onClick={() => finalizarPedido(ag)}
+      className="bg-green-600 text-white px-3 py-1 rounded"
+      type="button"
+    >
+      Finalizar
+    </button>
+  )}
+</div>
                       </div>
                     </div>
                   )}
