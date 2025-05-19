@@ -164,7 +164,7 @@ export default function AgendamentosPage() {
 
   const ativos = sortedAgendamentos.filter(
     ag => !['cancelado', 'finalizado'].includes(ag.status)
-  )
+  );
 
   return (
     <>
