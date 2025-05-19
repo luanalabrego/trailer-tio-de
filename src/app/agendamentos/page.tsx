@@ -24,7 +24,6 @@ export default function AgendamentosPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
-  // Função memoizada para evitar aviso de dependência no useEffect
   const carregar = useCallback(async () => {
     try {
       const [listaClientes, snap] = await Promise.all([
@@ -65,7 +64,6 @@ export default function AgendamentosPage() {
   }, [])
 
   useEffect(() => {
-    // carrega produtos e agendamentos em paralelo
     Promise.all([listarProdutos(), carregar()])
       .then(([prods]) => setProdutos(prods))
       .catch(console.error)
@@ -187,18 +185,17 @@ export default function AgendamentosPage() {
                   ? 'border-yellow-400'
                   : 'border-green-400'
 
-              const itensPorCategoria = useMemo(() => {
-                return ag.itens.reduce(
-                  (acc, i) => {
-                    const prod = produtos.find(p => p.id === i.id)
-                    if (!prod) return acc
-                    if (!acc[prod.categoria]) acc[prod.categoria] = []
-                    acc[prod.categoria].push({ prod, qtd: i.qtd })
-                    return acc
-                  },
-                  {} as Record<string, { prod: Produto; qtd: number }[]>
-                )
-              }, [ag.itens, produtos])
+              // calculo direto, sem hook
+              const itensPorCategoria = ag.itens.reduce(
+                (acc, i) => {
+                  const prod = produtos.find(p => p.id === i.id)
+                  if (!prod) return acc
+                  if (!acc[prod.categoria]) acc[prod.categoria] = []
+                  acc[prod.categoria].push({ prod, qtd: i.qtd })
+                  return acc
+                },
+                {} as Record<string, { prod: Produto; qtd: number }[]>
+              )
 
               return (
                 <div
@@ -262,9 +259,7 @@ export default function AgendamentosPage() {
                       {ag.observacao && (
                         <div>
                           <h4 className="font-semibold text-base">Observação</h4>
-                          <p className="text-sm text-gray-700">
-                            {ag.observacao}
-                          </p>
+                          <p className="text-sm text-gray-700">{ag.observacao}</p>
                         </div>
                       )}
 
