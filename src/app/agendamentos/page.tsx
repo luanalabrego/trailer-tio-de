@@ -290,18 +290,11 @@ export default function AgendamentosPage() {
       type="button"
     >
       Finalizar
-    </button>
-  )}
-</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-    </>
-  )
-}
+              </button>
+            )}
+          </div>  {/* fecha <div className="flex gap-2"> */}
+        </div>    {/* fecha <div className="px-4 pb-4 space-y-4"> */}
+      )}         {/* fecha {isOpen && ( … )} */}
+    </div>      {/* fecha container do card do agendamento */}
+  )            {/* fecha o return do map */}
+})}            {/* fecha o .map(...) */}
