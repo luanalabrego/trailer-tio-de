@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { db } from '@/firebase/firebase'
 import {
   collection,
@@ -24,59 +24,62 @@ export default function AgendamentosPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
-  useEffect(() => {
-    // carrega produtos e agendamentos em paralelo
-    Promise.all([
-      listarProdutos().then(setProdutos),
-      carregar()
-    ])
+  // Função memoizada para evitar aviso de dependência no useEffect
+  const carregar = useCallback(async () => {
+    try {
+      const [listaClientes, snap] = await Promise.all([
+        listarClientes(),
+        getDocs(collection(db, 'agendamentos')),
+      ])
+      setClientes(listaClientes)
+
+      const dados = snap.docs.map(d => {
+        const raw = d.data() as DocumentData
+        const dataCriacaoTs: Timestamp =
+          (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
+
+        return {
+          id: d.id,
+          nome: String(raw.nome),
+          whatsapp: String(raw.whatsapp),
+          dataHora: raw.dataHora as Timestamp | string | Date,
+          dataCriacao: dataCriacaoTs,
+          itens: raw.itens as PedidoItem[],
+          formaPagamento: String(raw.formaPagamento),
+          total: Number(raw.total),
+          pago: Boolean(raw.pago),
+          localEntrega: raw.localEntrega ? String(raw.localEntrega) : undefined,
+          observacao: raw.observacao ? String(raw.observacao) : undefined,
+          status: String(raw.status) as
+            | 'pendente'
+            | 'confirmado'
+            | 'cancelado'
+            | 'finalizado',
+        } as Agendamento
+      })
+
+      setAgendamentos(dados)
+    } catch (error) {
+      console.error('Erro ao carregar agendamentos:', error)
+    }
   }, [])
 
-  async function carregar() {
-    const [listaClientes, snap] = await Promise.all([
-      listarClientes(),
-      getDocs(collection(db, 'agendamentos')),
-    ])
-    setClientes(listaClientes)
-
-    const dados = snap.docs.map(d => {
-      const raw = d.data() as DocumentData
-      const dataCriacaoTs: Timestamp =
-        (raw.dataCriacao as Timestamp) ?? (raw.criadoEm as Timestamp)
-
-      return {
-        id: d.id,
-        nome: String(raw.nome),
-        whatsapp: String(raw.whatsapp),
-        dataHora: raw.dataHora as Timestamp | string | Date,
-        dataCriacao: dataCriacaoTs,
-        itens: raw.itens as PedidoItem[],
-        formaPagamento: String(raw.formaPagamento),
-        total: Number(raw.total),
-        pago: Boolean(raw.pago),
-        localEntrega: raw.localEntrega ? String(raw.localEntrega) : undefined,
-        observacao: raw.observacao ? String(raw.observacao) : undefined,
-        status: String(raw.status) as
-          | 'pendente'
-          | 'confirmado'
-          | 'cancelado'
-          | 'finalizado',
-      } as Agendamento
-    })
-
-    setAgendamentos(dados)
-  }
+  useEffect(() => {
+    // carrega produtos e agendamentos em paralelo
+    Promise.all([listarProdutos(), carregar()])
+      .then(([prods]) => setProdutos(prods))
+      .catch(console.error)
+  }, [carregar])
 
   const sortedAgendamentos = useMemo(() => {
-    return [...agendamentos].sort((a, b) => {
-      const toMs = (dt: Timestamp | Date | string) =>
-        dt instanceof Timestamp
-          ? dt.toDate().getTime()
-          : dt instanceof Date
-          ? dt.getTime()
-          : new Date(dt).getTime()
-      return toMs(a.dataHora) - toMs(b.dataHora)
-    })
+    const toMs = (dt: Timestamp | Date | string) =>
+      dt instanceof Timestamp
+        ? dt.toDate().getTime()
+        : dt instanceof Date
+        ? dt.getTime()
+        : new Date(dt).getTime()
+
+    return [...agendamentos].sort((a, b) => toMs(a.dataHora) - toMs(b.dataHora))
   }, [agendamentos])
 
   function toggle(id: string) {
@@ -164,13 +167,14 @@ export default function AgendamentosPage() {
 
   const ativos = sortedAgendamentos.filter(
     ag => !['cancelado', 'finalizado'].includes(ag.status)
-  );
+  )
 
   return (
     <>
       <Header />
       <div className="pt-20 px-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Agendamentos</h1>
+
         {ativos.length === 0 ? (
           <p className="text-gray-600">Nenhum agendamento ativo.</p>
         ) : (
@@ -179,7 +183,22 @@ export default function AgendamentosPage() {
               const isOpen = expanded.has(ag.id)
               const tipo = ag.localEntrega ? 'Entrega' : 'Retirada'
               const borderClass =
-                ag.status === 'pendente' ? 'border-yellow-400' : 'border-green-400'
+                ag.status === 'pendente'
+                  ? 'border-yellow-400'
+                  : 'border-green-400'
+
+              const itensPorCategoria = useMemo(() => {
+                return ag.itens.reduce(
+                  (acc, i) => {
+                    const prod = produtos.find(p => p.id === i.id)
+                    if (!prod) return acc
+                    if (!acc[prod.categoria]) acc[prod.categoria] = []
+                    acc[prod.categoria].push({ prod, qtd: i.qtd })
+                    return acc
+                  },
+                  {} as Record<string, { prod: Produto; qtd: number }[]>
+                )
+              }, [ag.itens, produtos])
 
               return (
                 <div
@@ -205,7 +224,8 @@ export default function AgendamentosPage() {
                           {ag.nome} — {tipo} — {formatarData(ag.dataHora)}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {ag.itens.length} item(s) • {ag.formaPagamento} • Total: R$ {Number(ag.total).toFixed(2)}
+                          {ag.itens.length} item(s) • {ag.formaPagamento} • Total: R${' '}
+                          {Number(ag.total).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -213,88 +233,86 @@ export default function AgendamentosPage() {
                   </button>
 
                   {isOpen && (
-  <div className="px-4 pb-4 space-y-4">
-    {/* ...outros campos... */}
-    {(() => {
-  const itensPorCategoria = ag.itens.reduce(
-    (acc, i) => {
-      const prod = produtos.find(p => p.id === i.id)
-      if (!prod) return acc
-      if (!acc[prod.categoria]) acc[prod.categoria] = []
-      acc[prod.categoria].push({ prod, qtd: i.qtd })
-      return acc
-    },
-    {} as Record<string, { prod: Produto; qtd: number }[]>
+                    <div className="px-4 pb-4 space-y-4">
+                      <ul className="space-y-4">
+                        {Object.entries(itensPorCategoria).map(
+                          ([categoria, lista]) => (
+                            <li key={categoria}>
+                              <h4 className="font-semibold text-base mb-1">
+                                {categoria}
+                              </h4>
+                              <ul className="ml-4 space-y-1">
+                                {lista.map(({ prod, qtd }) => (
+                                  <li
+                                    key={prod.id}
+                                    className="flex justify-between items-center"
+                                  >
+                                    <span>
+                                      {qtd} - {prod.nome} {prod.unidade}
+                                    </span>
+                                    <span>R$ {(prod.preco * qtd).toFixed(2)}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </li>
+                          )
+                        )}
+                      </ul>
+
+                      {ag.observacao && (
+                        <div>
+                          <h4 className="font-semibold text-base">Observação</h4>
+                          <p className="text-sm text-gray-700">
+                            {ag.observacao}
+                          </p>
+                        </div>
+                      )}
+
+                      <p className="text-right font-medium">
+                        Total do Pedido: R$ {Number(ag.total).toFixed(2)}
+                      </p>
+
+                      <div className="flex gap-2">
+                        {ag.status === 'pendente' && (
+                          <button
+                            onClick={() => confirmacaoPedido(ag)}
+                            className="bg-blue-600 text-white px-3 py-1 rounded"
+                          >
+                            Confirmar
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleCancelarPedido(ag)}
+                          className="bg-red-600 text-white px-3 py-1 rounded"
+                        >
+                          Cancelar
+                        </button>
+                        {ag.status === 'confirmado' && !ag.pago && (
+                          <button
+                            onClick={() => handleRegistrarPagamento(ag)}
+                            className="bg-purple-600 text-white px-3 py-1 rounded"
+                          >
+                            Registrar Pag.
+                          </button>
+                        )}
+                        {ag.status === 'confirmado' && (
+                          <button
+                            onClick={() => finalizarPedido(ag)}
+                            className="bg-green-600 text-white px-3 py-1 rounded"
+                            type="button"
+                          >
+                            Finalizar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </>
   )
-
-  return (
-    <ul className="space-y-4">
-      {Object.entries(itensPorCategoria).map(([categoria, lista]) => (
-        <li key={categoria}>
-          <h4 className="font-semibold text-base mb-1">{categoria}</h4>
-          <ul className="ml-4 space-y-1">
-            {lista.map(({ prod, qtd }) => (
-              <li key={prod.id} className="flex justify-between items-center">
-                <span>
-                  {qtd} - {prod.nome} {prod.unidade}
-                </span>
-                <span>R$ {(prod.preco * qtd).toFixed(2)}</span>
-              </li>
-            ))}
-          </ul>
-        </li>
-      ))}
-    </ul>
-  )
-})()}
-
-{/* Exibe a observação, se houver */}
-{ag.observacao && (
-  <div>
-    <h4 className="font-semibold text-base">Observação</h4>
-    <p className="text-sm text-gray-700">{ag.observacao}</p>
-  </div>
-)}
-
-<p className="text-right font-medium">
-  Total do Pedido: R$ {Number(ag.total).toFixed(2)}
-</p>
-
-<div className="flex gap-2">
-  {ag.status === 'pendente' && (
-    <button
-      onClick={() => confirmacaoPedido(ag)}
-      className="bg-blue-600 text-white px-3 py-1 rounded"
-    >
-      Confirmar
-    </button>
-  )}
-  <button
-    onClick={() => handleCancelarPedido(ag)}
-    className="bg-red-600 text-white px-3 py-1 rounded"
-  >
-    Cancelar
-  </button>
-  {ag.status === 'confirmado' && !ag.pago && (
-    <button
-      onClick={() => handleRegistrarPagamento(ag)}
-      className="bg-purple-600 text-white px-3 py-1 rounded"
-    >
-      Registrar Pag.
-    </button>
-  )}
-  {ag.status === 'confirmado' && (
-    <button
-      onClick={() => finalizarPedido(ag)}
-      className="bg-green-600 text-white px-3 py-1 rounded"
-      type="button"
-    >
-      Finalizar
-              </button>
-            )}
-          </div>  {/* fecha <div className="flex gap-2"> */}
-        </div>    {/* fecha <div className="px-4 pb-4 space-y-4"> */}
-      )}         {/* fecha {isOpen && ( … )} */}
-    </div>      {/* fecha container do card do agendamento */}
-  )            {/* fecha o return do map */}
-})}            {/* fecha o .map(...) */}
+}
