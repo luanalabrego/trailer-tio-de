@@ -295,7 +295,7 @@ export default function CardapioPage() {
   `;
   
     const lojaPhone = '5511998701457';
-    const waUrl = `whatsapp://send?phone=${lojaPhone}&text=${encodeURIComponent(mensagem)}`;
+    const waUrl = `https://wa.me/${lojaPhone}?text=${encodeURIComponent(mensagem)}`
   
     // 7) Redireciona a janela já aberta para o WhatsApp da loja
     if (waWin) {
