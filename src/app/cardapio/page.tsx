@@ -260,57 +260,47 @@ export default function CardapioPage() {
     });
     setStockCounts(newCounts);
   
-    // 6) Monta mensagem e URL do WhatsApp
+    // 6) Monta mensagem “respirada” e a URL do WhatsApp
     const linhas = payload.itens
       .map(i => `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`)
-      .join('\n');
+      .join('\n\n');
+  
     const when =
       payload.dataHora instanceof Timestamp
         ? payload.dataHora.toDate().toLocaleString('pt-BR')
         : new Date(payload.dataHora).toLocaleString('pt-BR');
-// 6) Monta mensagem e URL do WhatsApp
-const linhas = payload.itens
-  .map(i => `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`)
-  .join('\n');
-
-const when =
-  payload.dataHora instanceof Timestamp
-    ? payload.dataHora.toDate().toLocaleString('pt-BR')
-    : new Date(payload.dataHora).toLocaleString('pt-BR');
-
-// aqui o “template” com linhas em branco e emojis
-const mensagem = `🛒 *Novo Pedido*
-
-👤 *Cliente:* ${payload.nome}
-
-📋 *Itens:*
-${linhas}
-
-💲 *Total:* R$ ${payload.total.toFixed(2)}
-
-📅 *Data/Hora:* ${when}
-
-🚚 *Tipo de Entrega:* ${payload.tipoEntrega}
-${
-  payload.tipoEntrega === 'entrega'
-    ? `📍 *Endereço:* ${payload.localEntrega}\n`
-    : ''
-}
-${
-  payload.observacao
-    ? `📝 *Observação:* ${payload.observacao}\n`
-    : ''
-}
-`;
-
-const lojaPhone = '5511998701457';
-const waUrl = `https://wa.me/${lojaPhone}?text=${encodeURIComponent(mensagem)}`;
-
-// 7) Redireciona a janela já aberta para o WhatsApp da loja
-if (waWin) {
-  waWin.location.href = waUrl;
-}
-
+  
+    const mensagem = `🛒 *Novo Pedido*
+  
+  👤 *Cliente:* ${payload.nome}
+  
+  📋 *Itens:*
+  ${linhas}
+  
+  💲 *Total:* R$ ${payload.total.toFixed(2)}
+  
+  📅 *Data/Hora:* ${when}
+  
+  🚚 *Tipo de Entrega:* ${payload.tipoEntrega}
+  ${
+    payload.tipoEntrega === 'entrega'
+      ? `📍 *Endereço:* ${payload.localEntrega}\n`
+      : ''
+  }
+  ${
+    payload.observacao
+      ? `📝 *Observação:* ${payload.observacao}\n`
+      : ''
+  }
+  `;
+  
+    const lojaPhone = '5511998701457';
+    const waUrl = `whatsapp://send?phone=${lojaPhone}&text=${encodeURIComponent(mensagem)}`;
+  
+    // 7) Redireciona a janela já aberta para o WhatsApp da loja
+    if (waWin) {
+      waWin.location.href = waUrl;
+    }
   
     // 8) Limpa tudo e volta ao menu
     setCarrinho([]);
@@ -320,7 +310,7 @@ if (waWin) {
     setTipoEntrega('retirada');
     setLocalEntrega('');
     setView('menu');
-  }  
+  }
   
 
   return (
