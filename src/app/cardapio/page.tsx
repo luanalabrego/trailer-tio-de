@@ -272,16 +272,16 @@ export default function CardapioPage() {
   
     const mensagem = `🛒 *Novo Pedido*
   
-  👤 *Cliente:* ${payload.nome}
+  *Cliente:* ${payload.nome}
   
-  📋 *Itens:*
+  *Itens:*
   ${linhas}
   
   💲 *Total:* R$ ${payload.total.toFixed(2)}
   
   📅 *Data/Hora:* ${when}
   
-  🚚 *Tipo de Entrega:* ${payload.tipoEntrega}
+  *Tipo de Entrega:* ${payload.tipoEntrega}
   ${
     payload.tipoEntrega === 'entrega'
       ? `📍 *Endereço:* ${payload.localEntrega}\n`
