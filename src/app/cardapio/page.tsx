@@ -258,27 +258,47 @@ export default function CardapioPage() {
     })
     setStockCounts(newCounts)
 
-    if (confirm('Pedido confirmado!\n\nDeseja enviar o resumo via WhatsApp?')) {
-      const linhas = payload.itens
-        .map(
-          i =>
-            `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`
-        )
-        .join('\n')
-      const when =
-        payload.dataHora instanceof Timestamp
-          ? payload.dataHora.toDate().toLocaleString('pt-BR')
-          : new Date(payload.dataHora).toLocaleString('pt-BR')
-
-      window.open(
-        `https://wa.me/55${telefone}?text=${encodeURIComponent(
-          `Olá ${payload.nome},\n${linhas}\nTotal: R$ ${payload.total.toFixed(
-            2
-          )}\nAgendado para: ${when}`
-        )}`,
-        '_blank'
+       // abre confirmação antes de enviar à loja
+   if (
+    confirm(
+      'Pedido confirmado!\n\nDeseja enviar o pedido via WhatsApp para a loja?'
+    )
+  ) {
+    // monta as linhas do pedido
+    const linhas = payload.itens
+      .map(
+        (i) =>
+          `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`
       )
-    }
+      .join('\n');
+
+    // formata data/hora para pt-BR
+    const when =
+      payload.dataHora instanceof Timestamp
+        ? payload.dataHora.toDate().toLocaleString('pt-BR')
+        : new Date(payload.dataHora).toLocaleString('pt-BR');
+
+    // mensagem para a loja
+    const mensagem = `🛒 *Novo pedido de* ${payload.nome}
+${linhas}
+*Total:* R$ ${payload.total.toFixed(2)}
+*Agendado para:* ${when}
+*Entrega:* ${payload.tipoEntrega}${
+ payload.tipoEntrega === 'entrega'
+   ? '\n*Endereço:* ' + payload.localEntrega
+   : ''
+}${payload.observacao ? '\n*Obs:* ' + payload.observacao : ''}`;
+
+    // telefone da loja no formato internacional (Brasil 55 + DDD 11 + número)
+    const lojaPhone = '55119998701457';
+
+    // abre WhatsApp direcionado à loja
+    window.open(
+      `https://wa.me/${lojaPhone}?text=${encodeURIComponent(mensagem)}`,
+      '_blank'
+    );
+  }
+
 
     // limpa tudo e volta ao menu
     setCarrinho([])
