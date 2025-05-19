@@ -203,15 +203,20 @@ export default function CardapioPage() {
   const total = carrinho.reduce((sum, i) => sum + i.preco * i.qtd, 0)
 
   async function handleAgendar() {
+    // 1) Validações iniciais
     if (!dataHoraAgendada || !formaPagamento || carrinho.length === 0) {
-      alert('Defina data/hora, forma de pagamento e adicione itens.')
-      return
+      alert('Defina data/hora, forma de pagamento e adicione itens.');
+      return;
     }
     if (tipoEntrega === 'entrega' && !localEntrega) {
-      alert('Escolha o local de entrega.')
-      return
+      alert('Escolha o local de entrega.');
+      return;
     }
-
+  
+    // 2) Abre janela em branco imediatamente (não será bloqueada)
+    const waWin = window.open('', '_blank');
+  
+    // 3) Prepara payload e salva no Firebase
     const payload: AgendamentoPayload = {
       nome: clienteExistente!.nome,
       whatsapp: telefone,
@@ -222,93 +227,71 @@ export default function CardapioPage() {
       observacao,
       tipoEntrega,
       localEntrega: tipoEntrega === 'entrega' ? localEntrega : undefined,
-    }
-    await salvarAgendamento(payload)
-
-    // Deduza estoque FIFO lote a lote
-    const lots = await listarEstoque()
+    };
+    await salvarAgendamento(payload);
+  
+    // 4) Ajusta estoque FIFO...
+    const lots = await listarEstoque();
     for (const item of carrinho) {
-      let remaining = item.qtd
+      let remaining = item.qtd;
       const productLots = lots
         .filter(l => l.produtoId === item.id)
-        .sort((a, b) =>
-          a.inseridoEm.toDate().getTime() - b.inseridoEm.toDate().getTime()
-        )
-
+        .sort((a, b) => a.inseridoEm.toDate().getTime() - b.inseridoEm.toDate().getTime());
       for (const lot of productLots) {
-        if (remaining <= 0) break
-        const toDeduct = Math.min(lot.quantidade, remaining)
-        await ajustarQuantidade(lot.id, lot.quantidade - toDeduct)
+        if (remaining <= 0) break;
+        const toDeduct = Math.min(lot.quantidade, remaining);
+        await ajustarQuantidade(lot.id, lot.quantidade - toDeduct);
         await registrarHistoricoEstoque({
           produtoId: lot.produtoId,
           nome: item.nome,
           ajuste: -toDeduct,
           motivo: 'Venda',
           criadoEm: Timestamp.now(),
-        })
-        remaining -= toDeduct
+        });
+        remaining -= toDeduct;
       }
     }
-
-    // Atualiza o estado local de estoque
-    const updatedLots = await listarEstoque()
-    const newCounts: Record<string, number> = {}
+  
+    // 5) Atualiza estoque local
+    const updatedLots = await listarEstoque();
+    const newCounts: Record<string, number> = {};
     updatedLots.forEach(l => {
-      newCounts[l.produtoId] = (newCounts[l.produtoId] || 0) + l.quantidade
-    })
-    setStockCounts(newCounts)
-
-       // abre confirmação antes de enviar à loja
-   if (
-    confirm(
-      'Pedido confirmado!\n\nDeseja enviar o pedido via WhatsApp para a loja?'
-    )
-  ) {
-    // monta as linhas do pedido
+      newCounts[l.produtoId] = (newCounts[l.produtoId] || 0) + l.quantidade;
+    });
+    setStockCounts(newCounts);
+  
+    // 6) Monta mensagem e URL do WhatsApp
     const linhas = payload.itens
-      .map(
-        (i) =>
-          `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`
-      )
+      .map(i => `- ${i.nome} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}`)
       .join('\n');
-
-    // formata data/hora para pt-BR
     const when =
       payload.dataHora instanceof Timestamp
         ? payload.dataHora.toDate().toLocaleString('pt-BR')
         : new Date(payload.dataHora).toLocaleString('pt-BR');
-
-    // mensagem para a loja
     const mensagem = `🛒 *Novo pedido de* ${payload.nome}
-${linhas}
-*Total:* R$ ${payload.total.toFixed(2)}
-*Agendado para:* ${when}
-*Entrega:* ${payload.tipoEntrega}${
- payload.tipoEntrega === 'entrega'
-   ? '\n*Endereço:* ' + payload.localEntrega
-   : ''
-}${payload.observacao ? '\n*Obs:* ' + payload.observacao : ''}`;
-
-    // telefone da loja no formato internacional (Brasil 55 + DDD 11 + número)
+  ${linhas}
+  *Total:* R$ ${payload.total.toFixed(2)}
+  *Agendado para:* ${when}
+  *Entrega:* ${payload.tipoEntrega}${payload.tipoEntrega === 'entrega' ? '\n*Endereço:* ' + payload.localEntrega : ''}
+  ${payload.observacao ? '\n*Obs:* ' + payload.observacao : ''}`;
     const lojaPhone = '55119998701457';
-
-    // abre WhatsApp direcionado à loja
-    window.open(
-      `https://wa.me/${lojaPhone}?text=${encodeURIComponent(mensagem)}`,
-      '_blank'
-    );
-  }
-
-
-    // limpa tudo e volta ao menu
-    setCarrinho([])
-    setDataHoraAgendada('')
-    setFormaPagamento('')
-    setObservacao('')
-    setTipoEntrega('retirada')
-    setLocalEntrega('')
-    setView('menu')
-  }
+    const waUrl = `https://wa.me/${lojaPhone}?text=${encodeURIComponent(mensagem)}`;
+  
+    // 7) Redireciona a janela já aberta para o WhatsApp da loja
+    if (waWin) {
+      waWin.location.href = waUrl;
+    }
+  
+    // 8) Limpa tudo e volta ao menu
+    setCarrinho([]);
+    setDataHoraAgendada('');
+    setFormaPagamento('');
+    setObservacao('');
+    setTipoEntrega('retirada');
+    setLocalEntrega('');
+    setView('menu');
+  }  
+  
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 max-w-4xl mx-auto pt-8">
